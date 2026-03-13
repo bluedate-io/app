@@ -38,8 +38,8 @@ export const config = {
   },
 
   supabase: {
-    url: optionalEnv("SUPABASE_URL", ""),
-    anonKey: optionalEnv("SUPABASE_ANON_KEY", ""),
+    url: optionalEnv("NEXT_PUBLIC_SUPABASE_URL", ""),
+    anonKey: optionalEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY", ""),
     photoBucket: optionalEnv("SUPABASE_PHOTO_BUCKET", "photos"),
   },
 } as const;

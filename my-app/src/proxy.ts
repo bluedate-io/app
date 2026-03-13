@@ -10,7 +10,7 @@ const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
 ];
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const requestId = uuidv4();
   const origin = req.headers.get("origin") ?? "";
 
