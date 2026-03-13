@@ -21,8 +21,10 @@ export function authenticate(req: NextRequest): RequestContext {
   const payload = container.authService.verifyAccessToken(token);
   return {
     userId: payload.sub,
+    phone: payload.phone,
     email: payload.email,
     role: payload.role,
+    onboardingCompleted: payload.onboardingCompleted,
     requestId: uuidv4(),
   };
 }

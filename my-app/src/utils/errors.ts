@@ -46,3 +46,38 @@ export class BadRequestError extends AppError {
     this.name = "BadRequestError";
   }
 }
+
+export class OtpInvalidError extends AppError {
+  constructor() {
+    super("Invalid OTP code", ErrorCode.OTP_INVALID, 400);
+    this.name = "OtpInvalidError";
+  }
+}
+
+export class OtpExpiredError extends AppError {
+  constructor() {
+    super("OTP has expired. Please request a new one.", ErrorCode.OTP_EXPIRED, 400);
+    this.name = "OtpExpiredError";
+  }
+}
+
+export class OtpAlreadyUsedError extends AppError {
+  constructor() {
+    super("OTP has already been used.", ErrorCode.OTP_ALREADY_USED, 400);
+    this.name = "OtpAlreadyUsedError";
+  }
+}
+
+export class OtpSendFailedError extends AppError {
+  constructor(detail?: string) {
+    super(detail ?? "Failed to send OTP. Please try again.", ErrorCode.OTP_SEND_FAILED, 502);
+    this.name = "OtpSendFailedError";
+  }
+}
+
+export class OnboardingIncompleteError extends AppError {
+  constructor() {
+    super("Please complete onboarding first.", ErrorCode.ONBOARDING_INCOMPLETE, 403);
+    this.name = "OnboardingIncompleteError";
+  }
+}

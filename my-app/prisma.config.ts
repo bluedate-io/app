@@ -18,11 +18,7 @@ export default defineConfig({
   },
 
   datasource: {
-    // Runtime connection — goes through Supabase's connection pooler (PgBouncer)
-    url: process.env.DATABASE_URL!,
-
-    // Shadow database — used internally by prisma migrate dev
-    // Point this to the same Supabase direct URL (port 5432)
-    shadowDatabaseUrl: process.env.DIRECT_URL,
+    // Direct connection (port 5432) — required for schema push and migrations
+    url: process.env.DIRECT_URL!,
   },
 });
