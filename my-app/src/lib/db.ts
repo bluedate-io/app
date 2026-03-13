@@ -1,31 +1,28 @@
-// ─── Database client singleton ────────────────────────────────────────────────
-// Currently wired for Prisma. Swap the import/client if you change ORMs.
-//
-// To use Prisma:  npm install prisma @prisma/client && npx prisma init
-// To use Drizzle: replace PrismaClient with your Drizzle db instance.
+// ─── Prisma client singleton (Prisma 7 + pg adapter) ─────────────────────────
+// Prisma 7 requires a driver adapter instead of an inline connection string.
+// Pass a PoolConfig to PrismaPg so it manages its own pg.Pool internally —
+// this avoids @types/pg version conflicts between pg and @prisma/adapter-pg.
 
-// import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@/generated/prisma/client";
 
-// Prevent multiple Prisma Client instances in development (hot-reload safe)
-// declare global {
-//   // eslint-disable-next-line no-var
-//   var __prisma: PrismaClient | undefined;
-// }
-//
-// export const db: PrismaClient =
-//   global.__prisma ??
-//   new PrismaClient({
-//     log: process.env.NODE_ENV === "development" ? ["query", "warn", "error"] : ["error"],
-//   });
-//
-// if (process.env.NODE_ENV !== "production") {
-//   global.__prisma = db;
-// }
-//
-// export default db;
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-// ─── Placeholder until Prisma is wired up ────────────────────────────────────
-// Replace this with the real db export above once you run `npx prisma init`.
+function createPrismaClient(): PrismaClient {
+  const adapter = new PrismaPg({
+    connectionString: process.env.DATABASE_URL,
+    max: process.env.NODE_ENV === "production" ? 5 : 2,
+  });
 
-// Replace `unknown` with your actual DB client type once Prisma is installed.
-export const db = null as unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return new PrismaClient({ adapter } as any);
+}
+
+export const db: PrismaClient =
+  globalForPrisma.prisma ?? createPrismaClient();
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = db;
+}
+
+export default db;
