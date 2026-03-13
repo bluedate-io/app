@@ -3,6 +3,7 @@
 // All singletons are lazily instantiated and cached here.
 // Import from this file in route handlers instead of constructing directly.
 
+import { db } from "@/lib/db";
 import { UserRepository } from "@/repositories/UserRepository";
 import { MatchRepository } from "@/repositories/MatchRepository";
 import { UserService } from "@/services/UserService";
@@ -12,8 +13,8 @@ import { UserController } from "@/controllers/UserController";
 import { AuthController } from "@/controllers/AuthController";
 
 // ─── Repositories ─────────────────────────────────────────────────────────────
-const userRepository = new UserRepository();
-const matchRepository = new MatchRepository();
+const userRepository = new UserRepository(db);
+const matchRepository = new MatchRepository(db);
 
 // ─── Services ─────────────────────────────────────────────────────────────────
 const userService = new UserService(userRepository);

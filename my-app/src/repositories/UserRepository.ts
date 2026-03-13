@@ -1,41 +1,56 @@
 // ─── UserRepository ───────────────────────────────────────────────────────────
-// All database queries related to User live here.
-// Currently backed by an in-memory store so the architecture compiles
-// without Prisma. Replace each method body with real Prisma/Drizzle calls.
+// All database queries for the User model.
+// Backed by Prisma 7 + Supabase (PostgreSQL).
 
-import { v4 as uuidv4 } from "uuid";
+import type { PrismaClient, User as PrismaUser } from "@/generated/prisma/client";
 import type { User, UserPreferences } from "@/domains/User";
 import type { CreateUserInput, UpdateUserInput } from "@/validations/user.validation";
 import type { PaginationParams, PaginatedResult } from "@/types";
 import type { IBaseRepository } from "./base/BaseRepository";
 import { buildPaginatedResult } from "@/utils/pagination";
 
-// Internal create payload — extends the public DTO with a hashed password
 export type CreateUserRepositoryInput = CreateUserInput & { passwordHash: string };
 
 export interface IUserRepository
   extends IBaseRepository<User, CreateUserRepositoryInput, UpdateUserInput> {
   findByEmail(email: string): Promise<User | null>;
-  findMany(
-    params: PaginationParams & { status?: string },
-  ): Promise<PaginatedResult<User>>;
+  findMany(params: PaginationParams & { status?: string }): Promise<PaginatedResult<User>>;
 }
 
-// ─── In-memory store (replace with Prisma) ───────────────────────────────────
-const store = new Map<string, User>();
+// ─── Prisma row → domain mapper ───────────────────────────────────────────────
+// Converts raw Prisma rows (Json fields typed as `unknown`) to clean domain objects.
+function toDomain(row: PrismaUser): User {
+  return {
+    id: row.id,
+    email: row.email,
+    passwordHash: row.passwordHash,
+    name: row.name,
+    role: row.role as User["role"],
+    status: row.status as User["status"],
+    gender: (row.gender as User["gender"]) ?? undefined,
+    dateOfBirth: row.dateOfBirth ?? undefined,
+    bio: row.bio ?? undefined,
+    avatarUrl: row.avatarUrl ?? undefined,
+    location: (row.location as unknown as User["location"]) ?? undefined,
+    preferences: (row.preferences as unknown as User["preferences"]) ?? undefined,
+    isEmailVerified: row.isEmailVerified,
+    lastSeenAt: row.lastSeenAt ?? undefined,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
 
 export class UserRepository implements IUserRepository {
+  constructor(private readonly db: PrismaClient) {}
+
   async findById(id: string): Promise<User | null> {
-    // Prisma: return db.user.findUnique({ where: { id } });
-    return store.get(id) ?? null;
+    const row = await this.db.user.findUnique({ where: { id } });
+    return row ? toDomain(row) : null;
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    // Prisma: return db.user.findUnique({ where: { email } });
-    for (const user of store.values()) {
-      if (user.email === email) return user;
-    }
-    return null;
+    const row = await this.db.user.findUnique({ where: { email } });
+    return row ? toDomain(row) : null;
   }
 
   async findAll(params: PaginationParams): Promise<PaginatedResult<User>> {
@@ -45,83 +60,70 @@ export class UserRepository implements IUserRepository {
   async findMany(
     params: PaginationParams & { status?: string },
   ): Promise<PaginatedResult<User>> {
-    // Prisma: const [data, total] = await db.$transaction([
-    //   db.user.findMany({ skip, take, where }),
-    //   db.user.count({ where }),
-    // ]);
-    const all = Array.from(store.values()).filter(
-      (u) => !params.status || u.status === params.status,
-    );
-    const { page, limit } = params;
+    const { page, limit, status } = params;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where = status ? { status: status as any } : {};
     const skip = (page - 1) * limit;
-    const data = all.slice(skip, skip + limit);
-    return buildPaginatedResult(data, all.length, params);
+
+    const [rows, total] = await this.db.$transaction([
+      this.db.user.findMany({ where, skip, take: limit, orderBy: { createdAt: "desc" } }),
+      this.db.user.count({ where }),
+    ]);
+
+    return buildPaginatedResult(rows.map(toDomain), total, params);
   }
 
   async create(data: CreateUserRepositoryInput): Promise<User> {
-    // Prisma: return db.user.create({ data: { ...data, id: uuidv4() } });
-    const now = new Date();
-    const user: User = {
-      id: uuidv4(),
-      email: data.email,
-      name: data.name,
-      passwordHash: data.passwordHash,
-      role: "user",
-      status: "pending_verification",
-      isEmailVerified: false,
-      gender: data.gender,
-      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
-      createdAt: now,
-      updatedAt: now,
-    };
-    store.set(user.id, user);
-    return user;
+    const row = await this.db.user.create({
+      data: {
+        email: data.email,
+        name: data.name,
+        passwordHash: data.passwordHash,
+        gender: data.gender,
+        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
+      },
+    });
+    return toDomain(row);
   }
 
   async update(id: string, data: UpdateUserInput): Promise<User> {
-    // Prisma: return db.user.update({ where: { id }, data });
-    const existing = store.get(id);
+    const existing = await this.db.user.findUnique({ where: { id } });
     if (!existing) throw new Error(`User ${id} not found`);
 
-    // Deep-merge preferences so callers can send partial preference patches
-    const preferences: UserPreferences | undefined =
-      data.preferences
-        ? {
-            minAge: data.preferences.minAge ?? existing.preferences?.minAge ?? 18,
-            maxAge: data.preferences.maxAge ?? existing.preferences?.maxAge ?? 100,
-            genderPreference:
-              data.preferences.genderPreference ??
-              existing.preferences?.genderPreference ??
-              [],
-            maxDistanceKm:
-              data.preferences.maxDistanceKm ??
-              existing.preferences?.maxDistanceKm ??
-              50,
-          }
-        : existing.preferences;
+    const existingPrefs = existing.preferences as unknown as UserPreferences | undefined;
+    const preferences: UserPreferences | undefined = data.preferences
+      ? {
+          minAge: data.preferences.minAge ?? existingPrefs?.minAge ?? 18,
+          maxAge: data.preferences.maxAge ?? existingPrefs?.maxAge ?? 100,
+          genderPreference:
+            data.preferences.genderPreference ?? existingPrefs?.genderPreference ?? [],
+          maxDistanceKm: data.preferences.maxDistanceKm ?? existingPrefs?.maxDistanceKm ?? 50,
+        }
+      : undefined;
 
-    const updated: User = {
-      ...existing,
-      name: data.name ?? existing.name,
-      bio: data.bio ?? existing.bio,
-      avatarUrl: data.avatarUrl ?? existing.avatarUrl,
-      gender: data.gender ?? existing.gender,
-      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : existing.dateOfBirth,
-      location: data.location ?? existing.location,
-      preferences,
-      updatedAt: new Date(),
-    };
-    store.set(id, updated);
-    return updated;
+    const row = await this.db.user.update({
+      where: { id },
+      data: {
+        ...(data.name && { name: data.name }),
+        ...(data.bio !== undefined && { bio: data.bio }),
+        ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl }),
+        ...(data.gender && { gender: data.gender }),
+        ...(data.dateOfBirth && { dateOfBirth: new Date(data.dateOfBirth) }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...(data.location && { location: data.location as any }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...(preferences && { preferences: preferences as any }),
+      },
+    });
+    return toDomain(row);
   }
 
   async delete(id: string): Promise<void> {
-    // Prisma: await db.user.delete({ where: { id } });
-    store.delete(id);
+    await this.db.user.delete({ where: { id } });
   }
 
   async exists(id: string): Promise<boolean> {
-    // Prisma: return !!(await db.user.findUnique({ where: { id }, select: { id: true } }));
-    return store.has(id);
+    const row = await this.db.user.findUnique({ where: { id }, select: { id: true } });
+    return row !== null;
   }
 }
