@@ -22,12 +22,13 @@ type RouteGuard = (ctx: RequestContext) => void;
 export function withAuth(handler: AuthedHandler, ...guards: RouteGuard[]) {
   return async (
     req: NextRequest,
-    { params }: { params?: Record<string, string> } = {},
+    { params }: { params?: Promise<Record<string, string>> } = {},
   ): Promise<NextResponse> => {
     try {
       const ctx = authenticate(req);
       for (const guard of guards) guard(ctx);
-      return await handler(req, ctx, params);
+      const resolvedParams = params ? await params : undefined;
+      return await handler(req, ctx, resolvedParams);
     } catch (error) {
       return handleError(error);
     }

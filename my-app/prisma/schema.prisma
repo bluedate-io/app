@@ -9,8 +9,8 @@
 //   npx prisma studio                      → open GUI browser
 
 generator client {
-  provider        = "prisma-client"
-  output          = "../src/generated/prisma"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -39,96 +39,32 @@ enum Gender {
   prefer_not_to_say
 }
 
-enum SwipeDirection {
-  like
-  dislike
-  super_like
-}
-
-enum MatchStatus {
-  pending
-  accepted
-  rejected
-  expired
-  unmatched
-}
-
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
-  id              String      @id @default(cuid())
-  email           String      @unique
-  passwordHash    String
-  name            String
-  role            UserRole    @default(user)
-  status          UserStatus  @default(pending_verification)
-  gender          Gender?
-  dateOfBirth     DateTime?
-  bio             String?
-  avatarUrl       String?
+  id          String     @id @default(cuid())
+  email       String     @unique
+  passwordHash String
+  name        String
+  role        UserRole   @default(user)
+  status      UserStatus @default(pending_verification)
+  gender      Gender?
+  dateOfBirth DateTime?
+  bio         String?
+  avatarUrl   String?
 
   // JSON blobs — avoids extra join tables for simple nested objects
   // location    shape: { city?, country?, latitude?, longitude? }
   // preferences shape: { minAge, maxAge, genderPreference[], maxDistanceKm }
-  location        Json?
-  preferences     Json?
+  location    Json?
+  preferences Json?
 
-  isEmailVerified Boolean    @default(false)
+  isEmailVerified Boolean   @default(false)
   lastSeenAt      DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
-  swipesGiven      Swipe[]  @relation("swiper")
-  swipesReceived   Swipe[]  @relation("swiped")
-  matchesAsUser1   Match[]  @relation("user1")
-  matchesAsUser2   Match[]  @relation("user2")
-  initiatedMatches Match[]  @relation("initiator")
-
   @@index([status])
   @@map("users")
-}
-
-model Match {
-  id                 String      @id @default(cuid())
-  userId1            String
-  userId2            String
-  status             MatchStatus @default(pending)
-  compatibilityScore Float       @default(0)
-  initiatedBy        String
-
-  matchedAt DateTime?
-  expiresAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  // Relations
-  user1     User @relation("user1",     fields: [userId1],     references: [id], onDelete: Cascade)
-  user2     User @relation("user2",     fields: [userId2],     references: [id], onDelete: Cascade)
-  initiator User @relation("initiator", fields: [initiatedBy], references: [id], onDelete: Cascade)
-
-  @@unique([userId1, userId2]) // one match record per pair
-  @@index([userId1])
-  @@index([userId2])
-  @@index([status])
-  @@map("matches")
-}
-
-model Swipe {
-  id        String         @id @default(cuid())
-  swiperId  String
-  swipedId  String
-  direction SwipeDirection
-
-  createdAt DateTime @default(now())
-
-  // Relations
-  swiper User @relation("swiper", fields: [swiperId], references: [id], onDelete: Cascade)
-  swiped User @relation("swiped", fields: [swipedId], references: [id], onDelete: Cascade)
-
-  @@unique([swiperId, swipedId]) // one swipe per pair
-  @@index([swiperId])
-  @@index([swipedId])
-  @@map("swipes")
 }
