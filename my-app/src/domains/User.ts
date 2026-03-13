@@ -1,66 +1,92 @@
 // ─── User Domain Entity ───────────────────────────────────────────────────────
-// Pure domain object — no framework dependencies, no DB types.
+// Phone-first auth model. Profile, preferences, etc. live in their own domains.
 
 import type { UserRole } from "@/types";
 
-export type UserStatus = "active" | "inactive" | "banned" | "pending_verification";
-export type Gender = "male" | "female" | "non_binary" | "prefer_not_to_say";
-
-export interface UserLocation {
-  city?: string;
-  country?: string;
-  latitude?: number;
-  longitude?: number;
-}
-
-export interface UserPreferences {
-  minAge: number;
-  maxAge: number;
-  genderPreference: Gender[];
-  maxDistanceKm: number;
-}
-
 export interface User {
   id: string;
-  email: string;
-  passwordHash: string;
-  name: string;
+  phone: string;
+  email?: string;
   role: UserRole;
-  status: UserStatus;
-  gender?: Gender;
-  dateOfBirth?: Date;
-  bio?: string;
-  avatarUrl?: string;
-  location?: UserLocation;
-  preferences?: UserPreferences;
-  isEmailVerified: boolean;
-  lastSeenAt?: Date;
+  onboardingCompleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
+export interface OtpVerification {
+  id: string;
+  phone: string;
+  code: string;
+  expiresAt: Date;
+  verified: boolean;
+  userId?: string;
+  createdAt: Date;
+}
+
+// ─── Sub-domain models (mirrors Prisma relations) ────────────────────────────
+
+export interface Profile {
+  id: string;
+  userId: string;
+  fullName?: string;
+  nickname?: string;
+  age?: number;
+  city?: string;
+  bio?: string;
+}
+
+export interface Preferences {
+  id: string;
+  userId: string;
+  genderIdentity?: string;
+  genderPreference: string[];
+  ageRangeMin?: number;
+  ageRangeMax?: number;
+  relationshipIntent?: string;
+}
+
+export interface Interests {
+  id: string;
+  userId: string;
+  hobbies: string[];
+  favouriteActivities: string[];
+  musicTaste: string[];
+  foodTaste: string[];
+}
+
+export interface Personality {
+  id: string;
+  userId: string;
+  socialLevel?: string;
+  conversationStyle?: string;
+  funFact?: string;
+}
+
+export interface Availability {
+  id: string;
+  userId: string;
+  days: string[];
+  times: string[];
+}
+
+export interface AiSignals {
+  id: string;
+  userId: string;
+  selfDescription?: string;
+  idealPartner?: string;
+  idealDate?: string;
+}
+
+export interface Photo {
+  id: string;
+  userId: string;
+  url: string;
+  order: number;
+  createdAt: Date;
+}
+
 // ─── Domain helpers ───────────────────────────────────────────────────────────
 
-export function calculateAge(dateOfBirth: Date): number {
-  const today = new Date();
-  const age = today.getFullYear() - dateOfBirth.getFullYear();
-  const m = today.getMonth() - dateOfBirth.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < dateOfBirth.getDate())) {
-    return age - 1;
-  }
-  return age;
-}
-
-export function isUserActive(user: User): boolean {
-  return user.status === "active" && user.isEmailVerified;
-}
-
-export function isProfileComplete(user: User): boolean {
-  return !!(
-    user.name &&
-    user.bio &&
-    user.dateOfBirth &&
-    user.gender &&
-    user.location
-  );
+export function isOnboardingComplete(user: User): boolean {
+  return user.onboardingCompleted;
 }

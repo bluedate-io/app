@@ -12,10 +12,7 @@ function optionalEnv(key: string, fallback: string): string {
 }
 
 export const config = {
-  env: optionalEnv("NODE_ENV", "development") as
-    | "development"
-    | "production"
-    | "test",
+  env: optionalEnv("NODE_ENV", "development") as "development" | "production" | "test",
   isDev: optionalEnv("NODE_ENV", "development") === "development",
   isProd: process.env.NODE_ENV === "production",
 
@@ -26,26 +23,34 @@ export const config = {
 
   auth: {
     jwtSecret: optionalEnv("JWT_SECRET", "dev-secret-change-in-production"),
-    jwtRefreshSecret: optionalEnv(
-      "JWT_REFRESH_SECRET",
-      "dev-refresh-secret-change-in-production",
-    ),
     jwtExpiry: optionalEnv("JWT_EXPIRY", "7d"),
-    refreshExpiry: optionalEnv("JWT_REFRESH_EXPIRY", "30d"),
+    otpTtlMinutes: parseInt(optionalEnv("OTP_TTL_MINUTES", "10"), 10),
   },
 
   database: {
     url: optionalEnv("DATABASE_URL", ""),
   },
 
-  redis: {
-    url: optionalEnv("REDIS_URL", ""),
+  twilio: {
+    accountSid: optionalEnv("TWILIO_ACCOUNT_SID", ""),
+    authToken: optionalEnv("TWILIO_AUTH_TOKEN", ""),
+    verifyServiceSid: optionalEnv("TWILIO_VERIFY_SERVICE_SID", ""),
+  },
+
+  supabase: {
+    url: optionalEnv("SUPABASE_URL", ""),
+    anonKey: optionalEnv("SUPABASE_ANON_KEY", ""),
+    photoBucket: optionalEnv("SUPABASE_PHOTO_BUCKET", "photos"),
   },
 } as const;
 
-// Eagerly validate production secrets at startup
+// Eagerly validate critical secrets at startup in production
 if (config.isProd) {
   requireEnv("JWT_SECRET");
-  requireEnv("JWT_REFRESH_SECRET");
   requireEnv("DATABASE_URL");
+  requireEnv("TWILIO_ACCOUNT_SID");
+  requireEnv("TWILIO_AUTH_TOKEN");
+  requireEnv("TWILIO_VERIFY_SERVICE_SID");
+  requireEnv("SUPABASE_URL");
+  requireEnv("SUPABASE_ANON_KEY");
 }

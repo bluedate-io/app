@@ -4,8 +4,8 @@
 //
 // Commands:
 //   npx prisma migrate dev --name <name>   → create & apply a migration
-//   npx prisma migrate deploy              → apply migrations in production
-//   npx prisma generate                    → regenerate the client after schema changes
+//   npx prisma migrate deploy              → apply in production
+//   npx prisma generate                    → regenerate client after schema changes
 //   npx prisma studio                      → open GUI browser
 
 generator client {
@@ -25,46 +25,129 @@ enum UserRole {
   moderator
 }
 
-enum UserStatus {
-  active
-  inactive
-  banned
-  pending_verification
-}
-
-enum Gender {
-  male
-  female
-  non_binary
-  prefer_not_to_say
-}
-
-// ─── Models ───────────────────────────────────────────────────────────────────
+// ─── Core auth table — intentionally minimal ─────────────────────────────────
 
 model User {
-  id          String     @id @default(cuid())
-  email       String     @unique
-  passwordHash String
-  name        String
-  role        UserRole   @default(user)
-  status      UserStatus @default(pending_verification)
-  gender      Gender?
-  dateOfBirth DateTime?
-  bio         String?
-  avatarUrl   String?
+  id                  String   @id @default(cuid())
+  phone               String   @unique
+  email               String?  @unique
+  role                UserRole @default(user)
+  onboardingCompleted Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  // JSON blobs — avoids extra join tables for simple nested objects
-  // location    shape: { city?, country?, latitude?, longitude? }
-  // preferences shape: { minAge, maxAge, genderPreference[], maxDistanceKm }
-  location    Json?
-  preferences Json?
+  // Relations
+  profile      Profile?
+  preferences  Preferences?
+  interests    Interests?
+  personality  Personality?
+  availability Availability?
+  aiSignals    AiSignals?
+  photos       Photo[]
 
-  isEmailVerified Boolean   @default(false)
-  lastSeenAt      DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([status])
+  @@index([phone])
   @@map("users")
+}
+
+// ─── Profile — identity & bio ─────────────────────────────────────────────────
+
+model Profile {
+  id       String  @id @default(cuid())
+  userId   String  @unique
+  fullName String?
+  nickname String?
+  age      Int?
+  city     String?
+  bio      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+// ─── Preferences — dating intent & filters ───────────────────────────────────
+
+model Preferences {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  genderIdentity     String?
+  genderPreference   String[]
+  ageRangeMin        Int?
+  ageRangeMax        Int?
+  relationshipIntent String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("preferences")
+}
+
+// ─── Interests ────────────────────────────────────────────────────────────────
+
+model Interests {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  hobbies             String[]
+  favouriteActivities String[]
+  musicTaste          String[]
+  foodTaste           String[]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("interests")
+}
+
+// ─── Personality ──────────────────────────────────────────────────────────────
+
+model Personality {
+  id                String  @id @default(cuid())
+  userId            String  @unique
+  socialLevel       String?
+  conversationStyle String?
+  funFact           String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("personalities")
+}
+
+// ─── Availability ─────────────────────────────────────────────────────────────
+
+model Availability {
+  id     String   @id @default(cuid())
+  userId String   @unique
+  days   String[]
+  times  String[]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("availabilities")
+}
+
+// ─── AI Signals (free-text, optional) ────────────────────────────────────────
+
+model AiSignals {
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  selfDescription String?
+  idealPartner    String?
+  idealDate       String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ai_signals")
+}
+
+// ─── Photos — ordered, stored in Supabase Storage ────────────────────────────
+
+model Photo {
+  id        String   @id @default(cuid())
+  userId    String
+  url       String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("photos")
 }

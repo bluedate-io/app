@@ -1,42 +1,51 @@
 // ─── AuthController ───────────────────────────────────────────────────────────
+// Thin HTTP adapter — parse input, call service, return response.
 
 import { NextRequest } from "next/server";
-import { loginSchema, refreshTokenSchema } from "@/validations/auth.validation";
-import { createUserSchema } from "@/validations/user.validation";
+import { sendOtpSchema, verifyOtpSchema } from "@/validations/otp.validation";
 import type { AuthService } from "@/services/AuthService";
+import type { IUserRepository } from "@/repositories/UserRepository";
 import { successResponse, createdResponse, handleError } from "@/utils/response";
+import { toUserAuthDTO } from "@/dto/OtpDTO";
+import type { RequestContext } from "@/types";
+import { NotFoundError } from "@/utils/errors";
 
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly userRepository: IUserRepository,
+  ) {}
 
-  async register(req: NextRequest) {
+  // POST /api/auth/send-otp
+  async sendOtp(req: NextRequest) {
     try {
       const body = await req.json();
-      const input = createUserSchema.parse(body);
-      const result = await this.authService.register(input);
-      return createdResponse(result, "Registration successful");
+      const input = sendOtpSchema.parse(body);
+      const result = await this.authService.sendOtp(input);
+      return createdResponse(result, "OTP sent");
     } catch (error) {
       return handleError(error);
     }
   }
 
-  async login(req: NextRequest) {
+  // POST /api/auth/verify-otp
+  async verifyOtp(req: NextRequest) {
     try {
       const body = await req.json();
-      const input = loginSchema.parse(body);
-      const result = await this.authService.login(input);
-      return successResponse(result, { message: "Login successful" });
+      const input = verifyOtpSchema.parse(body);
+      const result = await this.authService.verifyOtp(input);
+      return successResponse(result, { message: "Authenticated successfully" });
     } catch (error) {
       return handleError(error);
     }
   }
 
-  async refresh(req: NextRequest) {
+  // GET /api/auth/me  (requires valid JWT)
+  async me(_req: NextRequest, ctx: RequestContext) {
     try {
-      const body = await req.json();
-      const { refreshToken } = refreshTokenSchema.parse(body);
-      const tokens = await this.authService.refreshTokens(refreshToken);
-      return successResponse(tokens);
+      const user = await this.userRepository.findById(ctx.userId);
+      if (!user) throw new NotFoundError("User", ctx.userId);
+      return successResponse(toUserAuthDTO(user));
     } catch (error) {
       return handleError(error);
     }

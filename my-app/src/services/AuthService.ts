@@ -1,73 +1,66 @@
 // ─── AuthService ──────────────────────────────────────────────────────────────
-// Handles registration, login, token issuance and refresh.
+// Phone-first OTP authentication via Twilio Verify.
+// Flow: sendOtp → verifyOtp (issues JWT) → me (reads JWT)
+// Twilio Verify manages code generation, delivery, expiry, and rate-limiting.
 
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { config } from "@/config";
-import { JWT_EXPIRY, REFRESH_TOKEN_EXPIRY, SALT_ROUNDS } from "@/constants";
 import type { IUserRepository } from "@/repositories/UserRepository";
-import type { LoginInput } from "@/validations/auth.validation";
-import type { CreateUserInput } from "@/validations/user.validation";
+import type { ITwilioService } from "@/services/TwilioService";
+import type { SendOtpInput, VerifyOtpInput } from "@/validations/otp.validation";
 import type { JwtPayload } from "@/types";
-import type { LoginResponseDTO, AuthTokensDTO } from "@/dto/LoginDTO";
-import { toUserResponseDTO } from "@/dto/UserResponseDTO";
-import { UnauthorizedError, ConflictError } from "@/utils/errors";
+import type { SendOtpResponseDTO, VerifyOtpResponseDTO } from "@/dto/OtpDTO";
+import { toUserAuthDTO } from "@/dto/OtpDTO";
+import { UnauthorizedError } from "@/utils/errors";
 import { logger } from "@/utils/logger";
 
 const log = logger.child("AuthService");
 
 export class AuthService {
-  constructor(private readonly userRepository: IUserRepository) {}
+  constructor(
+    private readonly userRepository: IUserRepository,
+    private readonly twilioService: ITwilioService,
+  ) {}
 
-  // ─── Register ───────────────────────────────────────────────────────────────
+  // ─── Step 1: Trigger Twilio Verify SMS ──────────────────────────────────────
 
-  async register(input: CreateUserInput): Promise<LoginResponseDTO> {
-    const existing = await this.userRepository.findByEmail(input.email);
-    if (existing) {
-      throw new ConflictError(`Email '${input.email}' is already registered`);
-    }
-
-    const passwordHash = await bcrypt.hash(input.password, SALT_ROUNDS);
-    const user = await this.userRepository.create({ ...input, passwordHash });
-
-    log.info("New user registered", { userId: user.id });
-
-    const tokens = this.issueTokens(user.id, user.email, user.role);
-    return { user: toUserResponseDTO(user), tokens };
+  async sendOtp(input: SendOtpInput): Promise<SendOtpResponseDTO> {
+    await this.twilioService.sendVerification(input.phone);
+    log.info("Verification sent", { phone: input.phone });
+    return {
+      message: "OTP sent successfully. Valid for 10 minutes.",
+      expiresInMinutes: 10,
+    };
   }
 
-  // ─── Login ──────────────────────────────────────────────────────────────────
+  // ─── Step 2: Check code → find/create user → issue JWT ─────────────────────
 
-  async login(input: LoginInput): Promise<LoginResponseDTO> {
-    const user = await this.userRepository.findByEmail(input.email);
-    if (!user) throw new UnauthorizedError("Invalid email or password");
+  async verifyOtp(input: VerifyOtpInput): Promise<VerifyOtpResponseDTO> {
+    // Throws OtpInvalidError if code is wrong or expired
+    await this.twilioService.checkVerification(input.phone, input.code);
 
-    const valid = await bcrypt.compare(input.password, user.passwordHash);
-    if (!valid) throw new UnauthorizedError("Invalid email or password");
+    const { user, created } = await this.userRepository.findOrCreate(input.phone);
 
-    log.info("User logged in", { userId: user.id });
+    if (created) log.info("New user created via OTP", { userId: user.id });
+    else log.info("Existing user authenticated via OTP", { userId: user.id });
 
-    const tokens = this.issueTokens(user.id, user.email, user.role);
-    return { user: toUserResponseDTO(user), tokens };
+    const token = this.issueToken(
+      user.id,
+      user.phone,
+      user.email,
+      user.role,
+      user.onboardingCompleted,
+    );
+
+    return {
+      user: toUserAuthDTO(user),
+      token,
+      onboardingCompleted: user.onboardingCompleted,
+      redirectTo: user.onboardingCompleted ? "/" : "/onboarding",
+    };
   }
 
-  // ─── Refresh ─────────────────────────────────────────────────────────────────
-
-  async refreshTokens(refreshToken: string): Promise<AuthTokensDTO> {
-    let payload: JwtPayload;
-    try {
-      payload = jwt.verify(refreshToken, config.auth.jwtRefreshSecret) as JwtPayload;
-    } catch {
-      throw new UnauthorizedError("Invalid or expired refresh token");
-    }
-
-    const user = await this.userRepository.findById(payload.sub);
-    if (!user) throw new UnauthorizedError("User no longer exists");
-
-    return this.issueTokens(user.id, user.email, user.role);
-  }
-
-  // ─── Token verification (used by middleware) ─────────────────────────────────
+  // ─── Token verification (used by auth middleware) ───────────────────────────
 
   verifyAccessToken(token: string): JwtPayload {
     try {
@@ -77,26 +70,27 @@ export class AuthService {
     }
   }
 
-  // ─── Private helpers ──────────────────────────────────────────────────────────
+  // ─── Private helpers ─────────────────────────────────────────────────────────
 
-  private issueTokens(userId: string, email: string, role: string): AuthTokensDTO {
+  private issueToken(
+    userId: string,
+    phone: string,
+    email: string | undefined,
+    role: string,
+    onboardingCompleted: boolean,
+  ) {
     const payload: Omit<JwtPayload, "iat" | "exp"> = {
       sub: userId,
+      phone,
       email,
       role: role as JwtPayload["role"],
+      onboardingCompleted,
     };
 
     const accessToken = jwt.sign(payload, config.auth.jwtSecret, {
-      expiresIn: JWT_EXPIRY,
+      expiresIn: config.auth.jwtExpiry,
     } as jwt.SignOptions);
 
-    const refreshToken = jwt.sign(payload, config.auth.jwtRefreshSecret, {
-      expiresIn: REFRESH_TOKEN_EXPIRY,
-    } as jwt.SignOptions);
-
-    // 7 days in seconds
-    const expiresIn = 7 * 24 * 60 * 60;
-
-    return { accessToken, refreshToken, expiresIn };
+    return { accessToken, expiresIn: 7 * 24 * 60 * 60 };
   }
 }

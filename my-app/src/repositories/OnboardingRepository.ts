@@ -1,0 +1,168 @@
+// ─── OnboardingRepository ─────────────────────────────────────────────────────
+// Upsert-based writes for every onboarding step.
+// Prisma returns null for optional fields; mappers convert to undefined.
+
+import type { PrismaClient } from "@/generated/prisma/client";
+import type {
+  Profile,
+  Preferences,
+  Interests,
+  Personality,
+  Availability,
+  AiSignals,
+  Photo,
+} from "@/domains/User";
+import type {
+  ProfileInput,
+  PreferencesInput,
+  InterestsInput,
+  PersonalityInput,
+  AvailabilityInput,
+  AiSignalsInput,
+} from "@/validations/onboarding.validation";
+
+// null → undefined helpers
+const n = <T>(v: T | null): T | undefined => v ?? undefined;
+
+export interface IOnboardingRepository {
+  upsertProfile(userId: string, data: ProfileInput): Promise<Profile>;
+  upsertPreferences(userId: string, data: PreferencesInput): Promise<Preferences>;
+  upsertInterests(userId: string, data: InterestsInput): Promise<Interests>;
+  upsertPersonality(userId: string, data: PersonalityInput): Promise<Personality>;
+  upsertAvailability(userId: string, data: AvailabilityInput): Promise<Availability>;
+  upsertAiSignals(userId: string, data: AiSignalsInput): Promise<AiSignals>;
+  addPhoto(userId: string, url: string, order: number): Promise<Photo>;
+  getPhotos(userId: string): Promise<Photo[]>;
+  deletePhoto(photoId: string, userId: string): Promise<void>;
+  getOnboardingStatus(userId: string): Promise<{
+    hasProfile: boolean;
+    hasPreferences: boolean;
+    hasInterests: boolean;
+    hasPersonality: boolean;
+    hasAvailability: boolean;
+    photoCount: number;
+  }>;
+}
+
+export class OnboardingRepository implements IOnboardingRepository {
+  constructor(private readonly db: PrismaClient) {}
+
+  async upsertProfile(userId: string, data: ProfileInput): Promise<Profile> {
+    const r = await this.db.profile.upsert({
+      where: { userId },
+      create: { userId, ...data },
+      update: { ...data },
+    });
+    return {
+      id: r.id, userId: r.userId,
+      fullName: n(r.fullName), nickname: n(r.nickname),
+      age: n(r.age), city: n(r.city), bio: n(r.bio),
+    };
+  }
+
+  async upsertPreferences(userId: string, data: PreferencesInput): Promise<Preferences> {
+    const r = await this.db.preferences.upsert({
+      where: { userId },
+      create: { userId, ...data },
+      update: { ...data },
+    });
+    return {
+      id: r.id, userId: r.userId,
+      genderIdentity: n(r.genderIdentity),
+      genderPreference: r.genderPreference,
+      ageRangeMin: n(r.ageRangeMin), ageRangeMax: n(r.ageRangeMax),
+      relationshipIntent: n(r.relationshipIntent),
+    };
+  }
+
+  async upsertInterests(userId: string, data: InterestsInput): Promise<Interests> {
+    const r = await this.db.interests.upsert({
+      where: { userId },
+      create: { userId, ...data },
+      update: { ...data },
+    });
+    return {
+      id: r.id, userId: r.userId,
+      hobbies: r.hobbies,
+      favouriteActivities: r.favouriteActivities,
+      musicTaste: r.musicTaste,
+      foodTaste: r.foodTaste,
+    };
+  }
+
+  async upsertPersonality(userId: string, data: PersonalityInput): Promise<Personality> {
+    const r = await this.db.personality.upsert({
+      where: { userId },
+      create: { userId, ...data },
+      update: { ...data },
+    });
+    return {
+      id: r.id, userId: r.userId,
+      socialLevel: n(r.socialLevel),
+      conversationStyle: n(r.conversationStyle),
+      funFact: n(r.funFact),
+    };
+  }
+
+  async upsertAvailability(userId: string, data: AvailabilityInput): Promise<Availability> {
+    const r = await this.db.availability.upsert({
+      where: { userId },
+      create: { userId, ...data },
+      update: { ...data },
+    });
+    return { id: r.id, userId: r.userId, days: r.days, times: r.times };
+  }
+
+  async upsertAiSignals(userId: string, data: AiSignalsInput): Promise<AiSignals> {
+    const r = await this.db.aiSignals.upsert({
+      where: { userId },
+      create: { userId, ...data },
+      update: { ...data },
+    });
+    return {
+      id: r.id, userId: r.userId,
+      selfDescription: n(r.selfDescription),
+      idealPartner: n(r.idealPartner),
+      idealDate: n(r.idealDate),
+    };
+  }
+
+  async addPhoto(userId: string, url: string, order: number): Promise<Photo> {
+    const r = await this.db.photo.create({ data: { userId, url, order } });
+    return { id: r.id, userId: r.userId, url: r.url, order: r.order, createdAt: r.createdAt };
+  }
+
+  async getPhotos(userId: string): Promise<Photo[]> {
+    const rows = await this.db.photo.findMany({
+      where: { userId },
+      orderBy: { order: "asc" },
+    });
+    return rows.map((r) => ({
+      id: r.id, userId: r.userId, url: r.url, order: r.order, createdAt: r.createdAt,
+    }));
+  }
+
+  async deletePhoto(photoId: string, userId: string): Promise<void> {
+    await this.db.photo.deleteMany({ where: { id: photoId, userId } });
+  }
+
+  async getOnboardingStatus(userId: string) {
+    const [profile, preferences, interests, personality, availability, photoCount] =
+      await this.db.$transaction([
+        this.db.profile.findUnique({ where: { userId }, select: { id: true } }),
+        this.db.preferences.findUnique({ where: { userId }, select: { id: true } }),
+        this.db.interests.findUnique({ where: { userId }, select: { id: true } }),
+        this.db.personality.findUnique({ where: { userId }, select: { id: true } }),
+        this.db.availability.findUnique({ where: { userId }, select: { id: true } }),
+        this.db.photo.count({ where: { userId } }),
+      ]);
+    return {
+      hasProfile: !!profile,
+      hasPreferences: !!preferences,
+      hasInterests: !!interests,
+      hasPersonality: !!personality,
+      hasAvailability: !!availability,
+      photoCount,
+    };
+  }
+}

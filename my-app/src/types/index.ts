@@ -49,21 +49,25 @@ export class AppError extends Error {
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
+export type UserRole = "user" | "admin" | "moderator";
+
 export interface JwtPayload {
-  sub: string; // userId
-  email: string;
+  sub: string;               // userId
+  phone: string;
+  email?: string;
   role: UserRole;
+  onboardingCompleted: boolean;
   iat?: number;
   exp?: number;
 }
 
-export type UserRole = "user" | "admin" | "moderator";
-
-// ─── Request context ──────────────────────────────────────────────────────────
+// ─── Request context (passed from middleware → controller) ────────────────────
 
 export interface RequestContext {
   userId: string;
-  email: string;
+  phone: string;
+  email?: string;
   role: UserRole;
+  onboardingCompleted: boolean;
   requestId: string;
 }
