@@ -229,6 +229,13 @@ export class OnboardingService {
       log.warn("Onboarding status rejected: user not found", { userId });
       throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
     }
-    return this.onboardingRepo.getOnboardingStatus(userId);
+    const [status, user] = await Promise.all([
+      this.onboardingRepo.getOnboardingStatus(userId),
+      this.userRepo.findById(userId),
+    ]);
+    return {
+      ...status,
+      completed: user?.onboardingCompleted ?? false,
+    };
   }
 }

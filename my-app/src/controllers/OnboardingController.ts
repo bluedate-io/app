@@ -114,6 +114,16 @@ export class OnboardingController {
     }
   }
 
+  // GET /api/onboarding/photos
+  async getPhotos(_req: NextRequest, ctx: RequestContext) {
+    try {
+      const photos = await this.onboardingService.getPhotos(ctx.userId);
+      return successResponse(photos);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
   // POST /api/onboarding/photos  (multipart/form-data)
   async uploadPhoto(req: NextRequest, ctx: RequestContext) {
     try {

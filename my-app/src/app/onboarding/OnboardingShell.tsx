@@ -87,8 +87,8 @@ function getInitialSubStep(status: OnboardingStatus): number {
   if (!status.hasUsedInviteCode) return 2;
   if (!status.hasInterests) return 6;
   if (!status.hasPersonality || !status.hasAvailability) return 7;
-  if (status.photoCount < 2) return 8;
-  return TOTAL_SUB_STEPS;
+  // Always show photos step (8) until user explicitly clicks Done; then page redirects
+  return 8;
 }
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -353,6 +353,12 @@ function MonthDropdown({
 
 // ─── Photos step ──────────────────────────────────────────────────────────────
 
+interface PhotoItem {
+  id: string;
+  url: string;
+  order: number;
+}
+
 function PhotosStep({
   token,
   status,
@@ -362,29 +368,51 @@ function PhotosStep({
   status: OnboardingStatus;
   onDone: () => void;
 }) {
-  const [count, setCount] = useState(status.photoCount);
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchPhotos = async () => {
+    const res = await fetch("/api/onboarding/photos", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const json = await res.json();
+      setPhotos((json.data ?? []) as PhotoItem[]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    void fetchPhotos();
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps -- fetchPhotos is stable
+
+  const count = photos.length;
 
   const upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
     setUploading(true);
     setError(null);
+    let nextOrder = count;
     for (const file of files.slice(0, 6 - count)) {
       const fd = new FormData();
       fd.append("file", file);
-      fd.append("order", String(count));
+      fd.append("order", String(nextOrder));
       const res = await fetch("/api/onboarding/photos", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
       });
-      if (res.ok) setCount((c) => c + 1);
-      else {
+      if (res.ok) {
+        nextOrder += 1;
+        await fetchPhotos();
+      } else {
         const j = await res.json();
         setError(j.error?.message ?? "Upload failed");
+        break;
       }
     }
     setUploading(false);
@@ -441,37 +469,69 @@ function PhotosStep({
         )}
 
         <div className="grid grid-cols-3 gap-3 mb-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <label
-              key={i}
-              className={`aspect-square rounded-2xl flex items-center justify-center border-2 border-dashed transition-colors
-                ${i < count ? "border-gray-300 bg-gray-100 cursor-default" : "border-gray-300 cursor-pointer hover:border-gray-400"}`}
-            >
-              {i < count ? (
-                <svg className="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                    d="M4 16l4.586-4.586A2 2 0 0 1 10 11h4a2 2 0 0 1 1.414.586L20 16M14 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
-                </svg>
-              ) : (
-                <>
-                  <input
-                    type="file" accept="image/*" multiple className="hidden"
-                    onChange={upload} disabled={uploading || count >= 6}
-                  />
-                  <svg className="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                  </svg>
-                </>
-              )}
-            </label>
-          ))}
+          {loading ? (
+            <div className="col-span-3 aspect-square max-w-[200px] rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+              <span className="w-5 h-5 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
+            </div>
+          ) : (
+            Array.from({ length: 6 }).map((_, i) => {
+              const photo = photos[i];
+              return (
+                <label
+                  key={photo?.id ?? `slot-${i}`}
+                  className={`aspect-square rounded-2xl flex items-center justify-center border-2 border-dashed overflow-hidden transition-colors
+                    ${photo ? "border-gray-300 bg-gray-100 cursor-default" : "border-gray-300 cursor-pointer hover:border-gray-400"}`}
+                >
+                  {photo ? (
+                    <img
+                      src={photo.url}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={upload}
+                        disabled={uploading || count >= 6}
+                      />
+                      <svg className="w-7 h-7 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                      </svg>
+                    </>
+                  )}
+                </label>
+              );
+            })
+          )}
         </div>
 
         <p className="text-sm text-gray-400 mb-8">
           {count}/6 photos added
         </p>
 
-        <div className="mt-auto pt-8 flex items-end justify-between">
+        <div className="mt-auto pt-8 flex flex-col gap-4">
+          {count >= 2 && (
+            <button
+              type="button"
+              onClick={complete}
+              disabled={completing}
+              className="w-full py-4 rounded-xl font-semibold text-white disabled:opacity-50 transition-opacity"
+              style={{ backgroundColor: ACCENT }}
+            >
+              {completing ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Completing…
+                </span>
+              ) : (
+                "Done"
+              )}
+            </button>
+          )}
           <p className="text-sm text-gray-400">
             Want to make sure you really shine?{" "}
             <a href="#" className="font-medium hover:underline" style={{ color: ACCENT }}
@@ -479,7 +539,6 @@ function PhotosStep({
               Photo tips
             </a>
           </p>
-          {count >= 2 && <Fab onClick={complete} loading={completing} />}
         </div>
       </div>
     </div>
