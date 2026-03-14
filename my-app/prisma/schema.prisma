@@ -138,6 +138,18 @@ model AiSignals {
   @@map("ai_signals")
 }
 
+// ─── WhatsApp Bot Session ─────────────────────────────────────────────────────
+
+model WhatsAppSession {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  step      String   @default("WELCOME")
+  tempData  Json     @default("{}")
+  updatedAt DateTime @updatedAt
+
+  @@map("whatsapp_sessions")
+}
+
 // ─── Photos — ordered, stored in Supabase Storage ────────────────────────────
 
 model Photo {
