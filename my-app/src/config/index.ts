@@ -48,7 +48,7 @@ export const config = {
   },
 
   admin: {
-    phone: optionalEnv("ADMIN_PHONE", "9703177577"),
+    phone: optionalEnv("ADMIN_PHONE", "8309671828"),
   },
 
   supabase: {
