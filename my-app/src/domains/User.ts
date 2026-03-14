@@ -30,6 +30,7 @@ export interface Profile {
   userId: string;
   fullName?: string;
   nickname?: string;
+  dateOfBirth?: Date;
   age?: number;
   city?: string;
   bio?: string;

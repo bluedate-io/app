@@ -19,6 +19,11 @@ export interface ProfileResponseDTO {
   bio?: string;
 }
 
+export interface GenderResponseDTO {
+  id: string;
+  genderIdentity: string;
+}
+
 export interface PreferencesResponseDTO {
   id: string;
   genderIdentity?: string;
@@ -71,6 +76,11 @@ export const toProfileDTO = (p: Profile): ProfileResponseDTO => ({
   age: p.age,
   city: p.city,
   bio: p.bio,
+});
+
+export const toGenderDTO = (p: Preferences): GenderResponseDTO => ({
+  id: p.id,
+  genderIdentity: p.genderIdentity ?? "",
 });
 
 export const toPreferencesDTO = (p: Preferences): PreferencesResponseDTO => ({

@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import type { OnboardingService } from "@/services/OnboardingService";
 import {
   profileSchema,
+  genderIdentitySchema,
   preferencesSchema,
   interestsSchema,
   personalitySchema,
@@ -23,6 +24,18 @@ export class OnboardingController {
       const input = profileSchema.parse(body);
       const result = await this.onboardingService.saveProfile(ctx.userId, input);
       return createdResponse(result, "Profile saved");
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  // POST /api/onboarding/gender
+  async saveGender(req: NextRequest, ctx: RequestContext) {
+    try {
+      const body = await req.json();
+      const input = genderIdentitySchema.parse(body);
+      const result = await this.onboardingService.saveGenderIdentity(ctx.userId, input);
+      return createdResponse(result, "Gender saved");
     } catch (error) {
       return handleError(error);
     }

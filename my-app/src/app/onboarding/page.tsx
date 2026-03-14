@@ -30,6 +30,8 @@ export interface OnboardingStatus {
   hasPersonality: boolean;
   hasAvailability: boolean;
   photoCount: number;
+  /** Saved profile full name (from API), used for e.g. "{{name}} is a great name" */
+  fullName?: string;
 }
 
 export default async function OnboardingPage() {

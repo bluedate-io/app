@@ -1,7 +1,7 @@
 "use client";
 // ─── OnboardingShell — matches login/OTP page aesthetic ──────────────────────
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { OnboardingStatus } from "./page";
 
@@ -36,7 +36,50 @@ const DRINKING_OPTIONS = [
 ];
 const SMOKING_OPTIONS = ["I smoke sometimes", "No, I don't smoke"];
 
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+const FIRST_NAME_MIN_LENGTH = 3;
+const FIRST_NAME_LETTERS_ONLY = /^[a-zA-Z]*$/;
+const BIRTH_YEAR_MIN = 1947;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getDaysInMonth(year: number, month: number): number {
+  if (!year || !month) return 31;
+  return new Date(year, month, 0).getDate();
+}
+
+function isPastDate(day: number, month: number, year: number): boolean {
+  const d = new Date(year, month - 1, day);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime() < today.getTime();
+}
+
+function isValidBirthDate(day: string, month: string, year: string): boolean {
+  const d = parseInt(day, 10);
+  const m = parseInt(month, 10);
+  const y = parseInt(year, 10);
+  if (!d || !m || !y || year.length !== 4) return false;
+  const maxDay = getDaysInMonth(y, m);
+  if (d < 1 || d > maxDay) return false;
+  if (m < 1 || m > 12) return false;
+  if (y < BIRTH_YEAR_MIN || y > new Date().getFullYear()) return false;
+  return isPastDate(d, m, y);
+}
+
+function validateFirstName(value: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed.length < FIRST_NAME_MIN_LENGTH)
+    return `First name must be at least ${FIRST_NAME_MIN_LENGTH} characters.`;
+  if (!FIRST_NAME_LETTERS_ONLY.test(trimmed))
+    return "First name can only contain letters (no numbers or special characters).";
+  return null;
+}
 
 function getInitialSubStep(status: OnboardingStatus): number {
   if (!status.hasProfile) return 0;
@@ -111,7 +154,7 @@ function RadioRow({
         {sublabel && <p className="text-sm text-gray-500 mt-0.5">{sublabel}</p>}
       </div>
       <span
-        className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ml-4 transition-colors"
+        className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ml-4 transition-colors"
         style={{ borderColor: selected ? ACCENT : "#D1D5DB" }}
       >
         {selected && (
@@ -143,7 +186,7 @@ function CheckRow({
     >
       <span className="text-base text-gray-900 font-medium">{label}</span>
       <span
-        className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ml-4 transition-all border-2"
+        className="w-5 h-5 rounded flex items-center justify-center shrink-0 ml-4 transition-all border-2"
         style={{
           borderColor: selected ? ACCENT : "#D1D5DB",
           backgroundColor: selected ? ACCENT : "transparent",
@@ -206,12 +249,104 @@ function Heading({ children }: { children: React.ReactNode }) {
 function InfoLine({ text }: { text: string }) {
   return (
     <p className="text-sm text-gray-400 mt-5 flex items-start gap-1.5">
-      <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <circle cx="12" cy="12" r="9" strokeWidth={1.5} />
         <path strokeLinecap="round" d="M12 8v4m0 4h.01" strokeWidth={2} />
       </svg>
       {text}
     </p>
+  );
+}
+
+/** Inline error below field — red triangle icon + message, does not break layout */
+function InlineError({ message }: { message: string }) {
+  return (
+    <p className="mt-2 flex items-start gap-1.5 text-sm text-red-600" role="alert">
+      <svg className="w-4 h-4 shrink-0 mt-0.5 text-red-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <path d="M12 2L2 22h20L12 2zm0 4l7 14H5L12 6z" />
+      </svg>
+      {message}
+    </p>
+  );
+}
+
+/** Custom month dropdown — single select, styled like other inputs */
+function MonthDropdown({
+  value,
+  onChange,
+  onOpenChange,
+  open,
+  buttonRef,
+  onFocusYear,
+}: {
+  value: string;
+  onChange: (monthIndex: number) => void;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+  buttonRef: React.RefObject<HTMLButtonElement | null>;
+  onFocusYear: () => void;
+}) {
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        listRef.current?.contains(e.target as Node) ||
+        buttonRef.current?.contains(e.target as Node)
+      ) return;
+      onOpenChange(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open, onOpenChange, buttonRef]);
+
+  const display = value ? MONTHS[parseInt(value, 10) - 1] ?? "" : "";
+  return (
+    <div className="relative">
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={() => onOpenChange(!open)}
+        className={`${inputCls} w-full text-left flex items-center justify-between pr-2`}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label="Month"
+      >
+        <span className={display ? "text-gray-900" : "text-gray-400"}>{display || "Month"}</span>
+        <svg className="w-4 h-4 text-gray-800 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div
+          ref={listRef}
+          className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-300 shadow-md z-50 py-1"
+          style={{ backgroundColor: BG }}
+          role="listbox"
+        >
+          {MONTHS.map((name, i) => {
+            const selected = value === String(i + 1);
+            return (
+              <button
+                key={name}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                className={`w-full px-4 py-2.5 text-left text-sm text-gray-900 focus:outline-none transition-colors hover:bg-[#8F3A8F]/10 focus:bg-[#8F3A8F]/10 ${selected ? "bg-[#8F3A8F]/10" : ""}`}
+                onClick={() => {
+                  onChange(i + 1);
+                  onOpenChange(false);
+                  onFocusYear();
+                }}
+              >
+                {name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -362,11 +497,20 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const router = useRouter();
   const [subStep, setSubStep] = useState(() => getInitialSubStep(status));
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  /** API error for the current step — shown inline below the step form, not in a top alert */
+  const [stepError, setStepError] = useState<string | null>(null);
+
+  // ── Refs for DOB auto-focus ────────────────────────────────────────────────
+  const dayInputRef = useRef<HTMLInputElement>(null);
+  const monthButtonRef = useRef<HTMLButtonElement>(null);
+  const yearInputRef = useRef<HTMLInputElement>(null);
 
   // ── Form state ────────────────────────────────────────────────────────────
   const [firstName, setFirstName] = useState("");
+  const [firstNameError, setFirstNameError] = useState<string | null>(null);
   const [birthday, setBirthday] = useState({ day: "", month: "", year: "" });
+  const [birthdayError, setBirthdayError] = useState<string | null>(null);
+  const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
   const [genderIdentity, setGenderIdentity] = useState("");
   const [datingMode, setDatingMode] = useState<"date" | "bff" | "">("");
   const [genderPreference, setGenderPreference] = useState<string[]>([]);
@@ -383,23 +527,63 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
     });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error?.message ?? "Something went wrong");
+    if (res.status === 401) {
+      router.push("/login");
+      throw new Error("Session expired. Please log in again.");
+    }
+    let json: { success?: boolean; error?: { message?: string; details?: Record<string, string[]> } } = {};
+    try {
+      json = await res.json();
+    } catch {
+      if (!res.ok) throw new Error("Invalid response from server. Please try again.");
+    }
+    if (!res.ok) {
+      const msg = json.error?.message ?? "Something went wrong";
+      const details = json.error?.details as Record<string, string[]> | undefined;
+      const firstFieldMsg = details && typeof details === "object"
+        ? Object.values(details).flat().find(Boolean)
+        : undefined;
+      throw new Error(firstFieldMsg ?? msg);
+    }
   };
 
   const handleNext = async () => {
     setLoading(true);
-    setError(null);
+    setStepError(null);
+    setFirstNameError(null);
+    setBirthdayError(null);
     try {
       if (subStep === 0) {
-        const y = parseInt(birthday.year);
-        const m = parseInt(birthday.month);
-        const d = parseInt(birthday.day);
+        const nameErr = validateFirstName(firstName);
+        if (nameErr) {
+          setFirstNameError(nameErr);
+          setLoading(false);
+          return;
+        }
+        if (!isValidBirthDate(birthday.day, birthday.month, birthday.year)) {
+          setBirthdayError("Please enter a valid past date (day, month, and year).");
+          setLoading(false);
+          return;
+        }
+        const y = parseInt(birthday.year, 10);
+        const m = parseInt(birthday.month, 10);
+        const d = parseInt(birthday.day, 10);
+        const birthDate = new Date(y, m - 1, d);
         const now = new Date();
-        let age = now.getFullYear() - y;
-        if (now < new Date(now.getFullYear(), m - 1, d)) age--;
-        if (age < 18) { setError("You must be at least 18 years old."); setLoading(false); return; }
-        await apiPost("profile", { fullName: firstName.trim(), age });
+        let age = now.getFullYear() - birthDate.getFullYear();
+        const monthDiff = now.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) age--;
+        if (age < 18) {
+          setBirthdayError("You must be at least 18 years old.");
+          setLoading(false);
+          return;
+        }
+        const dateOfBirth = `${birthday.year}-${String(birthday.month).padStart(2, "0")}-${String(birthday.day).padStart(2, "0")}`;
+        await apiPost("profile", { fullName: firstName.trim(), dateOfBirth });
+      }
+
+      if (subStep === 1) {
+        await apiPost("gender", { genderIdentity });
       }
 
       if (subStep === 3 && datingMode === "bff") {
@@ -438,7 +622,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
 
       setSubStep((s) => s + 1);
     } catch (e) {
-      setError((e as Error).message);
+      setStepError((e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -446,7 +630,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
 
   const handleSkip = async () => {
     setLoading(true);
-    setError(null);
+    setStepError(null);
     try {
       if (subStep === 5) {
         await apiPost("interests", { hobbies: ["Other"], favouriteActivities: [], musicTaste: [], foodTaste: [] });
@@ -457,7 +641,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       }
       setSubStep((s) => s + 1);
     } catch (e) {
-      setError((e as Error).message);
+      setStepError((e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -465,8 +649,14 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
 
   const canProceed = (() => {
     switch (subStep) {
-      case 0:
-        return firstName.trim().length >= 1 && birthday.day !== "" && birthday.month !== "" && birthday.year.length === 4;
+      case 0: {
+        const trimmed = firstName.trim();
+        return trimmed.length >= FIRST_NAME_MIN_LENGTH
+          && FIRST_NAME_LETTERS_ONLY.test(trimmed)
+          && birthday.day !== ""
+          && birthday.month !== ""
+          && birthday.year.length === 4;
+      }
       case 1: return genderIdentity !== "";
       case 2: return datingMode !== "";
       case 3: return openToAll || genderPreference.length > 0;
@@ -490,22 +680,26 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col p-6" style={{ backgroundColor: BG }}>
-      {/* Progress bar */}
-      <div className="fixed top-0 left-0 right-0 h-0.5 bg-gray-200 z-50">
+      {/* Progress bar — fixed at top */}
+      <div
+        className="fixed top-0 left-0 right-0 h-1.5 z-50 bg-gray-200"
+        role="progressbar"
+        aria-valuenow={progressPct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="Onboarding progress"
+      >
         <div
-          className="h-full transition-all duration-300"
-          style={{ width: `${progressPct}%`, backgroundColor: ACCENT }}
+          className="h-full transition-all duration-300 ease-out"
+          style={{
+            width: `${progressPct}%`,
+            backgroundColor: ACCENT,
+            minWidth: progressPct > 0 ? 8 : 0,
+          }}
         />
       </div>
 
       <div className="max-w-md mx-auto w-full flex flex-col flex-1">
-
-        {/* Error */}
-        {error && (
-          <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
-            {error}
-          </div>
-        )}
 
         {/* ── STEP 0: Intro ───────────────────────────────────────────────── */}
         {subStep === 0 && (
@@ -518,36 +712,85 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
             <Heading>Oh hey! Let's start with an intro.</Heading>
             <p className="text-sm text-gray-500 mb-8">Tell us a little about yourself.</p>
 
-            <div className="mb-8">
+            <div className="mb-6">
               <label className="block text-sm text-gray-500 mb-1">Your first name</label>
               <input
                 type="text"
                 value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className={inputCls}
+                onChange={(e) => {
+                  const next = e.target.value.replace(/[^a-zA-Z]/g, "");
+                  setFirstName(next);
+                  if (firstNameError) setFirstNameError(validateFirstName(next));
+                }}
+                onBlur={() => setFirstNameError(validateFirstName(firstName))}
+                className={`${inputCls} ${firstNameError ? "border-red-500" : ""}`}
                 autoFocus
+                autoComplete="given-name"
+                maxLength={50}
               />
+              {firstNameError && <InlineError message={firstNameError} />}
             </div>
 
             <div>
               <label className="block text-sm text-gray-500 mb-3">Your birthday</label>
-              <div className="grid grid-cols-3 gap-4">
-                {(["Day", "Month", "Year"] as const).map((field) => (
-                  <div key={field}>
-                    <p className="text-xs text-gray-400 mb-1">{field}</p>
-                    <input
-                      type="number"
-                      value={birthday[field.toLowerCase() as keyof typeof birthday]}
-                      onChange={(e) => setBirthday((b) => ({ ...b, [field.toLowerCase()]: e.target.value }))}
-                      className={`${inputCls} text-center`}
-                      min={field === "Year" ? 1900 : 1}
-                      max={field === "Day" ? 31 : field === "Month" ? 12 : new Date().getFullYear() - 18}
-                    />
-                  </div>
-                ))}
+              <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-3 items-end">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Day</p>
+                  <input
+                    ref={dayInputRef}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={2}
+                    value={birthday.day}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, "").slice(0, 2);
+                      setBirthday((b) => ({ ...b, day: v }));
+                      setBirthdayError(null);
+                      if (v.length === 2) monthButtonRef.current?.focus();
+                    }}
+                    placeholder="DD"
+                    className={`${inputCls} text-center ${birthdayError ? "border-red-500" : ""}`}
+                    aria-label="Day"
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Month</p>
+                  <MonthDropdown
+                    value={birthday.month}
+                    onChange={(m) => {
+                      setBirthday((b) => ({ ...b, month: String(m) }));
+                      setBirthdayError(null);
+                    }}
+                    onOpenChange={setMonthDropdownOpen}
+                    open={monthDropdownOpen}
+                    buttonRef={monthButtonRef}
+                    onFocusYear={() => setTimeout(() => yearInputRef.current?.focus(), 0)}
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Year</p>
+                  <input
+                    ref={yearInputRef}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={birthday.year}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, "").slice(0, 4);
+                      setBirthday((b) => ({ ...b, year: v }));
+                      setBirthdayError(null);
+                    }}
+                    placeholder="YYYY"
+                    className={`${inputCls} text-center ${birthdayError ? "border-red-500" : ""}`}
+                    aria-label="Year"
+                  />
+                </div>
               </div>
+              {birthdayError && <InlineError message={birthdayError} />}
               <p className="text-sm text-gray-400 mt-2">It's never too early to count down</p>
             </div>
+
+            {stepError && <InlineError message={stepError} />}
 
             <div className="mt-auto pt-8 flex items-end justify-end">
               <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
@@ -564,10 +807,14 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
               </svg>
             </div>
             <Heading>
-              {firstName ? `${firstName} is a great name` : "A great name!"}
+              {(status.fullName ?? (firstName || "Your name"))} is a great name
             </Heading>
-            <p className="text-sm text-gray-500 mb-8">
-              We love that you're here. Pick the gender that best describes you.
+            <p className="text-sm text-gray-500 mb-6">
+              We love that you're here. Pick the gender that best describes you, then add more about it if you like.
+            </p>
+
+            <p className="text-base font-semibold text-gray-900 mb-3">
+              Which gender best describes you?
             </p>
 
             <div>
@@ -581,6 +828,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
             </div>
 
             <p className="text-sm text-gray-400 mt-4">You can always update this later.</p>
+
+            {stepError && <InlineError message={stepError} />}
 
             <div className="mt-auto pt-8 flex items-end justify-end">
               <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
@@ -615,6 +864,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
             </div>
 
             <InfoLine text="You'll only be shown to people in the same mode as you." />
+
+            {stepError && <InlineError message={stepError} />}
 
             <div className="mt-auto pt-8 flex items-end justify-end">
               <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
@@ -666,6 +917,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
 
             <InfoLine text="You'll only be shown to people looking to date your gender." />
 
+            {stepError && <InlineError message={stepError} />}
+
             <div className="mt-auto pt-8 flex items-end justify-end">
               <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
             </div>
@@ -701,6 +954,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
             </div>
 
             <InfoLine text="This will show on your profile to help everyone find what they're looking for." />
+
+            {stepError && <InlineError message={stepError} />}
 
             <div className="mt-auto pt-8 flex items-end justify-between">
               <span className="text-sm text-gray-400">{relationshipGoal.length}/2 selected</span>
@@ -753,6 +1008,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
               })}
             </div>
 
+            {stepError && <InlineError message={stepError} />}
+
             <div className="mt-auto pt-8 flex items-end justify-between">
               <button
                 onClick={handleSkip} disabled={loading}
@@ -803,6 +1060,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                 />
               ))}
             </div>
+
+            {stepError && <InlineError message={stepError} />}
 
             <div className="mt-auto pt-8 flex items-end justify-between">
               <button
