@@ -25,6 +25,11 @@ enum UserRole {
   moderator
 }
 
+enum InviteCodeStatus {
+  active
+  used
+}
+
 // ─── Core auth table — intentionally minimal ─────────────────────────────────
 
 model User {
@@ -37,13 +42,15 @@ model User {
   updatedAt           DateTime @updatedAt
 
   // Relations
-  profile      Profile?
-  preferences  Preferences?
-  interests    Interests?
-  personality  Personality?
-  availability Availability?
-  aiSignals    AiSignals?
-  photos       Photo[]
+  profile       Profile?
+  preferences   Preferences?
+  interests     Interests?
+  personality   Personality?
+  availability  Availability?
+  aiSignals     AiSignals?
+  photos        Photo[]
+  inviteCodesCreated InviteCode[] @relation("InviteCodeCreator")
+  inviteCodesUsed    InviteCode[] @relation("InviteCodeUsed")
 
   @@index([phone])
   @@map("users")
@@ -136,6 +143,25 @@ model AiSignals {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("ai_signals")
+}
+
+// ─── Invite codes (profile creation gate: men ↔ women) ───────────────────────
+
+model InviteCode {
+  id          String          @id @default(cuid())
+  code        String          @unique
+  createdById String
+  usedById    String?
+  status      InviteCodeStatus @default(active)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  createdBy User  @relation("InviteCodeCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  usedBy    User? @relation("InviteCodeUsed", fields: [usedById], references: [id], onDelete: SetNull)
+
+  @@index([createdById])
+  @@index([usedById])
+  @@map("invite_codes")
 }
 
 // ─── WhatsApp Bot Session ─────────────────────────────────────────────────────

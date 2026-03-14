@@ -26,6 +26,7 @@ async function getOnboardingStatus(token: string) {
 export interface OnboardingStatus {
   hasProfile: boolean;
   hasPreferences: boolean;
+  hasUsedInviteCode: boolean;
   hasInterests: boolean;
   hasPersonality: boolean;
   hasAvailability: boolean;
@@ -47,13 +48,15 @@ export default async function OnboardingPage() {
     ? "profile"
     : !status.hasPreferences
       ? "preferences"
-      : !status.hasInterests
-        ? "interests"
-        : !status.hasPersonality || !status.hasAvailability
-          ? "personality"
-          : status.photoCount < 2
-            ? "photos"
-            : "complete";
+      : !status.hasUsedInviteCode
+        ? "inviteCode"
+        : !status.hasInterests
+          ? "interests"
+          : !status.hasPersonality || !status.hasAvailability
+            ? "personality"
+            : status.photoCount < 2
+              ? "photos"
+              : "complete";
 
   if (currentStep === "complete") redirect("/");
 

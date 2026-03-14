@@ -7,6 +7,7 @@ import { config } from "@/config";
 import type { IWhatsAppSessionRepository } from "@/repositories/WhatsAppSessionRepository";
 import type { IUserRepository } from "@/repositories/UserRepository";
 import type { IOnboardingRepository } from "@/repositories/OnboardingRepository";
+import type { InviteCodeService } from "@/services/InviteCodeService";
 import { logger } from "@/utils/logger";
 
 const log = logger.child("WhatsAppBotService");
@@ -17,6 +18,7 @@ const STEPS = {
   WELCOME: "WELCOME",
   PROFILE_DOB: "PROFILE_DOB",
   GENDER: "GENDER",
+  INVITE_CODE: "INVITE_CODE",
   DATING_MODE: "DATING_MODE",
   WHO_TO_MEET: "WHO_TO_MEET",
   RELATIONSHIP_GOALS: "RELATIONSHIP_GOALS",
@@ -40,6 +42,13 @@ const MSG = {
   PROFILE_DOB: (name: string) =>
     `Great name, ${name}! 🎉\n\nWhat's your *date of birth*?\nReply in DD/MM/YYYY format (e.g. 14/03/1998)`,
   GENDER: `Which *gender* best describes you?\n\nReply:\n• *Man*\n• *Woman*\n• *Non-binary*\n• Or type your own`,
+  INVITE_CODE: (gender: string) => {
+    const lower = gender.trim().toLowerCase();
+    const isWoman = lower === "woman" || lower === "women";
+    const isMan = lower === "man" || lower === "men";
+    const opposite = isWoman ? "a *man*" : isMan ? "a *woman*" : "a *man* or *woman*";
+    return `To continue, you need an invite code from ${opposite}.\n\nAsk them to message us *invite code* on WhatsApp. They'll get a code to share with you.\n\nReply with the *invite code* they give you:`;
+  },
   DATING_MODE: `What are you looking for?\n\nReply:\n• *Date* — find a romantic partner\n• *BFF* — find a best friend`,
   WHO_TO_MEET_DATE: `Who would you like to meet?\n\nReply:\n• *Man*\n• *Woman*\n• *Everyone*`,
   WHO_TO_MEET_BFF: `Who would you like to meet?\n\nReply:\n• *Man*\n• *Woman*\n• *Everyone*`,
@@ -57,6 +66,7 @@ const MSG = {
   ERROR_DOB: `That doesn't look right. Please reply with your date of birth in *DD/MM/YYYY* format.`,
   ERROR_DOB_AGE: `You must be at least 18 years old to join bluedate.`,
   ERROR_GENDER: `Please reply with *Man*, *Woman*, *Non-binary* or type your own.`,
+  ERROR_INVITE_CODE: `That code isn't valid or has already been used. Men need a code from a woman; women need a code from a man. Ask for a new code.`,
   ERROR_DATING_MODE: `Please reply *Date* or *BFF*.`,
   ERROR_WHO_TO_MEET: `Please reply *Man*, *Woman*, or *Everyone*.`,
   ERROR_RELATIONSHIP_GOALS: `Please reply *Casual*, *Long-term*, or *Marriage*.`,
@@ -129,6 +139,7 @@ export class WhatsAppBotService {
     private readonly sessionRepo: IWhatsAppSessionRepository,
     private readonly userRepo: IUserRepository,
     private readonly onboardingRepo: IOnboardingRepository,
+    private readonly inviteCodeService: InviteCodeService,
   ) {}
 
   /**
@@ -148,6 +159,19 @@ export class WhatsAppBotService {
     const phone = from.replace(/^whatsapp:/, "");
     const text = body?.trim() ?? "";
 
+    // Global intent: request invite code (any step)
+    const inviteCodeRequest = normalise(text).replace(/\s+/g, " ");
+    if (inviteCodeRequest === "invite code" || inviteCodeRequest === "invitecode") {
+      try {
+        return await this.inviteCodeService.requestCode(phone);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        const stack = err instanceof Error ? err.stack : undefined;
+        log.error("Invite code request failed", { phone, message, stack });
+        return "Something went wrong. Please try again in a moment.";
+      }
+    }
+
     // Load or initialise session
     let session = await this.sessionRepo.findByPhone(phone);
     const step: Step = (session?.step as Step) ?? STEPS.WELCOME;
@@ -156,7 +180,9 @@ export class WhatsAppBotService {
     try {
       return await this.dispatch(phone, step, tempData, text, mediaUrl, mediaContentType);
     } catch (err) {
-      log.error("WhatsApp bot error", { phone, step, err });
+      const message = err instanceof Error ? err.message : String(err);
+      const stack = err instanceof Error ? err.stack : undefined;
+      log.error("WhatsApp bot error", { phone, step, message, stack });
       return "Sorry, something went wrong. Please try again in a moment.";
     }
   }
@@ -178,6 +204,8 @@ export class WhatsAppBotService {
         return this.handleProfileDob(phone, tempData, text);
       case STEPS.GENDER:
         return this.handleGender(phone, tempData, text);
+      case STEPS.INVITE_CODE:
+        return this.handleInviteCode(phone, tempData, text);
       case STEPS.DATING_MODE:
         return this.handleDatingMode(phone, tempData, text);
       case STEPS.WHO_TO_MEET:
@@ -266,7 +294,27 @@ export class WhatsAppBotService {
     const userId = tempData.userId as string;
     await this.onboardingRepo.upsertGenderIdentity(userId, { genderIdentity: value });
 
-    await this.sessionRepo.upsert(phone, STEPS.DATING_MODE, { ...tempData, genderIdentity: value });
+    await this.sessionRepo.upsert(phone, STEPS.INVITE_CODE, { ...tempData, genderIdentity: value });
+    return MSG.INVITE_CODE(value);
+  }
+
+  private async handleInviteCode(
+    phone: string,
+    tempData: Record<string, unknown>,
+    text: string,
+  ): Promise<string> {
+    const code = text.trim();
+    if (!code) return MSG.ERROR_INVITE_CODE;
+
+    const userId = tempData.userId as string;
+    const userGender = (tempData.genderIdentity as string) ?? "";
+    try {
+      await this.inviteCodeService.validateAndUseCode(code, userId, userGender);
+    } catch {
+      return MSG.ERROR_INVITE_CODE;
+    }
+
+    await this.sessionRepo.upsert(phone, STEPS.DATING_MODE, tempData);
     return MSG.DATING_MODE;
   }
 
