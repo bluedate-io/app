@@ -641,7 +641,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
               onClick={() => { setOpenToAll((v) => !v); if (!openToAll) setGenderPreference([]); }}
             >
               <div
-                className="relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0"
+                className="relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0"
                 style={{ backgroundColor: openToAll ? ACCENT : "#D1D5DB" }}
               >
                 <span
