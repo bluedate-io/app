@@ -85,6 +85,11 @@ function getInitialSubStep(status: OnboardingStatus): number {
   if (!status.hasProfile) return 0;
   if (!status.hasPreferences) return 1;
   if (!status.hasUsedInviteCode) return 2;
+  if (!status.hasPreferencesComplete) {
+    // relationshipIntent "undecided" = saved from "who to meet" but not yet selected a goal → show step 5
+    if (status.relationshipIntent === "undecided") return 5;
+    return 3; // Date/BFF + who to meet not saved yet; stay on dating mode step
+  }
   if (!status.hasInterests) return 6;
   if (!status.hasPersonality || !status.hasAvailability) return 7;
   // Always show photos step (8) until user explicitly clicks Done; then page redirects
@@ -571,7 +576,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const [birthday, setBirthday] = useState({ day: "", month: "", year: "" });
   const [birthdayError, setBirthdayError] = useState<string | null>(null);
   const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
-  const [genderIdentity, setGenderIdentity] = useState("");
+  const [genderIdentity, setGenderIdentity] = useState(() => status.genderIdentity ?? "");
   const [inviteCode, setInviteCode] = useState("");
   const [inviteCodeError, setInviteCodeError] = useState<string | null>(null);
   const [datingMode, setDatingMode] = useState<"date" | "bff" | "">("");
@@ -615,6 +620,16 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
     setFirstNameError(null);
     setBirthdayError(null);
     try {
+      if (subStep === 3 && !datingMode) {
+        setStepError("Please select Date or BFF to continue.");
+        setLoading(false);
+        return;
+      }
+      if (subStep === 5 && datingMode === "date" && relationshipGoal.length === 0) {
+        setStepError("Please select at least one option to continue.");
+        setLoading(false);
+        return;
+      }
       if (subStep === 0) {
         const nameErr = validateFirstName(firstName);
         if (nameErr) {
@@ -654,8 +669,14 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       }
 
       if (subStep === 3 && datingMode === "bff") {
+        const identity = genderIdentity || status.genderIdentity || "";
+        if (!identity) {
+          setStepError("Please go back and select your gender first.");
+          setLoading(false);
+          return;
+        }
         await apiPost("preferences", {
-          genderIdentity,
+          genderIdentity: identity,
           genderPreference: openToAll ? ["Men", "Women", "Nonbinary people"] : genderPreference,
           ageRangeMin: 18, ageRangeMax: 55,
           relationshipIntent: "friendship",
@@ -665,10 +686,19 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
 
       if (subStep === 4) {
         await apiPost("preferences", {
-          genderIdentity,
+          genderIdentity: genderIdentity || status.genderIdentity || "",
           genderPreference: openToAll ? ["Men", "Women", "Nonbinary people"] : genderPreference,
           ageRangeMin: 18, ageRangeMax: 55,
           relationshipIntent: relationshipGoal[0] ?? "undecided",
+        });
+      }
+
+      if (subStep === 5 && datingMode === "date") {
+        await apiPost("preferences", {
+          genderIdentity: genderIdentity || status.genderIdentity || "",
+          genderPreference: openToAll ? ["Men", "Women", "Nonbinary people"] : genderPreference,
+          ageRangeMin: 18, ageRangeMax: 55,
+          relationshipIntent: relationshipGoal[0],
         });
       }
 

@@ -26,6 +26,8 @@ async function getOnboardingStatus(token: string) {
 export interface OnboardingStatus {
   hasProfile: boolean;
   hasPreferences: boolean;
+  /** True after user has chosen Date/BFF and saved (relationshipIntent set) */
+  hasPreferencesComplete: boolean;
   hasUsedInviteCode: boolean;
   hasInterests: boolean;
   hasPersonality: boolean;
@@ -35,6 +37,10 @@ export interface OnboardingStatus {
   completed: boolean;
   /** Saved profile full name (from API), used for e.g. "{{name}} is a great name" */
   fullName?: string;
+  /** Saved gender identity (for prefill when on Date/BFF step after refresh) */
+  genderIdentity?: string;
+  /** Set when preferences saved; "undecided" = on relationship-goals step, need to select */
+  relationshipIntent?: string;
 }
 
 export default async function OnboardingPage() {
