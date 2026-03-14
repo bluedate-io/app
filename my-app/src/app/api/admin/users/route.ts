@@ -1,0 +1,72 @@
+import { NextRequest, NextResponse } from "next/server";
+import jwt from "jsonwebtoken";
+import { config } from "@/config";
+import db from "@/lib/db";
+
+function verifyAdminToken(req: NextRequest): boolean {
+  try {
+    const cookie = req.cookies.get("admin_token")?.value;
+    if (!cookie) return false;
+    const payload = jwt.verify(cookie, config.auth.jwtSecret) as { role?: string };
+    return payload.role === "admin";
+  } catch {
+    return false;
+  }
+}
+
+function onboardingStep(user: {
+  onboardingCompleted: boolean;
+  profile: { fullName: string | null } | null;
+  preferences: { genderIdentity: string | null } | null;
+  interests: { id: string } | null;
+  personality: { id: string } | null;
+  _count: { photos: number };
+}): string {
+  if (user.onboardingCompleted) return "Complete";
+  if (user._count.photos >= 2) return "Photos";
+  if (user.personality) return "Habits";
+  if (user.interests) return "Interests";
+  if (user.preferences) return "Preferences";
+  if (user.profile) return "Profile";
+  return "New";
+}
+
+export async function GET(req: NextRequest) {
+  if (!verifyAdminToken(req)) {
+    return NextResponse.json({ error: { message: "Unauthorized" } }, { status: 401 });
+  }
+
+  const completed = req.nextUrl.searchParams.get("completed");
+
+  const users = await db.user.findMany({
+    where:
+      completed === "true"
+        ? { onboardingCompleted: true }
+        : completed === "false"
+          ? { onboardingCompleted: false }
+          : undefined,
+    include: {
+      profile: { select: { fullName: true, city: true, dateOfBirth: true } },
+      preferences: { select: { genderIdentity: true, id: true } },
+      interests: { select: { id: true } },
+      personality: { select: { id: true } },
+      _count: { select: { photos: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const data = users
+    .filter((u) => u.role !== "admin")
+    .map((u) => ({
+      id: u.id,
+      phone: u.phone,
+      name: u.profile?.fullName ?? "—",
+      city: u.profile?.city ?? "—",
+      gender: u.preferences?.genderIdentity ?? "—",
+      step: onboardingStep(u),
+      completed: u.onboardingCompleted,
+      joinedAt: u.createdAt.toISOString(),
+    }));
+
+  return NextResponse.json({ data });
+}

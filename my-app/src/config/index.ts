@@ -47,6 +47,10 @@ export const config = {
     whatsappNumber: optionalEnv("TWILIO_WHATSAPP_NUMBER", "whatsapp:+14155238886"),
   },
 
+  admin: {
+    phone: optionalEnv("ADMIN_PHONE", "9703177577"),
+  },
+
   supabase: {
     url: firstEnv(["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL"], ""),
     anonKey: firstEnv(
