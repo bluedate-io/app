@@ -11,6 +11,15 @@ function optionalEnv(key: string, fallback: string): string {
   return process.env[key] ?? fallback;
 }
 
+/** Try multiple env var names in order, return first truthy value or fallback */
+function firstEnv(keys: string[], fallback: string): string {
+  for (const key of keys) {
+    const v = process.env[key];
+    if (v) return v;
+  }
+  return fallback;
+}
+
 export const config = {
   env: optionalEnv("NODE_ENV", "development") as "development" | "production" | "test",
   isDev: optionalEnv("NODE_ENV", "development") === "development",
@@ -35,11 +44,15 @@ export const config = {
     accountSid: optionalEnv("TWILIO_ACCOUNT_SID", ""),
     authToken: optionalEnv("TWILIO_AUTH_TOKEN", ""),
     verifyServiceSid: optionalEnv("TWILIO_VERIFY_SERVICE_SID", ""),
+    whatsappNumber: optionalEnv("TWILIO_WHATSAPP_NUMBER", "whatsapp:+14155238886"),
   },
 
   supabase: {
-    url: optionalEnv("NEXT_PUBLIC_SUPABASE_URL", ""),
-    anonKey: optionalEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY", ""),
+    url: firstEnv(["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL"], ""),
+    anonKey: firstEnv(
+      ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_ANON_KEY"],
+      "",
+    ),
     photoBucket: optionalEnv("SUPABASE_PHOTO_BUCKET", "photos"),
   },
 } as const;

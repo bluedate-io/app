@@ -51,6 +51,7 @@ export interface IOnboardingRepository {
     hasPersonality: boolean;
     hasAvailability: boolean;
     photoCount: number;
+    fullName?: string;
   }>;
 }
 
