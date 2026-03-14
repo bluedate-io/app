@@ -47,12 +47,15 @@ export interface IOnboardingRepository {
   getOnboardingStatus(userId: string): Promise<{
     hasProfile: boolean;
     hasPreferences: boolean;
+    hasPreferencesComplete: boolean;
     hasUsedInviteCode: boolean;
     hasInterests: boolean;
     hasPersonality: boolean;
     hasAvailability: boolean;
     photoCount: number;
     fullName?: string;
+    genderIdentity?: string;
+    relationshipIntent?: string;
   }>;
   getGenderIdentity(userId: string): Promise<string | null>;
 }
@@ -199,22 +202,27 @@ export class OnboardingRepository implements IOnboardingRepository {
     const [profile, preferences, inviteCodeUsed, interests, personality, availability, photoCount] =
       await this.db.$transaction([
         this.db.profile.findUnique({ where: { userId }, select: { id: true, fullName: true } }),
-        this.db.preferences.findUnique({ where: { userId }, select: { id: true } }),
+        this.db.preferences.findUnique({ where: { userId }, select: { id: true, relationshipIntent: true, genderIdentity: true } }),
         this.db.inviteCode.count({ where: { usedById: userId } }),
         this.db.interests.findUnique({ where: { userId }, select: { id: true } }),
         this.db.personality.findUnique({ where: { userId }, select: { id: true } }),
         this.db.availability.findUnique({ where: { userId }, select: { id: true } }),
         this.db.photo.count({ where: { userId } }),
       ]);
+    const relationshipIntent = preferences?.relationshipIntent ?? undefined;
+    const hasPreferencesComplete = !!(relationshipIntent != null && relationshipIntent !== "" && relationshipIntent !== "undecided");
     return {
       hasProfile: !!profile,
       hasPreferences: !!preferences,
+      hasPreferencesComplete,
+      relationshipIntent: relationshipIntent ?? undefined,
       hasUsedInviteCode: inviteCodeUsed > 0,
       hasInterests: !!interests,
       hasPersonality: !!personality,
       hasAvailability: !!availability,
       photoCount,
       fullName: profile?.fullName ?? undefined,
+      genderIdentity: preferences?.genderIdentity ?? undefined,
     };
   }
 
