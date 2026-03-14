@@ -7,7 +7,7 @@ import type { OnboardingStatus } from "./page";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TOTAL_SUB_STEPS = 8;
+const TOTAL_SUB_STEPS = 9;
 const ACCENT = "#8F3A8F";
 const BG = "#FBF8F6";
 const FAB_BG = "#E0E0E0";
@@ -84,9 +84,10 @@ function validateFirstName(value: string): string | null {
 function getInitialSubStep(status: OnboardingStatus): number {
   if (!status.hasProfile) return 0;
   if (!status.hasPreferences) return 1;
-  if (!status.hasInterests) return 5;
-  if (!status.hasPersonality || !status.hasAvailability) return 6;
-  if (status.photoCount < 2) return 7;
+  if (!status.hasUsedInviteCode) return 2;
+  if (!status.hasInterests) return 6;
+  if (!status.hasPersonality || !status.hasAvailability) return 7;
+  if (status.photoCount < 2) return 8;
   return TOTAL_SUB_STEPS;
 }
 
@@ -512,6 +513,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const [birthdayError, setBirthdayError] = useState<string | null>(null);
   const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
   const [genderIdentity, setGenderIdentity] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+  const [inviteCodeError, setInviteCodeError] = useState<string | null>(null);
   const [datingMode, setDatingMode] = useState<"date" | "bff" | "">("");
   const [genderPreference, setGenderPreference] = useState<string[]>([]);
   const [openToAll, setOpenToAll] = useState(false);
@@ -586,6 +589,11 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
         await apiPost("gender", { genderIdentity });
       }
 
+      if (subStep === 2) {
+        setInviteCodeError(null);
+        await apiPost("invite-code", { code: inviteCode.trim() });
+      }
+
       if (subStep === 3 && datingMode === "bff") {
         await apiPost("preferences", {
           genderIdentity,
@@ -593,7 +601,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           ageRangeMin: 18, ageRangeMax: 55,
           relationshipIntent: "friendship",
         });
-        setSubStep(5); setLoading(false); return;
+        setSubStep(6); setLoading(false); return;
       }
 
       if (subStep === 4) {
@@ -605,14 +613,14 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
         });
       }
 
-      if (subStep === 5) {
+      if (subStep === 6) {
         await apiPost("interests", {
           hobbies: interests.length > 0 ? interests : ["Other"],
           favouriteActivities: [], musicTaste: [], foodTaste: [],
         });
       }
 
-      if (subStep === 6) {
+      if (subStep === 7) {
         await apiPost("personality", {
           socialLevel: drinkingHabit || "Not specified",
           conversationStyle: smokingHabit || "Not specified",
@@ -621,8 +629,11 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       }
 
       setSubStep((s) => s + 1);
+      setInviteCodeError(null);
     } catch (e) {
-      setStepError((e as Error).message);
+      const msg = (e as Error).message;
+      if (subStep === 2) setInviteCodeError(msg);
+      else setStepError(msg);
     } finally {
       setLoading(false);
     }
@@ -632,10 +643,10 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
     setLoading(true);
     setStepError(null);
     try {
-      if (subStep === 5) {
+      if (subStep === 6) {
         await apiPost("interests", { hobbies: ["Other"], favouriteActivities: [], musicTaste: [], foodTaste: [] });
       }
-      if (subStep === 6) {
+      if (subStep === 7) {
         await apiPost("personality", { socialLevel: "Not specified", conversationStyle: "Not specified" });
         await apiPost("availability", { days: ["fri", "sat", "sun"], times: ["evening"] });
       }
@@ -658,19 +669,20 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           && birthday.year.length === 4;
       }
       case 1: return genderIdentity !== "";
-      case 2: return datingMode !== "";
-      case 3: return openToAll || genderPreference.length > 0;
-      case 4: return datingMode === "bff" || relationshipGoal.length > 0;
-      case 5: return interests.length > 0;
-      case 6: return true;
+      case 2: return inviteCode.trim().length > 0;
+      case 3: return datingMode !== "";
+      case 4: return openToAll || genderPreference.length > 0;
+      case 5: return datingMode === "bff" || relationshipGoal.length > 0;
+      case 6: return interests.length > 0;
+      case 7: return true;
       default: return true;
     }
   })();
 
-  const isSkippable = subStep === 5 || subStep === 6;
+  const isSkippable = subStep === 6 || subStep === 7;
   const progressPct = Math.round(((subStep + 1) / TOTAL_SUB_STEPS) * 100);
 
-  if (subStep === 7) {
+  if (subStep === 8) {
     return <PhotosStep token={token} status={status} onDone={() => router.refresh()} />;
   }
 
@@ -837,8 +849,48 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           </div>
         )}
 
-        {/* ── STEP 2: Dating mode ─────────────────────────────────────────── */}
+        {/* ── STEP 2: Invite code ──────────────────────────────────────────── */}
         {subStep === 2 && (
+          <div className="flex flex-col flex-1">
+            <div className="flex justify-start mb-6">
+              <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+            </div>
+            <Heading>Enter your invite code</Heading>
+            <p className="text-sm text-gray-500 mb-6">
+              {genderIdentity === "Man"
+                ? "Men need an invite code from a woman to join. Ask a woman to message us \"invite code\" on WhatsApp—she'll get a code to share with you."
+                : genderIdentity === "Woman"
+                  ? "Women need an invite code from a man to join. Ask a man to message us \"invite code\" on WhatsApp—he'll get a code to share with you."
+                  : "You need an invite code from a man or woman. Ask them to message us \"invite code\" on WhatsApp, then enter the code they receive."}
+            </p>
+
+            <div className="mb-4">
+              <label className="block text-sm text-gray-500 mb-1">Invite code</label>
+              <input
+                type="text"
+                value={inviteCode}
+                onChange={(e) => {
+                  setInviteCode(e.target.value.toUpperCase().trim());
+                  if (inviteCodeError) setInviteCodeError(null);
+                }}
+                className={`${inputCls} ${inviteCodeError ? "border-red-500" : ""}`}
+                placeholder="e.g. ABC12XYZ"
+                autoComplete="off"
+                maxLength={20}
+              />
+              {inviteCodeError && <InlineError message={inviteCodeError} />}
+            </div>
+
+            <div className="mt-auto pt-8 flex items-end justify-end">
+              <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 3: Dating mode ─────────────────────────────────────────── */}
+        {subStep === 3 && (
           <div className="flex flex-col flex-1">
             <div className="flex justify-start mb-6">
               <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -873,8 +925,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           </div>
         )}
 
-        {/* ── STEP 3: Who to meet ─────────────────────────────────────────── */}
-        {subStep === 3 && (
+        {/* ── STEP 4: Who to meet ─────────────────────────────────────────── */}
+        {subStep === 4 && (
           <div className="flex flex-col flex-1">
             <div className="flex justify-start mb-6">
               <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -925,8 +977,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           </div>
         )}
 
-        {/* ── STEP 4: Relationship goals ──────────────────────────────────── */}
-        {subStep === 4 && (
+        {/* ── STEP 5: Relationship goals ──────────────────────────────────── */}
+        {subStep === 5 && (
           <div className="flex flex-col flex-1">
             <div className="flex justify-start mb-6">
               <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -964,8 +1016,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           </div>
         )}
 
-        {/* ── STEP 5: Interests ───────────────────────────────────────────── */}
-        {subStep === 5 && (
+        {/* ── STEP 6: Interests ───────────────────────────────────────────── */}
+        {subStep === 6 && (
           <div className="flex flex-col flex-1">
             <div className="flex justify-start mb-6">
               <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1026,8 +1078,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           </div>
         )}
 
-        {/* ── STEP 6: Habits ──────────────────────────────────────────────── */}
-        {subStep === 6 && (
+        {/* ── STEP 7: Habits ──────────────────────────────────────────────── */}
+        {subStep === 7 && (
           <div className="flex flex-col flex-1">
             <div className="flex justify-start mb-6">
               <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

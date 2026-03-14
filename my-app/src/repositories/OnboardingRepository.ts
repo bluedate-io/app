@@ -47,12 +47,14 @@ export interface IOnboardingRepository {
   getOnboardingStatus(userId: string): Promise<{
     hasProfile: boolean;
     hasPreferences: boolean;
+    hasUsedInviteCode: boolean;
     hasInterests: boolean;
     hasPersonality: boolean;
     hasAvailability: boolean;
     photoCount: number;
     fullName?: string;
   }>;
+  getGenderIdentity(userId: string): Promise<string | null>;
 }
 
 export class OnboardingRepository implements IOnboardingRepository {
@@ -194,10 +196,11 @@ export class OnboardingRepository implements IOnboardingRepository {
   }
 
   async getOnboardingStatus(userId: string) {
-    const [profile, preferences, interests, personality, availability, photoCount] =
+    const [profile, preferences, inviteCodeUsed, interests, personality, availability, photoCount] =
       await this.db.$transaction([
         this.db.profile.findUnique({ where: { userId }, select: { id: true, fullName: true } }),
         this.db.preferences.findUnique({ where: { userId }, select: { id: true } }),
+        this.db.inviteCode.count({ where: { usedById: userId } }),
         this.db.interests.findUnique({ where: { userId }, select: { id: true } }),
         this.db.personality.findUnique({ where: { userId }, select: { id: true } }),
         this.db.availability.findUnique({ where: { userId }, select: { id: true } }),
@@ -206,11 +209,20 @@ export class OnboardingRepository implements IOnboardingRepository {
     return {
       hasProfile: !!profile,
       hasPreferences: !!preferences,
+      hasUsedInviteCode: inviteCodeUsed > 0,
       hasInterests: !!interests,
       hasPersonality: !!personality,
       hasAvailability: !!availability,
       photoCount,
       fullName: profile?.fullName ?? undefined,
     };
+  }
+
+  async getGenderIdentity(userId: string): Promise<string | null> {
+    const prefs = await this.db.preferences.findUnique({
+      where: { userId },
+      select: { genderIdentity: true },
+    });
+    return prefs?.genderIdentity ?? null;
   }
 }

@@ -44,6 +44,12 @@ export const genderIdentitySchema = z.object({
   genderIdentity: z.string().min(1).max(60).trim(),
 });
 
+// ─── Invite code (step after gender) ──────────────────────────────────────────
+
+export const inviteCodeSchema = z.object({
+  code: z.string().min(1).max(20).trim(),
+});
+
 // ─── Step 2: Preferences (Basics) ────────────────────────────────────────────
 
 export const preferencesSchema = z.object({
@@ -95,6 +101,7 @@ export const aiSignalsSchema = z.object({
 
 export type ProfileInput = z.infer<typeof profileSchema>;
 export type GenderIdentityInput = z.infer<typeof genderIdentitySchema>;
+export type InviteCodeInput = z.infer<typeof inviteCodeSchema>;
 export type PreferencesInput = z.infer<typeof preferencesSchema>;
 export type InterestsInput = z.infer<typeof interestsSchema>;
 export type PersonalityInput = z.infer<typeof personalitySchema>;

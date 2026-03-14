@@ -5,10 +5,12 @@
 import { db } from "@/lib/db";
 import { UserRepository } from "@/repositories/UserRepository";
 import { OnboardingRepository } from "@/repositories/OnboardingRepository";
+import { InviteCodeRepository } from "@/repositories/InviteCodeRepository";
 import { WhatsAppSessionRepository } from "@/repositories/WhatsAppSessionRepository";
 import { TwilioService } from "@/services/TwilioService";
 import { AuthService } from "@/services/AuthService";
 import { OnboardingService } from "@/services/OnboardingService";
+import { InviteCodeService } from "@/services/InviteCodeService";
 import { WhatsAppBotService } from "@/services/WhatsAppBotService";
 import { AuthController } from "@/controllers/AuthController";
 import { OnboardingController } from "@/controllers/OnboardingController";
@@ -16,16 +18,27 @@ import { OnboardingController } from "@/controllers/OnboardingController";
 // ─── Repositories ─────────────────────────────────────────────────────────────
 const userRepository = new UserRepository(db);
 const onboardingRepository = new OnboardingRepository(db);
+const inviteCodeRepository = new InviteCodeRepository(db);
 const whatsAppSessionRepository = new WhatsAppSessionRepository(db);
 
 // ─── Services ─────────────────────────────────────────────────────────────────
 const twilioService = new TwilioService();
 const authService = new AuthService(userRepository, twilioService);
-const onboardingService = new OnboardingService(onboardingRepository, userRepository);
+const inviteCodeService = new InviteCodeService(
+  inviteCodeRepository,
+  userRepository,
+  onboardingRepository,
+);
+const onboardingService = new OnboardingService(
+  onboardingRepository,
+  userRepository,
+  inviteCodeService,
+);
 const whatsAppBotService = new WhatsAppBotService(
   whatsAppSessionRepository,
   userRepository,
   onboardingRepository,
+  inviteCodeService,
 );
 
 // ─── Controllers ──────────────────────────────────────────────────────────────
@@ -36,6 +49,7 @@ export const container = {
   // Repositories
   userRepository,
   onboardingRepository,
+  inviteCodeRepository,
   whatsAppSessionRepository,
 
   // Services

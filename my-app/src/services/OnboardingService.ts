@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { config } from "@/config";
 import type { IOnboardingRepository } from "@/repositories/OnboardingRepository";
 import type { IUserRepository } from "@/repositories/UserRepository";
+import type { InviteCodeService } from "@/services/InviteCodeService";
 import type {
   ProfileInput,
   GenderIdentityInput,
@@ -48,6 +49,7 @@ export class OnboardingService {
   constructor(
     private readonly onboardingRepo: IOnboardingRepository,
     private readonly userRepo: IUserRepository,
+    private readonly inviteCodeService: InviteCodeService,
   ) {}
 
   // ─── Profile ────────────────────────────────────────────────────────────────
@@ -180,6 +182,20 @@ export class OnboardingService {
     return photos.map(toPhotoDTO);
   }
 
+  // ─── Invite code ─────────────────────────────────────────────────────────────
+
+  async validateInviteCode(userId: string, code: string): Promise<void> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
+    const gender = await this.onboardingRepo.getGenderIdentity(userId);
+    if (!gender || !gender.trim()) {
+      throw new BadRequestError("Please save your gender first, then enter your invite code.");
+    }
+    await this.inviteCodeService.validateAndUseCode(code, userId, gender);
+  }
+
   // ─── Complete onboarding ─────────────────────────────────────────────────────
 
   async completeOnboarding(userId: string): Promise<void> {
@@ -188,6 +204,7 @@ export class OnboardingService {
     const missing: string[] = [];
     if (!status.hasProfile) missing.push("profile");
     if (!status.hasPreferences) missing.push("preferences");
+    if (!status.hasUsedInviteCode) missing.push("invite code");
     if (!status.hasInterests) missing.push("interests");
     if (!status.hasPersonality) missing.push("personality");
     if (!status.hasAvailability) missing.push("availability");

@@ -12,6 +12,7 @@ const log = logger.child("TwilioService");
 export interface ITwilioService {
   sendVerification(phone: string): Promise<void>;
   checkVerification(phone: string, code: string): Promise<void>;
+  sendWhatsAppMessage(toPhone: string, body: string): Promise<void>;
 }
 
 export class TwilioService implements ITwilioService {
@@ -62,6 +63,27 @@ export class TwilioService implements ITwilioService {
       if (error instanceof OtpInvalidError) throw error;
       log.error("Verification check error", { phone, error });
       throw new OtpInvalidError();
+    }
+  }
+
+  // ── Send WhatsApp message (e.g. invite code) ──────────────────────────────────
+
+  async sendWhatsAppMessage(toPhone: string, body: string): Promise<void> {
+    const to = toPhone.startsWith("+") ? toPhone : `+${toPhone}`;
+    const toWhatsApp = `whatsapp:${to}`;
+    const from = config.twilio.whatsappNumber;
+    try {
+      await this.client.messages.create({
+        from,
+        to: toWhatsApp,
+        body,
+      });
+      log.info("WhatsApp message sent", { to: toWhatsApp });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const code = error && typeof error === "object" && "code" in error ? (error as { code: number }).code : undefined;
+      log.error("Failed to send WhatsApp message", { to: toWhatsApp, message, code });
+      throw new OtpSendFailedError("Failed to send WhatsApp message.");
     }
   }
 }
