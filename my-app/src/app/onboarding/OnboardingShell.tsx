@@ -1,303 +1,222 @@
 "use client";
-// ─── OnboardingShell — Client Component ──────────────────────────────────────
-// Renders the correct step form and handles POST → API submission.
+// ─── OnboardingShell — matches login/OTP page aesthetic ──────────────────────
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { OnboardingStatus } from "./page";
 
-interface Props {
-  step: string;
-  token: string;
-  status: OnboardingStatus;
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const TOTAL_SUB_STEPS = 8;
+const ACCENT = "#8F3A8F";
+const BG = "#FBF8F6";
+const FAB_BG = "#E0E0E0";
+const FONT_SERIF = "var(--font-playfair), Georgia, serif";
+
+const SUGGESTED_INTERESTS = [
+  "Skiing", "Museums & galleries", "LGBTQ+ rights", "Wine", "Writing",
+  "Horror", "Yoga", "Cats", "Dogs", "Crafts", "Festivals", "Coffee",
+  "Art", "City breaks", "Camping", "Foodie", "R&B", "Tennis", "Dancing",
+  "Vegetarian", "Gardening", "Baking", "Gigs", "Country", "Photography",
+  "Travel", "Gaming", "Cooking", "Reading", "Hiking", "Fitness", "Movies",
+];
+
+const RELATIONSHIP_GOALS = [
+  "A long-term relationship",
+  "A life partner",
+  "Fun, casual dates",
+  "Intimacy, without commitment",
+  "Marriage",
+  "Ethical non-monogamy",
+];
+
+const DRINKING_OPTIONS = [
+  "Yes, I drink", "I drink sometimes", "I rarely drink",
+  "No, I don't drink", "I'm sober",
+];
+const SMOKING_OPTIONS = ["I smoke sometimes", "No, I don't smoke"];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getInitialSubStep(status: OnboardingStatus): number {
+  if (!status.hasProfile) return 0;
+  if (!status.hasPreferences) return 1;
+  if (!status.hasInterests) return 5;
+  if (!status.hasPersonality || !status.hasAvailability) return 6;
+  if (status.photoCount < 2) return 7;
+  return TOTAL_SUB_STEPS;
 }
 
-const STEP_TITLES: Record<string, string> = {
-  profile:      "Tell us about yourself",
-  preferences:  "Your dating preferences",
-  interests:    "What do you love?",
-  personality:  "Your personality",
-  availability: "When are you free?",
-  photos:       "Add your photos",
-};
+// ─── Shared UI ────────────────────────────────────────────────────────────────
 
-export default function OnboardingShell({ step, token, status }: Props) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const post = async (path: string, body: unknown) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/onboarding/${path}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error?.message ?? "Something went wrong");
-      router.refresh(); // let the RSC re-evaluate the current step
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">{STEP_TITLES[step]}</h1>
-      <p className="text-sm text-gray-400 mb-6 capitalize">{step} · bluedate</p>
-
-      {error && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
-          {error}
-        </div>
-      )}
-
-      {step === "profile"      && <ProfileForm      onSubmit={(d) => post("profile", d)}      loading={loading} />}
-      {step === "preferences"  && <PreferencesForm  onSubmit={(d) => post("preferences", d)}  loading={loading} />}
-      {step === "interests"    && <InterestsForm    onSubmit={(d) => post("interests", d)}    loading={loading} />}
-      {step === "personality"  && <PersonalityForm  onSubmit={(d) => post("personality", d)}  loading={loading} />}
-      {step === "availability" && <AvailabilityForm onSubmit={(d) => post("availability", d)} loading={loading} />}
-      {step === "photos"       && <PhotosStep       token={token} status={status} onDone={() => router.refresh()} />}
-    </div>
-  );
-}
-
-// ─── Step forms ───────────────────────────────────────────────────────────────
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-const inputCls =
-  "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
-
-function SubmitButton({ loading, label = "Continue →" }: { loading: boolean; label?: string }) {
+/** Circular FAB — grey bg, dark chevron ">" — same as login page */
+function Fab({
+  onClick,
+  disabled,
+  loading,
+  type = "button",
+}: {
+  onClick?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  type?: "button" | "submit";
+}) {
   return (
     <button
-      type="submit"
-      disabled={loading}
-      className="w-full mt-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm
-                 hover:bg-indigo-700 active:scale-95 transition disabled:opacity-50"
+      type={type}
+      onClick={onClick}
+      disabled={disabled || loading}
+      className="focus:outline-none rounded-full p-0 border-0 cursor-pointer disabled:opacity-50 shrink-0"
     >
-      {loading ? "Saving…" : label}
+      <span
+        className="flex items-center justify-center rounded-full transition"
+        style={{ width: 52, height: 52, backgroundColor: FAB_BG }}
+      >
+        {loading ? (
+          <span className="w-5 h-5 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
+        ) : (
+          <svg
+            width="20" height="20" viewBox="0 0 20 20"
+            fill="none" stroke="#2d2d2d" strokeWidth="2.25"
+            strokeLinecap="round" strokeLinejoin="round"
+          >
+            <path d="M8 6l6 4-6 4" />
+          </svg>
+        )}
+      </span>
     </button>
   );
 }
 
-// ── Profile ──────────────────────────────────────────────────────────────────
-function ProfileForm({ onSubmit, loading }: { onSubmit: (d: unknown) => void; loading: boolean }) {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    onSubmit({
-      fullName: fd.get("fullName"),
-      nickname: fd.get("nickname") || undefined,
-      age: Number(fd.get("age")),
-      city: fd.get("city"),
-      bio: fd.get("bio") || undefined,
-    });
-  };
+/** Single-select row with radio dot */
+function RadioRow({
+  label,
+  sublabel,
+  selected,
+  onClick,
+}: {
+  label: string;
+  sublabel?: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
   return (
-    <form onSubmit={handleSubmit}>
-      <Field label="Full name *"><input name="fullName" required className={inputCls} placeholder="Jane Doe" /></Field>
-      <Field label="Nickname"><input name="nickname" className={inputCls} placeholder="Jay (optional)" /></Field>
-      <Field label="Age *"><input name="age" type="number" min={18} max={100} required className={inputCls} /></Field>
-      <Field label="City *"><input name="city" required className={inputCls} placeholder="New York" /></Field>
-      <Field label="Bio">
-        <textarea name="bio" rows={3} className={inputCls} placeholder="Tell people a bit about yourself…" />
-      </Field>
-      <SubmitButton loading={loading} />
-    </form>
-  );
-}
-
-// ── Preferences ───────────────────────────────────────────────────────────────
-const GENDERS = ["man", "woman", "non-binary", "other"];
-const INTENTS = ["casual", "serious", "friendship", "open", "undecided"];
-
-function PreferencesForm({ onSubmit, loading }: { onSubmit: (d: unknown) => void; loading: boolean }) {
-  const [genderPref, setGenderPref] = useState<string[]>([]);
-  const toggle = (g: string) =>
-    setGenderPref((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]));
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    onSubmit({
-      genderIdentity: fd.get("genderIdentity"),
-      genderPreference: genderPref,
-      ageRangeMin: Number(fd.get("ageRangeMin")),
-      ageRangeMax: Number(fd.get("ageRangeMax")),
-      relationshipIntent: fd.get("relationshipIntent"),
-    });
-  };
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <Field label="I identify as *">
-        <select name="genderIdentity" required className={inputCls}>
-          <option value="">Select…</option>
-          {GENDERS.map((g) => <option key={g} value={g}>{g}</option>)}
-        </select>
-      </Field>
-      <Field label="I'm interested in * (select all that apply)">
-        <div className="flex flex-wrap gap-2 mt-1">
-          {GENDERS.map((g) => (
-            <button key={g} type="button" onClick={() => toggle(g)}
-              className={`px-3 py-1 rounded-full text-sm border transition ${genderPref.includes(g) ? "bg-indigo-600 text-white border-indigo-600" : "border-gray-300 text-gray-600"}`}>
-              {g}
-            </button>
-          ))}
-        </div>
-      </Field>
-      <div className="flex gap-3">
-        <Field label="Min age *"><input name="ageRangeMin" type="number" min={18} max={99} required className={inputCls} defaultValue={21} /></Field>
-        <Field label="Max age *"><input name="ageRangeMax" type="number" min={18} max={100} required className={inputCls} defaultValue={35} /></Field>
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center justify-between py-4 border-b border-gray-200 text-left transition-opacity hover:opacity-75"
+    >
+      <div>
+        <p className="text-base text-gray-900 font-medium">{label}</p>
+        {sublabel && <p className="text-sm text-gray-500 mt-0.5">{sublabel}</p>}
       </div>
-      <Field label="Looking for *">
-        <select name="relationshipIntent" required className={inputCls}>
-          <option value="">Select…</option>
-          {INTENTS.map((i) => <option key={i} value={i}>{i}</option>)}
-        </select>
-      </Field>
-      <SubmitButton loading={loading} />
-    </form>
+      <span
+        className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ml-4 transition-colors"
+        style={{ borderColor: selected ? ACCENT : "#D1D5DB" }}
+      >
+        {selected && (
+          <span
+            className="w-2.5 h-2.5 rounded-full"
+            style={{ backgroundColor: ACCENT }}
+          />
+        )}
+      </span>
+    </button>
   );
 }
 
-// ── Interests ─────────────────────────────────────────────────────────────────
-function TagInput({ label, name }: { label: string; name: string }) {
-  const [tags, setTags] = useState<string[]>([]);
-  const [input, setInput] = useState("");
-  const add = () => {
-    const t = input.trim();
-    if (t && !tags.includes(t)) setTags((p) => [...p, t]);
-    setInput("");
-  };
+/** Multi-select row with checkbox */
+function CheckRow({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
   return (
-    <Field label={label}>
-      <input type="hidden" name={name} value={JSON.stringify(tags)} />
-      <div className="flex gap-2">
-        <input value={input} onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
-          className={inputCls} placeholder="Type and press Enter" />
-        <button type="button" onClick={add} className="px-3 py-2 rounded-xl bg-indigo-100 text-indigo-700 text-sm font-medium">Add</button>
-      </div>
-      <div className="flex flex-wrap gap-1 mt-2">
-        {tags.map((t) => (
-          <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs">
-            {t}
-            <button type="button" onClick={() => setTags((p) => p.filter((x) => x !== t))} className="hover:text-red-500">×</button>
-          </span>
-        ))}
-      </div>
-    </Field>
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center justify-between py-4 border-b border-gray-200 text-left transition-opacity hover:opacity-75"
+    >
+      <span className="text-base text-gray-900 font-medium">{label}</span>
+      <span
+        className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ml-4 transition-all border-2"
+        style={{
+          borderColor: selected ? ACCENT : "#D1D5DB",
+          backgroundColor: selected ? ACCENT : "transparent",
+        }}
+      >
+        {selected && (
+          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </span>
+    </button>
   );
 }
 
-function InterestsForm({ onSubmit, loading }: { onSubmit: (d: unknown) => void; loading: boolean }) {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    onSubmit({
-      hobbies: JSON.parse(fd.get("hobbies") as string || "[]"),
-      favouriteActivities: JSON.parse(fd.get("favouriteActivities") as string || "[]"),
-      musicTaste: JSON.parse(fd.get("musicTaste") as string || "[]"),
-      foodTaste: JSON.parse(fd.get("foodTaste") as string || "[]"),
-    });
-  };
+/** Pill chip for interests / habits */
+function Pill({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
   return (
-    <form onSubmit={handleSubmit}>
-      <TagInput label="Hobbies *" name="hobbies" />
-      <TagInput label="Favourite activities" name="favouriteActivities" />
-      <TagInput label="Music taste" name="musicTaste" />
-      <TagInput label="Food taste" name="foodTaste" />
-      <SubmitButton loading={loading} />
-    </form>
-  );
-}
-
-// ── Personality ───────────────────────────────────────────────────────────────
-function PersonalityForm({ onSubmit, loading }: { onSubmit: (d: unknown) => void; loading: boolean }) {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    onSubmit({
-      socialLevel: fd.get("socialLevel"),
-      conversationStyle: fd.get("conversationStyle"),
-      funFact: fd.get("funFact") || undefined,
-    });
-  };
-  return (
-    <form onSubmit={handleSubmit}>
-      <Field label="Social level *">
-        <select name="socialLevel" required className={inputCls}>
-          <option value="">Select…</option>
-          {["introvert", "ambivert", "extrovert"].map((v) => <option key={v} value={v}>{v}</option>)}
-        </select>
-      </Field>
-      <Field label="Conversation style *">
-        <select name="conversationStyle" required className={inputCls}>
-          <option value="">Select…</option>
-          {["texter", "caller", "voice_notes", "mixed"].map((v) => <option key={v} value={v}>{v}</option>)}
-        </select>
-      </Field>
-      <Field label="Fun fact about you">
-        <textarea name="funFact" rows={2} className={inputCls} placeholder="I once hiked 30km in the rain…" />
-      </Field>
-      <SubmitButton loading={loading} />
-    </form>
-  );
-}
-
-// ── Availability ──────────────────────────────────────────────────────────────
-const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
-const TIMES = ["morning", "afternoon", "evening", "night"];
-
-function AvailabilityForm({ onSubmit, loading }: { onSubmit: (d: unknown) => void; loading: boolean }) {
-  const [days, setDays] = useState<string[]>([]);
-  const [times, setTimes] = useState<string[]>([]);
-  const toggleDay = (d: string) => setDays((p) => p.includes(d) ? p.filter((x) => x !== d) : [...p, d]);
-  const toggleTime = (t: string) => setTimes((p) => p.includes(t) ? p.filter((x) => x !== t) : [...p, t]);
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    onSubmit({ days, times });
-  };
-
-  const chip = (label: string, active: boolean, onClick: () => void) => (
-    <button key={label} type="button" onClick={onClick}
-      className={`px-3 py-1.5 rounded-full text-sm border capitalize transition ${active ? "bg-indigo-600 text-white border-indigo-600" : "border-gray-300 text-gray-600"}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border text-sm transition-all"
+      style={{
+        borderColor: selected ? ACCENT : "#D1D5DB",
+        backgroundColor: selected ? `${ACCENT}18` : "transparent",
+        color: selected ? ACCENT : "#374151",
+      }}
+    >
       {label}
+      {!selected && <span className="text-gray-400 text-base leading-none">+</span>}
     </button>
-  );
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <Field label="Days I'm usually free *">
-        <div className="flex flex-wrap gap-2 mt-1">{DAYS.map((d) => chip(d, days.includes(d), () => toggleDay(d)))}</div>
-      </Field>
-      <Field label="Times I prefer *">
-        <div className="flex flex-wrap gap-2 mt-1">{TIMES.map((t) => chip(t, times.includes(t), () => toggleTime(t)))}</div>
-      </Field>
-      <SubmitButton loading={loading} />
-    </form>
   );
 }
 
-// ── Photos ────────────────────────────────────────────────────────────────────
+/** Bottom-bordered text input — matches login style */
+const inputCls =
+  "w-full pb-2 border-b-2 border-gray-800 bg-transparent text-gray-900 text-base focus:outline-none placeholder:text-gray-400";
+
+/** Serif heading — matches login h1 */
+function Heading({ children }: { children: React.ReactNode }) {
+  return (
+    <h1
+      className="text-2xl font-bold text-gray-900 mb-2 leading-tight"
+      style={{ fontFamily: FONT_SERIF }}
+    >
+      {children}
+    </h1>
+  );
+}
+
+/** Small grey info line with eye/info icon */
+function InfoLine({ text }: { text: string }) {
+  return (
+    <p className="text-sm text-gray-400 mt-5 flex items-start gap-1.5">
+      <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <circle cx="12" cy="12" r="9" strokeWidth={1.5} />
+        <path strokeLinecap="round" d="M12 8v4m0 4h.01" strokeWidth={2} />
+      </svg>
+      {text}
+    </p>
+  );
+}
+
+// ─── Photos step ──────────────────────────────────────────────────────────────
+
 function PhotosStep({
   token,
   status,
@@ -307,8 +226,9 @@ function PhotosStep({
   status: OnboardingStatus;
   onDone: () => void;
 }) {
-  const [uploading, setUploading] = useState(false);
   const [count, setCount] = useState(status.photoCount);
+  const [uploading, setUploading] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -316,7 +236,7 @@ function PhotosStep({
     if (!files.length) return;
     setUploading(true);
     setError(null);
-    for (const file of files.slice(0, 4 - count)) {
+    for (const file of files.slice(0, 6 - count)) {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("order", String(count));
@@ -332,40 +252,571 @@ function PhotosStep({
       }
     }
     setUploading(false);
+    e.target.value = "";
   };
 
-  const canFinish = count >= 2;
-
   const complete = async () => {
+    setCompleting(true);
+    setError(null);
     const res = await fetch("/api/onboarding/complete", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (res.ok) onDone();
-    else {
+    if (res.ok) {
+      onDone();
+    } else {
       const j = await res.json();
       setError(j.error?.message ?? "Could not complete onboarding");
+      setCompleting(false);
     }
   };
 
   return (
-    <div>
-      <p className="text-sm text-gray-500 mb-4">
-        Upload 2–4 photos. {count}/4 uploaded.
-      </p>
-      {error && <p className="text-sm text-red-500 mb-3">{error}</p>}
-      <label className="block w-full border-2 border-dashed border-indigo-300 rounded-xl p-6 text-center cursor-pointer hover:bg-indigo-50 transition">
-        <input type="file" accept="image/*" multiple className="hidden" onChange={upload} disabled={uploading || count >= 4} />
-        <span className="text-indigo-500 font-medium text-sm">
-          {uploading ? "Uploading…" : count >= 4 ? "Maximum photos reached" : "Click to upload photos"}
-        </span>
-      </label>
-      {canFinish && (
-        <button onClick={complete}
-          className="w-full mt-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 transition">
-          Finish setup →
-        </button>
-      )}
+    <div
+      className="min-h-screen flex flex-col p-6"
+      style={{ backgroundColor: BG }}
+    >
+      {/* Full progress */}
+      <div className="fixed top-0 left-0 right-0 h-0.5 z-50" style={{ backgroundColor: ACCENT }} />
+
+      <div className="max-w-md mx-auto w-full flex flex-col flex-1">
+        {/* Icon */}
+        <div className="flex justify-start mb-6">
+          <div
+            className="w-14 h-14 rounded-full border-2 border-gray-900 flex items-center justify-center shrink-0"
+          >
+            <svg className="w-7 h-7 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M3 9a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 10.07 4h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 18.07 7H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" />
+              <circle cx="12" cy="13" r="3" strokeWidth={1.5} />
+            </svg>
+          </div>
+        </div>
+
+        <Heading>Time to put a face to the name</Heading>
+        <p className="text-sm text-gray-500 mb-8">
+          Add at least 2 photos — you with your pet, eating your fave food, or in a place you love.
+        </p>
+
+        {error && (
+          <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
+            {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <label
+              key={i}
+              className={`aspect-square rounded-2xl flex items-center justify-center border-2 border-dashed transition-colors
+                ${i < count ? "border-gray-300 bg-gray-100 cursor-default" : "border-gray-300 cursor-pointer hover:border-gray-400"}`}
+            >
+              {i < count ? (
+                <svg className="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M4 16l4.586-4.586A2 2 0 0 1 10 11h4a2 2 0 0 1 1.414.586L20 16M14 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
+                </svg>
+              ) : (
+                <>
+                  <input
+                    type="file" accept="image/*" multiple className="hidden"
+                    onChange={upload} disabled={uploading || count >= 6}
+                  />
+                  <svg className="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                </>
+              )}
+            </label>
+          ))}
+        </div>
+
+        <p className="text-sm text-gray-400 mb-8">
+          {count}/6 photos added
+        </p>
+
+        <div className="mt-auto pt-8 flex items-end justify-between">
+          <p className="text-sm text-gray-400">
+            Want to make sure you really shine?{" "}
+            <a href="#" className="font-medium hover:underline" style={{ color: ACCENT }}
+              onClick={(e) => e.preventDefault()}>
+              Photo tips
+            </a>
+          </p>
+          {count >= 2 && <Fab onClick={complete} loading={completing} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main shell ───────────────────────────────────────────────────────────────
+
+interface Props {
+  step: string;
+  token: string;
+  status: OnboardingStatus;
+}
+
+export default function OnboardingShell({ step: _step, token, status }: Props) {
+  const router = useRouter();
+  const [subStep, setSubStep] = useState(() => getInitialSubStep(status));
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // ── Form state ────────────────────────────────────────────────────────────
+  const [firstName, setFirstName] = useState("");
+  const [birthday, setBirthday] = useState({ day: "", month: "", year: "" });
+  const [genderIdentity, setGenderIdentity] = useState("");
+  const [datingMode, setDatingMode] = useState<"date" | "bff" | "">("");
+  const [genderPreference, setGenderPreference] = useState<string[]>([]);
+  const [openToAll, setOpenToAll] = useState(false);
+  const [relationshipGoal, setRelationshipGoal] = useState<string[]>([]);
+  const [interests, setInterests] = useState<string[]>([]);
+  const [interestSearch, setInterestSearch] = useState("");
+  const [drinkingHabit, setDrinkingHabit] = useState("");
+  const [smokingHabit, setSmokingHabit] = useState("");
+
+  const apiPost = async (path: string, body: unknown) => {
+    const res = await fetch(`/api/onboarding/${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error?.message ?? "Something went wrong");
+  };
+
+  const handleNext = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (subStep === 0) {
+        const y = parseInt(birthday.year);
+        const m = parseInt(birthday.month);
+        const d = parseInt(birthday.day);
+        const now = new Date();
+        let age = now.getFullYear() - y;
+        if (now < new Date(now.getFullYear(), m - 1, d)) age--;
+        if (age < 18) { setError("You must be at least 18 years old."); setLoading(false); return; }
+        await apiPost("profile", { fullName: firstName.trim(), age });
+      }
+
+      if (subStep === 3 && datingMode === "bff") {
+        await apiPost("preferences", {
+          genderIdentity,
+          genderPreference: openToAll ? ["Men", "Women", "Nonbinary people"] : genderPreference,
+          ageRangeMin: 18, ageRangeMax: 55,
+          relationshipIntent: "friendship",
+        });
+        setSubStep(5); setLoading(false); return;
+      }
+
+      if (subStep === 4) {
+        await apiPost("preferences", {
+          genderIdentity,
+          genderPreference: openToAll ? ["Men", "Women", "Nonbinary people"] : genderPreference,
+          ageRangeMin: 18, ageRangeMax: 55,
+          relationshipIntent: relationshipGoal[0] ?? "undecided",
+        });
+      }
+
+      if (subStep === 5) {
+        await apiPost("interests", {
+          hobbies: interests.length > 0 ? interests : ["Other"],
+          favouriteActivities: [], musicTaste: [], foodTaste: [],
+        });
+      }
+
+      if (subStep === 6) {
+        await apiPost("personality", {
+          socialLevel: drinkingHabit || "Not specified",
+          conversationStyle: smokingHabit || "Not specified",
+        });
+        await apiPost("availability", { days: ["fri", "sat", "sun"], times: ["evening"] });
+      }
+
+      setSubStep((s) => s + 1);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSkip = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (subStep === 5) {
+        await apiPost("interests", { hobbies: ["Other"], favouriteActivities: [], musicTaste: [], foodTaste: [] });
+      }
+      if (subStep === 6) {
+        await apiPost("personality", { socialLevel: "Not specified", conversationStyle: "Not specified" });
+        await apiPost("availability", { days: ["fri", "sat", "sun"], times: ["evening"] });
+      }
+      setSubStep((s) => s + 1);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const canProceed = (() => {
+    switch (subStep) {
+      case 0:
+        return firstName.trim().length >= 1 && birthday.day !== "" && birthday.month !== "" && birthday.year.length === 4;
+      case 1: return genderIdentity !== "";
+      case 2: return datingMode !== "";
+      case 3: return openToAll || genderPreference.length > 0;
+      case 4: return datingMode === "bff" || relationshipGoal.length > 0;
+      case 5: return interests.length > 0;
+      case 6: return true;
+      default: return true;
+    }
+  })();
+
+  const isSkippable = subStep === 5 || subStep === 6;
+  const progressPct = Math.round(((subStep + 1) / TOTAL_SUB_STEPS) * 100);
+
+  if (subStep === 7) {
+    return <PhotosStep token={token} status={status} onDone={() => router.refresh()} />;
+  }
+
+  const filteredInterests = interestSearch.trim()
+    ? SUGGESTED_INTERESTS.filter((i) => i.toLowerCase().includes(interestSearch.toLowerCase()))
+    : SUGGESTED_INTERESTS;
+
+  return (
+    <div className="min-h-screen flex flex-col p-6" style={{ backgroundColor: BG }}>
+      {/* Progress bar */}
+      <div className="fixed top-0 left-0 right-0 h-0.5 bg-gray-200 z-50">
+        <div
+          className="h-full transition-all duration-300"
+          style={{ width: `${progressPct}%`, backgroundColor: ACCENT }}
+        />
+      </div>
+
+      <div className="max-w-md mx-auto w-full flex flex-col flex-1">
+
+        {/* Error */}
+        {error && (
+          <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
+            {error}
+          </div>
+        )}
+
+        {/* ── STEP 0: Intro ───────────────────────────────────────────────── */}
+        {subStep === 0 && (
+          <div className="flex flex-col flex-1">
+            <div className="flex justify-start mb-6">
+              <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+              </svg>
+            </div>
+            <Heading>Oh hey! Let's start with an intro.</Heading>
+            <p className="text-sm text-gray-500 mb-8">Tell us a little about yourself.</p>
+
+            <div className="mb-8">
+              <label className="block text-sm text-gray-500 mb-1">Your first name</label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className={inputCls}
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-500 mb-3">Your birthday</label>
+              <div className="grid grid-cols-3 gap-4">
+                {(["Day", "Month", "Year"] as const).map((field) => (
+                  <div key={field}>
+                    <p className="text-xs text-gray-400 mb-1">{field}</p>
+                    <input
+                      type="number"
+                      value={birthday[field.toLowerCase() as keyof typeof birthday]}
+                      onChange={(e) => setBirthday((b) => ({ ...b, [field.toLowerCase()]: e.target.value }))}
+                      className={`${inputCls} text-center`}
+                      min={field === "Year" ? 1900 : 1}
+                      max={field === "Day" ? 31 : field === "Month" ? 12 : new Date().getFullYear() - 18}
+                    />
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-gray-400 mt-2">It's never too early to count down</p>
+            </div>
+
+            <div className="mt-auto pt-8 flex items-end justify-end">
+              <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 1: Gender identity ─────────────────────────────────────── */}
+        {subStep === 1 && (
+          <div className="flex flex-col flex-1">
+            <div className="flex justify-start mb-6">
+              <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0z" />
+              </svg>
+            </div>
+            <Heading>
+              {firstName ? `${firstName} is a great name` : "A great name!"}
+            </Heading>
+            <p className="text-sm text-gray-500 mb-8">
+              We love that you're here. Pick the gender that best describes you.
+            </p>
+
+            <div>
+              {["Woman", "Man", "Nonbinary"].map((g) => (
+                <RadioRow
+                  key={g} label={g}
+                  selected={genderIdentity === g}
+                  onClick={() => setGenderIdentity(g)}
+                />
+              ))}
+            </div>
+
+            <p className="text-sm text-gray-400 mt-4">You can always update this later.</p>
+
+            <div className="mt-auto pt-8 flex items-end justify-end">
+              <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 2: Dating mode ─────────────────────────────────────────── */}
+        {subStep === 2 && (
+          <div className="flex flex-col flex-1">
+            <div className="flex justify-start mb-6">
+              <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+              </svg>
+            </div>
+            <Heading>What brings you to bluedate?</Heading>
+            <p className="text-sm text-gray-500 mb-8">
+              Romance and butterflies or a beautiful friendship? Choose a mode to find your people.
+            </p>
+
+            <div>
+              {[
+                { id: "date" as const, label: "Date", sub: "Find a relationship, something casual, or anything in-between" },
+                { id: "bff" as const, label: "BFF", sub: "Make new friends and find your community" },
+              ].map(({ id, label, sub }) => (
+                <RadioRow
+                  key={id} label={label} sublabel={sub}
+                  selected={datingMode === id}
+                  onClick={() => setDatingMode(id)}
+                />
+              ))}
+            </div>
+
+            <InfoLine text="You'll only be shown to people in the same mode as you." />
+
+            <div className="mt-auto pt-8 flex items-end justify-end">
+              <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 3: Who to meet ─────────────────────────────────────────── */}
+        {subStep === 3 && (
+          <div className="flex flex-col flex-1">
+            <div className="flex justify-start mb-6">
+              <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0z" />
+              </svg>
+            </div>
+            <Heading>Who would you like to meet?</Heading>
+            <p className="text-sm text-gray-500 mb-6">
+              You can choose more than one answer and change it any time.
+            </p>
+
+            {/* Open-to-all toggle */}
+            <div
+              className="flex items-center gap-3 py-4 border-b border-gray-200 cursor-pointer select-none"
+              onClick={() => { setOpenToAll((v) => !v); if (!openToAll) setGenderPreference([]); }}
+            >
+              <div
+                className="relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0"
+                style={{ backgroundColor: openToAll ? ACCENT : "#D1D5DB" }}
+              >
+                <span
+                  className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+                  style={{ transform: openToAll ? "translateX(22px)" : "translateX(2px)" }}
+                />
+              </div>
+              <span className="text-base text-gray-900 font-medium">I'm open to dating everyone</span>
+            </div>
+
+            <div className={`transition-opacity duration-200 ${openToAll ? "opacity-40 pointer-events-none" : ""}`}>
+              {["Men", "Women", "Nonbinary people"].map((g) => {
+                const selected = genderPreference.includes(g);
+                return (
+                  <CheckRow
+                    key={g} label={g} selected={selected}
+                    onClick={() => setGenderPreference((p) => selected ? p.filter((x) => x !== g) : [...p, g])}
+                  />
+                );
+              })}
+            </div>
+
+            <InfoLine text="You'll only be shown to people looking to date your gender." />
+
+            <div className="mt-auto pt-8 flex items-end justify-end">
+              <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 4: Relationship goals ──────────────────────────────────── */}
+        {subStep === 4 && (
+          <div className="flex flex-col flex-1">
+            <div className="flex justify-start mb-6">
+              <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09zM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456z" />
+              </svg>
+            </div>
+            <Heading>And what are you hoping to find?</Heading>
+            <p className="text-sm text-gray-500 mb-6">
+              It's your dating journey, so choose 1 or 2 options that feel right for you.
+            </p>
+
+            <div>
+              {RELATIONSHIP_GOALS.map((goal) => {
+                const selected = relationshipGoal.includes(goal);
+                return (
+                  <CheckRow
+                    key={goal} label={goal} selected={selected}
+                    onClick={() => {
+                      if (selected) setRelationshipGoal((p) => p.filter((x) => x !== goal));
+                      else if (relationshipGoal.length < 2) setRelationshipGoal((p) => [...p, goal]);
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            <InfoLine text="This will show on your profile to help everyone find what they're looking for." />
+
+            <div className="mt-auto pt-8 flex items-end justify-between">
+              <span className="text-sm text-gray-400">{relationshipGoal.length}/2 selected</span>
+              <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 5: Interests ───────────────────────────────────────────── */}
+        {subStep === 5 && (
+          <div className="flex flex-col flex-1">
+            <div className="flex justify-start mb-6">
+              <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
+              </svg>
+            </div>
+            <Heading>Choose 5 things you're really into</Heading>
+            <p className="text-sm text-gray-500 mb-6">
+              Add interests to help you match with people who love them too.
+            </p>
+
+            <div className="relative mb-5">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+              </svg>
+              <input
+                type="text"
+                value={interestSearch}
+                onChange={(e) => setInterestSearch(e.target.value)}
+                placeholder="What are you into?"
+                className="w-full bg-white border border-gray-200 rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-gray-400"
+              />
+            </div>
+
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">You might like...</p>
+
+            <div className="flex flex-wrap gap-2">
+              {filteredInterests.map((interest) => {
+                const selected = interests.includes(interest);
+                return (
+                  <Pill
+                    key={interest} label={interest} selected={selected}
+                    onClick={() => {
+                      if (selected) setInterests((p) => p.filter((x) => x !== interest));
+                      else if (interests.length < 5) setInterests((p) => [...p, interest]);
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            <div className="mt-auto pt-8 flex items-end justify-between">
+              <button
+                onClick={handleSkip} disabled={loading}
+                className="text-sm font-medium hover:underline disabled:opacity-50"
+                style={{ color: ACCENT }}
+              >
+                Skip
+              </button>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-400">{interests.length}/5 selected</span>
+                <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 6: Habits ──────────────────────────────────────────────── */}
+        {subStep === 6 && (
+          <div className="flex flex-col flex-1">
+            <div className="flex justify-start mb-6">
+              <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M8.25 7.5A4.5 4.5 0 0 1 12 3m0 0a4.5 4.5 0 0 1 3.75 4.5m-7.5 0h7.5M8.25 12A4.5 4.5 0 0 0 12 16.5m0 0A4.5 4.5 0 0 0 15.75 12m-7.5 0h7.5" />
+              </svg>
+            </div>
+            <Heading>Let's talk about your lifestyle and habits</Heading>
+            <p className="text-sm text-gray-500 mb-8">
+              Share as much about your habits as you're comfortable with.
+            </p>
+
+            <p className="text-sm font-semibold text-gray-700 mb-3">Drinking</p>
+            <div className="flex flex-wrap gap-2 mb-7">
+              {DRINKING_OPTIONS.map((opt) => (
+                <Pill
+                  key={opt} label={opt}
+                  selected={drinkingHabit === opt}
+                  onClick={() => setDrinkingHabit(drinkingHabit === opt ? "" : opt)}
+                />
+              ))}
+            </div>
+
+            <p className="text-sm font-semibold text-gray-700 mb-3">Smoking</p>
+            <div className="flex flex-wrap gap-2">
+              {SMOKING_OPTIONS.map((opt) => (
+                <Pill
+                  key={opt} label={opt}
+                  selected={smokingHabit === opt}
+                  onClick={() => setSmokingHabit(smokingHabit === opt ? "" : opt)}
+                />
+              ))}
+            </div>
+
+            <div className="mt-auto pt-8 flex items-end justify-between">
+              <button
+                onClick={handleSkip} disabled={loading}
+                className="text-sm font-medium hover:underline disabled:opacity-50"
+                style={{ color: ACCENT }}
+              >
+                Skip
+              </button>
+              <Fab onClick={handleNext} loading={loading} />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
