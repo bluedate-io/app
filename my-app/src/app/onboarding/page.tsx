@@ -31,6 +31,8 @@ export interface OnboardingStatus {
   hasPersonality: boolean;
   hasAvailability: boolean;
   photoCount: number;
+  /** True only after user clicks Done on photos step (POST /api/onboarding/complete) */
+  completed: boolean;
   /** Saved profile full name (from API), used for e.g. "{{name}} is a great name" */
   fullName?: string;
 }
@@ -44,6 +46,8 @@ export default async function OnboardingPage() {
   if (!result) redirect("/login");
 
   const { status } = result;
+  if (status.completed) redirect("/");
+
   const currentStep = !status.hasProfile
     ? "profile"
     : !status.hasPreferences
@@ -54,11 +58,7 @@ export default async function OnboardingPage() {
           ? "interests"
           : !status.hasPersonality || !status.hasAvailability
             ? "personality"
-            : status.photoCount < 2
-              ? "photos"
-              : "complete";
-
-  if (currentStep === "complete") redirect("/");
+            : "photos";
 
   return (
     <main className="min-h-screen bg-white">
