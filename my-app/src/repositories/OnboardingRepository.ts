@@ -14,6 +14,7 @@ import type {
 } from "@/domains/User";
 import type {
   ProfileInput,
+  GenderIdentityInput,
   PreferencesInput,
   InterestsInput,
   PersonalityInput,
@@ -24,8 +25,17 @@ import type {
 // null → undefined helpers
 const n = <T>(v: T | null): T | undefined => v ?? undefined;
 
+function computeAge(dateOfBirth: Date): number {
+  const today = new Date();
+  let age = today.getFullYear() - dateOfBirth.getFullYear();
+  const monthDiff = today.getMonth() - dateOfBirth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dateOfBirth.getDate())) age--;
+  return age;
+}
+
 export interface IOnboardingRepository {
   upsertProfile(userId: string, data: ProfileInput): Promise<Profile>;
+  upsertGenderIdentity(userId: string, data: GenderIdentityInput): Promise<Preferences>;
   upsertPreferences(userId: string, data: PreferencesInput): Promise<Preferences>;
   upsertInterests(userId: string, data: InterestsInput): Promise<Interests>;
   upsertPersonality(userId: string, data: PersonalityInput): Promise<Personality>;
@@ -48,15 +58,51 @@ export class OnboardingRepository implements IOnboardingRepository {
   constructor(private readonly db: PrismaClient) {}
 
   async upsertProfile(userId: string, data: ProfileInput): Promise<Profile> {
+    const dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : undefined;
+    const age = dateOfBirth ? computeAge(dateOfBirth) : undefined;
+    const payload = {
+      fullName: data.fullName,
+      nickname: data.nickname ?? undefined,
+      dateOfBirth,
+      age,
+      city: data.city ?? undefined,
+      bio: data.bio ?? undefined,
+    };
     const r = await this.db.profile.upsert({
       where: { userId },
-      create: { userId, ...data },
-      update: { ...data },
+      create: { userId, ...payload },
+      update: payload,
     });
     return {
-      id: r.id, userId: r.userId,
-      fullName: n(r.fullName), nickname: n(r.nickname),
-      age: n(r.age), city: n(r.city), bio: n(r.bio),
+      id: r.id,
+      userId: r.userId,
+      fullName: n(r.fullName),
+      nickname: n(r.nickname),
+      dateOfBirth: r.dateOfBirth ?? undefined,
+      age: n(r.age),
+      city: n(r.city),
+      bio: n(r.bio),
+    };
+  }
+
+  async upsertGenderIdentity(userId: string, data: GenderIdentityInput): Promise<Preferences> {
+    const r = await this.db.preferences.upsert({
+      where: { userId },
+      create: {
+        userId,
+        genderIdentity: data.genderIdentity,
+        genderPreference: [],
+      },
+      update: { genderIdentity: data.genderIdentity },
+    });
+    return {
+      id: r.id,
+      userId: r.userId,
+      genderIdentity: n(r.genderIdentity),
+      genderPreference: r.genderPreference,
+      ageRangeMin: n(r.ageRangeMin),
+      ageRangeMax: n(r.ageRangeMax),
+      relationshipIntent: n(r.relationshipIntent),
     };
   }
 
@@ -149,7 +195,7 @@ export class OnboardingRepository implements IOnboardingRepository {
   async getOnboardingStatus(userId: string) {
     const [profile, preferences, interests, personality, availability, photoCount] =
       await this.db.$transaction([
-        this.db.profile.findUnique({ where: { userId }, select: { id: true } }),
+        this.db.profile.findUnique({ where: { userId }, select: { id: true, fullName: true } }),
         this.db.preferences.findUnique({ where: { userId }, select: { id: true } }),
         this.db.interests.findUnique({ where: { userId }, select: { id: true } }),
         this.db.personality.findUnique({ where: { userId }, select: { id: true } }),
@@ -163,6 +209,7 @@ export class OnboardingRepository implements IOnboardingRepository {
       hasPersonality: !!personality,
       hasAvailability: !!availability,
       photoCount,
+      fullName: profile?.fullName ?? undefined,
     };
   }
 }

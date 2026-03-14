@@ -7,6 +7,7 @@ import type { IOnboardingRepository } from "@/repositories/OnboardingRepository"
 import type { IUserRepository } from "@/repositories/UserRepository";
 import type {
   ProfileInput,
+  GenderIdentityInput,
   PreferencesInput,
   InterestsInput,
   PersonalityInput,
@@ -15,6 +16,7 @@ import type {
 } from "@/validations/onboarding.validation";
 import type {
   ProfileResponseDTO,
+  GenderResponseDTO,
   PreferencesResponseDTO,
   InterestsResponseDTO,
   PersonalityResponseDTO,
@@ -24,6 +26,7 @@ import type {
 } from "@/dto/OnboardingDTO";
 import {
   toProfileDTO,
+  toGenderDTO,
   toPreferencesDTO,
   toInterestsDTO,
   toPersonalityDTO,
@@ -31,7 +34,7 @@ import {
   toAiSignalsDTO,
   toPhotoDTO,
 } from "@/dto/OnboardingDTO";
-import { NotFoundError, BadRequestError } from "@/utils/errors";
+import { NotFoundError, BadRequestError, UnauthorizedError } from "@/utils/errors";
 import { logger } from "@/utils/logger";
 
 const log = logger.child("OnboardingService");
@@ -50,14 +53,37 @@ export class OnboardingService {
   // ─── Profile ────────────────────────────────────────────────────────────────
 
   async saveProfile(userId: string, data: ProfileInput): Promise<ProfileResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Profile save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
     const profile = await this.onboardingRepo.upsertProfile(userId, data);
     log.info("Profile saved", { userId });
     return toProfileDTO(profile);
   }
 
+  // ─── Gender identity (step: which gender describes you) ──────────────────────
+
+  async saveGenderIdentity(userId: string, data: GenderIdentityInput): Promise<GenderResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Gender save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
+    const prefs = await this.onboardingRepo.upsertGenderIdentity(userId, data);
+    log.info("Gender identity saved", { userId });
+    return toGenderDTO(prefs);
+  }
+
   // ─── Preferences ─────────────────────────────────────────────────────────────
 
   async savePreferences(userId: string, data: PreferencesInput): Promise<PreferencesResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Preferences save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
     const prefs = await this.onboardingRepo.upsertPreferences(userId, data);
     log.info("Preferences saved", { userId });
     return toPreferencesDTO(prefs);
@@ -66,6 +92,11 @@ export class OnboardingService {
   // ─── Interests ───────────────────────────────────────────────────────────────
 
   async saveInterests(userId: string, data: InterestsInput): Promise<InterestsResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Interests save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
     const interests = await this.onboardingRepo.upsertInterests(userId, data);
     log.info("Interests saved", { userId });
     return toInterestsDTO(interests);
@@ -74,6 +105,11 @@ export class OnboardingService {
   // ─── Personality ─────────────────────────────────────────────────────────────
 
   async savePersonality(userId: string, data: PersonalityInput): Promise<PersonalityResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Personality save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
     const personality = await this.onboardingRepo.upsertPersonality(userId, data);
     log.info("Personality saved", { userId });
     return toPersonalityDTO(personality);
@@ -82,6 +118,11 @@ export class OnboardingService {
   // ─── Availability ─────────────────────────────────────────────────────────────
 
   async saveAvailability(userId: string, data: AvailabilityInput): Promise<AvailabilityResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Availability save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
     const availability = await this.onboardingRepo.upsertAvailability(userId, data);
     log.info("Availability saved", { userId });
     return toAvailabilityDTO(availability);
@@ -166,6 +207,11 @@ export class OnboardingService {
   }
 
   async getStatus(userId: string) {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Onboarding status rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
     return this.onboardingRepo.getOnboardingStatus(userId);
   }
 }

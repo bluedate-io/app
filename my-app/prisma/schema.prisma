@@ -52,13 +52,14 @@ model User {
 // ─── Profile — identity & bio ─────────────────────────────────────────────────
 
 model Profile {
-  id       String  @id @default(cuid())
-  userId   String  @unique
-  fullName String?
-  nickname String?
-  age      Int?
-  city     String?
-  bio      String?
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  fullName    String?
+  nickname    String?
+  dateOfBirth DateTime?
+  age         Int?
+  city        String?
+  bio         String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

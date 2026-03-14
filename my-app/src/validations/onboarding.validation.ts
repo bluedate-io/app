@@ -1,13 +1,47 @@
 import { z } from "zod";
 
 // ─── Step 1: Profile (Identity) ───────────────────────────────────────────────
+// API receives fullName + dateOfBirth (ISO date string); age is computed server-side.
 
-export const profileSchema = z.object({
-  fullName: z.string().min(1).max(80).trim(),
-  nickname: z.string().max(40).trim().optional(),
-  age: z.number().int().min(18).max(100),
-  city: z.string().min(2).max(80).trim().optional(),
-  bio: z.string().max(500).trim().optional(),
+function parseAgeFromDateOfBirth(dateStr: string): number {
+  const d = new Date(dateStr + "T00:00:00.000Z");
+  const today = new Date();
+  let age = today.getUTCFullYear() - d.getUTCFullYear();
+  const monthDiff = today.getUTCMonth() - d.getUTCMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getUTCDate() < d.getUTCDate())) age--;
+  return age;
+}
+
+export const profileSchema = z
+  .object({
+    fullName: z.string().min(1).max(80).trim(),
+    nickname: z.string().max(40).trim().optional(),
+    dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (use YYYY-MM-DD)"),
+    city: z.string().min(2).max(80).trim().optional(),
+    bio: z.string().max(500).trim().optional(),
+  })
+  .refine(
+    (data) => {
+      const d = new Date(data.dateOfBirth + "T00:00:00.000Z");
+      const today = new Date();
+      const todayStr = today.toISOString().slice(0, 10);
+      const dStr = d.toISOString().slice(0, 10);
+      return !Number.isNaN(d.getTime()) && dStr <= todayStr;
+    },
+    { message: "Date of birth must be in the past", path: ["dateOfBirth"] },
+  )
+  .refine(
+    (data) => {
+      const age = parseAgeFromDateOfBirth(data.dateOfBirth);
+      return age >= 18 && age <= 100;
+    },
+    { message: "You must be at least 18 years old", path: ["dateOfBirth"] },
+  );
+
+// ─── Gender only (step: which gender describes you) ────────────────────────────
+
+export const genderIdentitySchema = z.object({
+  genderIdentity: z.string().min(1).max(60).trim(),
 });
 
 // ─── Step 2: Preferences (Basics) ────────────────────────────────────────────
@@ -60,6 +94,7 @@ export const aiSignalsSchema = z.object({
 // ─── Inferred types ───────────────────────────────────────────────────────────
 
 export type ProfileInput = z.infer<typeof profileSchema>;
+export type GenderIdentityInput = z.infer<typeof genderIdentitySchema>;
 export type PreferencesInput = z.infer<typeof preferencesSchema>;
 export type InterestsInput = z.infer<typeof interestsSchema>;
 export type PersonalityInput = z.infer<typeof personalitySchema>;

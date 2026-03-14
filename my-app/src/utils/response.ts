@@ -50,11 +50,16 @@ export function handleError(error: unknown, requestId?: string): NextResponse {
   console.error("[handleError]", error);
 
   if (error instanceof ZodError) {
+    const flattened = error.flatten();
+    const firstMessage =
+      flattened.formErrors[0] ??
+      (typeof flattened.fieldErrors === "object" &&
+        Object.values(flattened.fieldErrors).flat().find(Boolean));
     return errorResponse(
-      "Validation failed",
+      typeof firstMessage === "string" ? firstMessage : "Validation failed",
       ErrorCode.VALIDATION_ERROR,
       422,
-      error.flatten().fieldErrors,
+      flattened.fieldErrors,
       requestId,
     );
   }
