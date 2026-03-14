@@ -1,12 +1,18 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, AlertTriangle } from "lucide-react";
+import { config } from "@/config";
+
+function hasAdminToken(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.cookie.includes("admin_token=");
+}
 
 type Step = "phone" | "otp";
 
-const ADMIN_PHONE = "9703177577";
+const ADMIN_PHONE = config.admin.phone;
 
 const FabIcon = ({ disabled }: { disabled?: boolean }) => (
   <span
@@ -35,6 +41,10 @@ export default function AdminLoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    if (hasAdminToken()) router.replace("/admin/users");
+  }, [router]);
 
   const sendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
