@@ -228,7 +228,7 @@ export default function LoginForm() {
               </button>
               {showCountryPicker && pickerStyle && (
                 <div
-                  className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[60] max-h-48 overflow-y-auto"
+                  className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-60 max-h-48 overflow-y-auto"
                   style={{
                     minWidth: "140px",
                     top: pickerStyle.top,

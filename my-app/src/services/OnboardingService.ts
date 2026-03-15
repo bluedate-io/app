@@ -181,11 +181,21 @@ export class OnboardingService {
 
   // ─── Photos (Supabase Storage) ───────────────────────────────────────────────
 
+  private static readonly MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+  private static readonly ALLOWED_IMAGE_TYPES = /^image\/(jpeg|jpg|png|gif|webp)$/i;
+
   async uploadPhoto(
     userId: string,
     file: File,
     order: number,
   ): Promise<PhotoResponseDTO> {
+    if (!OnboardingService.ALLOWED_IMAGE_TYPES.test(file.type)) {
+      throw new BadRequestError("Only image files are allowed (e.g. JPEG, PNG).");
+    }
+    if (file.size > OnboardingService.MAX_PHOTO_SIZE_BYTES) {
+      throw new BadRequestError("The size is too big. Please upload an image of size below 5MB.");
+    }
+
     const photos = await this.onboardingRepo.getPhotos(userId);
     if (photos.length >= 4) {
       throw new BadRequestError("Maximum 4 photos allowed");
