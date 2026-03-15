@@ -42,6 +42,11 @@ export interface OnboardingStatus {
   relationshipIntent?: string;
   /** All selected relationship goals (1–2) from step 5 */
   relationshipGoals?: string[];
+  /** Age range for matching (step 5 — Date and BFF) */
+  ageRangeMin?: number;
+  ageRangeMax?: number;
+  /** True when user has saved "who to meet" (gender preference) — Date flow only */
+  hasGenderPreference?: boolean;
 }
 
 export default async function OnboardingPage() {

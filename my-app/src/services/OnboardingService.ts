@@ -11,6 +11,7 @@ import type {
   GenderIdentityInput,
   PreferencesInput,
   GenderPreferenceInput,
+  AgeRangeInput,
   RelationshipGoalsInput,
   InterestsInput,
   PersonalityInput,
@@ -103,6 +104,19 @@ export class OnboardingService {
     }
     const prefs = await this.onboardingRepo.upsertGenderPreference(userId, data);
     log.info("Who to meet saved", { userId });
+    return toPreferencesDTO(prefs);
+  }
+
+  // ─── Age range only (step 5 — Date and BFF) ────────────────────────────────────────
+
+  async saveAgeRange(userId: string, data: AgeRangeInput): Promise<PreferencesResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Age range save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
+    const prefs = await this.onboardingRepo.upsertAgeRange(userId, data);
+    log.info("Age range saved", { userId });
     return toPreferencesDTO(prefs);
   }
 
@@ -256,6 +270,12 @@ export class OnboardingService {
     if (!status.hasProfile) missing.push("profile");
     if (!status.hasPreferences) missing.push("preferences");
     if (!status.hasUsedInviteCode) missing.push("invite code");
+    if (
+      (status.relationshipIntent === "date" || status.relationshipIntent === "friendship") &&
+      (status.ageRangeMin == null || status.ageRangeMax == null)
+    ) {
+      missing.push("age range");
+    }
     if (!status.hasInterests) missing.push("interests");
     if (!status.hasPersonality) missing.push("personality");
     if (!status.hasAvailability) missing.push("availability");
