@@ -197,12 +197,6 @@ export default function LoginForm() {
             What&apos;s your phone number?
           </h1>
 
-          {error && (
-            <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
-              {error}
-            </div>
-          )}
-
           <div className="flex gap-3 mb-2">
             {/* Country code selector */}
             <div className="relative">
@@ -269,6 +263,13 @@ export default function LoginForm() {
             <br />
             Message and data rates may apply.
           </p>
+
+          {error && (
+            <p className="mt-2 flex items-start gap-1.5 text-sm text-red-600" role="alert">
+              <AlertTriangle size={18} className="shrink-0 mt-0.5 text-red-500" />
+              {error}
+            </p>
+          )}
 
           <div className="mt-auto pt-8 flex items-end justify-between">
             <a
