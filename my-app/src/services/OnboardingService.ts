@@ -10,6 +10,8 @@ import type {
   ProfileInput,
   GenderIdentityInput,
   PreferencesInput,
+  GenderPreferenceInput,
+  RelationshipGoalsInput,
   InterestsInput,
   PersonalityInput,
   AvailabilityInput,
@@ -91,7 +93,33 @@ export class OnboardingService {
     return toPreferencesDTO(prefs);
   }
 
-  // ─── Preferences (who to meet, age range, optional relationship goal) ─────────
+  // ─── Who to meet (step 4) — only gender preference, no genderIdentity ───────────
+
+  async saveGenderPreference(userId: string, data: GenderPreferenceInput): Promise<PreferencesResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Gender preference save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
+    const prefs = await this.onboardingRepo.upsertGenderPreference(userId, data);
+    log.info("Who to meet saved", { userId });
+    return toPreferencesDTO(prefs);
+  }
+
+  // ─── Relationship goals only (step 5) — no override of other preferences ─────────────
+
+  async saveRelationshipGoals(userId: string, data: RelationshipGoalsInput): Promise<PreferencesResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Relationship goals save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
+    const prefs = await this.onboardingRepo.upsertRelationshipGoals(userId, data);
+    log.info("Relationship goals saved", { userId });
+    return toPreferencesDTO(prefs);
+  }
+
+  // ─── Preferences (full update: gender identity, who to meet, relationship goal) ─────────
 
   async savePreferences(userId: string, data: PreferencesInput): Promise<PreferencesResponseDTO> {
     const userExists = await this.userRepo.exists(userId);

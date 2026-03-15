@@ -82,7 +82,7 @@ model Preferences {
   genderPreference    String[]
   ageRangeMin         Int?
   ageRangeMax         Int?
-  relationshipIntent  String   // primary: "date" | "friendship" | first goal
+  relationshipIntent  String?  // set only when user selects Date or BFF on step 3; "date" | "friendship" | goal
   relationshipGoals   String[] @default([]) // all selected goals (1–2) from step 5
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

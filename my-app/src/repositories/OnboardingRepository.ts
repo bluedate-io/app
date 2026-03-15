@@ -16,6 +16,8 @@ import type {
   ProfileInput,
   GenderIdentityInput,
   PreferencesInput,
+  GenderPreferenceInput,
+  RelationshipGoalsInput,
   InterestsInput,
   PersonalityInput,
   AvailabilityInput,
@@ -39,6 +41,8 @@ export interface IOnboardingRepository {
   upsertProfile(userId: string, data: ProfileInput): Promise<Profile>;
   upsertGenderIdentity(userId: string, data: GenderIdentityInput): Promise<Preferences>;
   upsertDatingMode(userId: string, mode: "date" | "bff"): Promise<Preferences>;
+  upsertGenderPreference(userId: string, data: GenderPreferenceInput): Promise<Preferences>;
+  upsertRelationshipGoals(userId: string, data: RelationshipGoalsInput): Promise<Preferences>;
   upsertPreferences(userId: string, data: PreferencesInput): Promise<Preferences>;
   upsertInterests(userId: string, data: InterestsInput): Promise<Interests>;
   upsertPersonality(userId: string, data: PersonalityInput): Promise<Personality>;
@@ -102,7 +106,7 @@ export class OnboardingRepository implements IOnboardingRepository {
         userId,
         genderIdentity: data.genderIdentity,
         genderPreference: [],
-        relationshipIntent: "date",
+        relationshipIntent: null,
         relationshipGoals: [],
       },
       update: { genderIdentity: data.genderIdentity },
@@ -145,6 +149,59 @@ export class OnboardingRepository implements IOnboardingRepository {
     };
   }
 
+  async upsertGenderPreference(userId: string, data: GenderPreferenceInput): Promise<Preferences> {
+    const updateData: { genderPreference: string[]; ageRangeMin?: number; ageRangeMax?: number } = {
+      genderPreference: data.genderPreference,
+    };
+    if (data.ageRangeMin != null) updateData.ageRangeMin = data.ageRangeMin;
+    if (data.ageRangeMax != null) updateData.ageRangeMax = data.ageRangeMax;
+    const r = await this.db.preferences.upsert({
+      where: { userId },
+      create: {
+        userId,
+        genderPreference: data.genderPreference,
+        ageRangeMin: data.ageRangeMin ?? 18,
+        ageRangeMax: data.ageRangeMax ?? 55,
+        relationshipGoals: [],
+      },
+      update: updateData,
+    });
+    return {
+      id: r.id,
+      userId: r.userId,
+      genderIdentity: n(r.genderIdentity),
+      genderPreference: r.genderPreference,
+      ageRangeMin: n(r.ageRangeMin),
+      ageRangeMax: n(r.ageRangeMax),
+      relationshipIntent: n(r.relationshipIntent),
+      relationshipGoals: r.relationshipGoals ?? [],
+    };
+  }
+
+  async upsertRelationshipGoals(userId: string, data: RelationshipGoalsInput): Promise<Preferences> {
+    const r = await this.db.preferences.upsert({
+      where: { userId },
+      create: {
+        userId,
+        genderPreference: DEFAULT_GENDER_PREFERENCE,
+        ageRangeMin: 18,
+        ageRangeMax: 55,
+        relationshipGoals: data.relationshipGoals,
+      },
+      update: { relationshipGoals: data.relationshipGoals },
+    });
+    return {
+      id: r.id,
+      userId: r.userId,
+      genderIdentity: n(r.genderIdentity),
+      genderPreference: r.genderPreference,
+      ageRangeMin: n(r.ageRangeMin),
+      ageRangeMax: n(r.ageRangeMax),
+      relationshipIntent: n(r.relationshipIntent),
+      relationshipGoals: r.relationshipGoals ?? [],
+    };
+  }
+
   async upsertPreferences(userId: string, data: PreferencesInput): Promise<Preferences> {
     const updatePayload: Record<string, unknown> = {
       genderIdentity: data.genderIdentity,
@@ -166,7 +223,7 @@ export class OnboardingRepository implements IOnboardingRepository {
         genderPreference: data.genderPreference,
         ageRangeMin: data.ageRangeMin,
         ageRangeMax: data.ageRangeMax,
-        relationshipIntent: data.relationshipIntent ?? "date",
+        relationshipIntent: data.relationshipIntent ?? undefined,
         relationshipGoals: data.relationshipGoals ?? [],
       },
       update: updatePayload,
@@ -264,7 +321,10 @@ export class OnboardingRepository implements IOnboardingRepository {
         this.db.photo.count({ where: { userId } }),
       ]);
     const relationshipIntent = preferences?.relationshipIntent ?? undefined;
-    const hasPreferencesComplete = !!(relationshipIntent != null && relationshipIntent !== "" && relationshipIntent !== "undecided" && relationshipIntent !== "date");
+    const relationshipGoals = preferences?.relationshipGoals ?? [];
+    const intentComplete = !!(relationshipIntent != null && relationshipIntent !== "" && relationshipIntent !== "undecided" && relationshipIntent !== "date");
+    const goalsComplete = relationshipGoals.length >= 2;
+    const hasPreferencesComplete = intentComplete || goalsComplete;
     return {
       hasProfile: !!profile,
       hasPreferences: !!preferences,

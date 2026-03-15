@@ -633,8 +633,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
         setLoading(false);
         return;
       }
-      if (subStep === 5 && datingMode === "date" && relationshipGoal.length === 0) {
-        setStepError("Please select at least one option to continue.");
+      if (subStep === 5 && datingMode === "date" && relationshipGoal.length < 2) {
+        setStepError("Please select at least 2 options to continue.");
         setLoading(false);
         return;
       }
@@ -686,21 +686,14 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       }
 
       if (subStep === 4) {
-        await apiPost("preferences", {
-          genderIdentity: genderIdentity || status.genderIdentity || "",
+        await apiPost("gender-preference", {
           genderPreference: openToAll ? DEFAULT_GENDER_PREFERENCE : genderPreference,
           ageRangeMin: 18, ageRangeMax: 55,
         });
       }
 
       if (subStep === 5 && datingMode === "date") {
-        await apiPost("preferences", {
-          genderIdentity: genderIdentity || status.genderIdentity || "",
-          genderPreference: openToAll ? DEFAULT_GENDER_PREFERENCE : genderPreference,
-          ageRangeMin: 18, ageRangeMax: 55,
-          relationshipIntent: relationshipGoal[0],
-          relationshipGoals: relationshipGoal,
-        });
+        await apiPost("relationship-goals", { relationshipGoals: relationshipGoal });
       }
 
       if (subStep === 6) {
@@ -762,7 +755,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       case 2: return inviteCode.trim().length > 0;
       case 3: return datingMode !== "";
       case 4: return openToAll || genderPreference.length > 0;
-      case 5: return datingMode === "bff" || relationshipGoal.length > 0;
+      case 5: return datingMode === "bff" || relationshipGoal.length >= 2;
       case 6: return interests.length > 0;
       case 7: return true;
       default: return true;
