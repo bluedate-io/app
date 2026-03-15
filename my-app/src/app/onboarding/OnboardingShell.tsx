@@ -21,6 +21,42 @@ const SUGGESTED_INTERESTS = [
   "Travel", "Gaming", "Cooking", "Reading", "Hiking", "Fitness", "Movies",
 ];
 
+/** Emoji/symbol per interest for the suggestions grid (label only; API still receives plain name) */
+const INTEREST_SYMBOLS: Record<string, string> = {
+  "Skiing": "⛷️",
+  "Museums & galleries": "🖼️",
+  "LGBTQ+ rights": "🏳️‍🌈",
+  "Wine": "🍷",
+  "Writing": "✍️",
+  "Horror": "🎃",
+  "Yoga": "🧘",
+  "Cats": "🐱",
+  "Dogs": "🐕",
+  "Crafts": "🎨",
+  "Festivals": "🎪",
+  "Coffee": "☕",
+  "Art": "🖌️",
+  "City breaks": "🌆",
+  "Camping": "⛺",
+  "Foodie": "🍽️",
+  "R&B": "🎵",
+  "Tennis": "🎾",
+  "Dancing": "💃",
+  "Vegetarian": "🥬",
+  "Gardening": "🌱",
+  "Baking": "🧁",
+  "Gigs": "🎸",
+  "Country": "🤠",
+  "Photography": "📷",
+  "Travel": "✈️",
+  "Gaming": "🎮",
+  "Cooking": "👨‍🍳",
+  "Reading": "📚",
+  "Hiking": "🥾",
+  "Fitness": "💪",
+  "Movies": "🎬",
+};
+
 const DEFAULT_GENDER_PREFERENCE = ["Men", "Women", "Nonbinary people"];
 
 const RELATIONSHIP_GOALS = [
@@ -400,13 +436,31 @@ function PhotosStep({
 
   const count = photos.length;
 
+  const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+  const isImage = (file: File) => file.type.startsWith("image/");
+
   const upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
     setUploading(true);
     setError(null);
+    const toUpload = files.slice(0, 6 - count);
+    for (const file of toUpload) {
+      if (!isImage(file)) {
+        setError("Only image files are allowed (e.g. JPEG, PNG).");
+        setUploading(false);
+        e.target.value = "";
+        return;
+      }
+      if (file.size > MAX_PHOTO_SIZE_BYTES) {
+        setError("The size is too big. Please upload an image of size below 5MB.");
+        setUploading(false);
+        e.target.value = "";
+        return;
+      }
+    }
     let nextOrder = count;
-    for (const file of files.slice(0, 6 - count)) {
+    for (const file of toUpload) {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("order", String(nextOrder));
@@ -471,12 +525,6 @@ function PhotosStep({
           Add at least 2 photos — you with your pet, eating your fave food, or in a place you love.
         </p>
 
-        {error && (
-          <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
-            {error}
-          </div>
-        )}
-
         <div className="grid grid-cols-3 gap-3 mb-6">
           {loading ? (
             <div className="col-span-3 aspect-square max-w-[200px] rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
@@ -517,6 +565,8 @@ function PhotosStep({
             })
           )}
         </div>
+
+        {error && <InlineError message={error} />}
 
         <p className="text-sm text-gray-400 mb-8">
           {count}/6 photos added
@@ -1122,7 +1172,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                 value={interestSearch}
                 onChange={(e) => setInterestSearch(e.target.value)}
                 placeholder="What are you into?"
-                className="w-full bg-white border border-gray-200 rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-gray-400"
+                className="w-full bg-white border border-gray-200 rounded-lg pl-9 pr-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-gray-400"
               />
             </div>
 
@@ -1131,9 +1181,13 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
             <div className="flex flex-wrap gap-2">
               {filteredInterests.map((interest) => {
                 const selected = interests.includes(interest);
+                const symbol = INTEREST_SYMBOLS[interest] ?? "•";
+                const displayLabel = `${symbol} ${interest}`;
                 return (
                   <Pill
-                    key={interest} label={interest} selected={selected}
+                    key={interest}
+                    label={displayLabel}
+                    selected={selected}
                     onClick={() => {
                       if (selected) setInterests((p) => p.filter((x) => x !== interest));
                       else if (interests.length < 5) setInterests((p) => [...p, interest]);
