@@ -76,13 +76,14 @@ model Profile {
 // ─── Preferences — dating intent & filters ───────────────────────────────────
 
 model Preferences {
-  id                 String   @id @default(cuid())
-  userId             String   @unique
-  genderIdentity     String?
-  genderPreference   String[]
-  ageRangeMin        Int?
-  ageRangeMax        Int?
-  relationshipIntent String?
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  genderIdentity      String?
+  genderPreference    String[]
+  ageRangeMin         Int?
+  ageRangeMax         Int?
+  relationshipIntent  String   // primary: "date" | "friendship" | first goal
+  relationshipGoals   String[] @default([]) // all selected goals (1–2) from step 5
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

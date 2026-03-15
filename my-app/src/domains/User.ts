@@ -44,6 +44,7 @@ export interface Preferences {
   ageRangeMin?: number;
   ageRangeMax?: number;
   relationshipIntent?: string;
+  relationshipGoals: string[];
 }
 
 export interface Interests {

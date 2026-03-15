@@ -50,14 +50,22 @@ export const inviteCodeSchema = z.object({
   code: z.string().min(1).max(20).trim(),
 });
 
-// ─── Step 2: Preferences (Basics) ────────────────────────────────────────────
+// ─── Dating mode only (step: Date vs BFF) — separate API ─────────────────────
+
+export const datingModeSchema = z.object({
+  mode: z.enum(["date", "bff"]),
+});
+
+// ─── Preferences (who to meet, age range; relationshipIntent optional) ─────
+// When relationshipIntent is omitted, existing value is preserved (e.g. step 4 does not overwrite "date").
 
 export const preferencesSchema = z.object({
   genderIdentity: z.string().min(1).max(60).trim(),
   genderPreference: z.array(z.string().min(1).max(60)).min(1),
   ageRangeMin: z.number().int().min(18).max(99),
   ageRangeMax: z.number().int().min(18).max(100),
-  relationshipIntent: z.string().min(1).max(100).trim(),
+  relationshipIntent: z.string().min(1).max(100).trim().optional(),
+  relationshipGoals: z.array(z.string().min(1).max(100).trim()).min(0).max(5).optional(),
 }).refine((d) => d.ageRangeMax >= d.ageRangeMin, {
   message: "ageRangeMax must be >= ageRangeMin",
   path: ["ageRangeMax"],
@@ -102,6 +110,7 @@ export const aiSignalsSchema = z.object({
 export type ProfileInput = z.infer<typeof profileSchema>;
 export type GenderIdentityInput = z.infer<typeof genderIdentitySchema>;
 export type InviteCodeInput = z.infer<typeof inviteCodeSchema>;
+export type DatingModeInput = z.infer<typeof datingModeSchema>;
 export type PreferencesInput = z.infer<typeof preferencesSchema>;
 export type InterestsInput = z.infer<typeof interestsSchema>;
 export type PersonalityInput = z.infer<typeof personalitySchema>;

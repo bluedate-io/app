@@ -21,6 +21,8 @@ const SUGGESTED_INTERESTS = [
   "Travel", "Gaming", "Cooking", "Reading", "Hiking", "Fitness", "Movies",
 ];
 
+const DEFAULT_GENDER_PREFERENCE = ["Men", "Women", "Nonbinary people"];
+
 const RELATIONSHIP_GOALS = [
   "A long-term relationship",
   "A life partner",
@@ -86,9 +88,11 @@ function getInitialSubStep(status: OnboardingStatus): number {
   if (!status.hasPreferences) return 1;
   if (!status.hasUsedInviteCode) return 2;
   if (!status.hasPreferencesComplete) {
-    // relationshipIntent "undecided" = saved from "who to meet" but not yet selected a goal → show step 5
+    // relationshipIntent "date" = chose Date at step 3, need "who to meet" (step 4)
+    if (status.relationshipIntent === "date") return 4;
+    // relationshipIntent "undecided" = saved "who to meet" but not yet selected a goal → show step 5
     if (status.relationshipIntent === "undecided") return 5;
-    return 3; // Date/BFF + who to meet not saved yet; stay on dating mode step
+    return 3; // Date/BFF not saved yet; stay on dating mode step
   }
   if (!status.hasInterests) return 6;
   if (!status.hasPersonality || !status.hasAvailability) return 7;
@@ -579,10 +583,14 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const [genderIdentity, setGenderIdentity] = useState(() => status.genderIdentity ?? "");
   const [inviteCode, setInviteCode] = useState("");
   const [inviteCodeError, setInviteCodeError] = useState<string | null>(null);
-  const [datingMode, setDatingMode] = useState<"date" | "bff" | "">("");
+  const [datingMode, setDatingMode] = useState<"date" | "bff" | "">(() => {
+    if (status.relationshipIntent === "friendship") return "bff";
+    if (status.relationshipIntent === "undecided" || status.relationshipIntent === "date") return "date";
+    return "";
+  });
   const [genderPreference, setGenderPreference] = useState<string[]>([]);
   const [openToAll, setOpenToAll] = useState(false);
-  const [relationshipGoal, setRelationshipGoal] = useState<string[]>([]);
+  const [relationshipGoal, setRelationshipGoal] = useState<string[]>(() => status.relationshipGoals ?? []);
   const [interests, setInterests] = useState<string[]>([]);
   const [interestSearch, setInterestSearch] = useState("");
   const [drinkingHabit, setDrinkingHabit] = useState("");
@@ -669,36 +677,29 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       }
 
       if (subStep === 3 && datingMode === "bff") {
-        const identity = genderIdentity || status.genderIdentity || "";
-        if (!identity) {
-          setStepError("Please go back and select your gender first.");
-          setLoading(false);
-          return;
-        }
-        await apiPost("preferences", {
-          genderIdentity: identity,
-          genderPreference: openToAll ? ["Men", "Women", "Nonbinary people"] : genderPreference,
-          ageRangeMin: 18, ageRangeMax: 55,
-          relationshipIntent: "friendship",
-        });
+        await apiPost("dating-mode", { mode: "bff" });
         setSubStep(6); setLoading(false); return;
+      }
+
+      if (subStep === 3 && datingMode === "date") {
+        await apiPost("dating-mode", { mode: "date" });
       }
 
       if (subStep === 4) {
         await apiPost("preferences", {
           genderIdentity: genderIdentity || status.genderIdentity || "",
-          genderPreference: openToAll ? ["Men", "Women", "Nonbinary people"] : genderPreference,
+          genderPreference: openToAll ? DEFAULT_GENDER_PREFERENCE : genderPreference,
           ageRangeMin: 18, ageRangeMax: 55,
-          relationshipIntent: relationshipGoal[0] ?? "undecided",
         });
       }
 
       if (subStep === 5 && datingMode === "date") {
         await apiPost("preferences", {
           genderIdentity: genderIdentity || status.genderIdentity || "",
-          genderPreference: openToAll ? ["Men", "Women", "Nonbinary people"] : genderPreference,
+          genderPreference: openToAll ? DEFAULT_GENDER_PREFERENCE : genderPreference,
           ageRangeMin: 18, ageRangeMax: 55,
           relationshipIntent: relationshipGoal[0],
+          relationshipGoals: relationshipGoal,
         });
       }
 

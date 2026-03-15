@@ -31,6 +31,7 @@ export interface PreferencesResponseDTO {
   ageRangeMin?: number;
   ageRangeMax?: number;
   relationshipIntent?: string;
+  relationshipGoals: string[];
 }
 
 export interface InterestsResponseDTO {
@@ -90,6 +91,7 @@ export const toPreferencesDTO = (p: Preferences): PreferencesResponseDTO => ({
   ageRangeMin: p.ageRangeMin,
   ageRangeMax: p.ageRangeMax,
   relationshipIntent: p.relationshipIntent,
+  relationshipGoals: p.relationshipGoals ?? [],
 });
 
 export const toInterestsDTO = (i: Interests): InterestsResponseDTO => ({

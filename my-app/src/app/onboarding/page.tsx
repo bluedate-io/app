@@ -2,12 +2,11 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
+import { config } from "@/config";
 import OnboardingShell from "./OnboardingShell";
 
 async function getOnboardingStatus(token: string) {
-  const secret = new TextEncoder().encode(
-    process.env.JWT_SECRET ?? "dev-secret-change-in-production",
-  );
+  const secret = new TextEncoder().encode(config.auth.jwtSecret);
   try {
     const { payload } = await jwtVerify(token, secret);
     const userId = payload.sub as string;
@@ -39,8 +38,10 @@ export interface OnboardingStatus {
   fullName?: string;
   /** Saved gender identity (for prefill when on Date/BFF step after refresh) */
   genderIdentity?: string;
-  /** Set when preferences saved; "undecided" = on relationship-goals step, need to select */
+  /** Set when preferences saved; "date" = chose Date mode, need who-to-meet; "undecided" = need relationship goal; else final intent */
   relationshipIntent?: string;
+  /** All selected relationship goals (1–2) from step 5 */
+  relationshipGoals?: string[];
 }
 
 export default async function OnboardingPage() {

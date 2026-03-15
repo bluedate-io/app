@@ -6,6 +6,7 @@ import {
   profileSchema,
   genderIdentitySchema,
   inviteCodeSchema,
+  datingModeSchema,
   preferencesSchema,
   interestsSchema,
   personalitySchema,
@@ -49,6 +50,18 @@ export class OnboardingController {
       const input = inviteCodeSchema.parse(body);
       await this.onboardingService.validateInviteCode(ctx.userId, input.code);
       return successResponse(null, { message: "Invite code accepted" });
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  // POST /api/onboarding/dating-mode
+  async saveDatingMode(req: NextRequest, ctx: RequestContext) {
+    try {
+      const body = await req.json();
+      const input = datingModeSchema.parse(body);
+      const result = await this.onboardingService.saveDatingMode(ctx.userId, input.mode);
+      return createdResponse(result, "Dating mode saved");
     } catch (error) {
       return handleError(error);
     }
