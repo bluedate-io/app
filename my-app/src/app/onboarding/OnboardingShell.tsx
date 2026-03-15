@@ -7,7 +7,7 @@ import type { OnboardingStatus } from "./page";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TOTAL_SUB_STEPS = 9;
+const TOTAL_SUB_STEPS = 10;
 const ACCENT = "#8F3A8F";
 const BG = "#FBF8F6";
 const FAB_BG = "#E0E0E0";
@@ -123,17 +123,27 @@ function getInitialSubStep(status: OnboardingStatus): number {
   if (!status.hasProfile) return 0;
   if (!status.hasPreferences) return 1;
   if (!status.hasUsedInviteCode) return 2;
+  const hasAgeRange = status.ageRangeMin != null && status.ageRangeMax != null;
   if (!status.hasPreferencesComplete) {
-    // relationshipIntent "date" = chose Date at step 3, need "who to meet" (step 4)
-    if (status.relationshipIntent === "date") return 4;
-    // relationshipIntent "undecided" = saved "who to meet" but not yet selected a goal → show step 5
-    if (status.relationshipIntent === "undecided") return 5;
+    // relationshipIntent "date" = chose Date at step 3; need who-to-meet (4) then age range (5) then goals (6)
+    if (status.relationshipIntent === "date") {
+      if (!status.hasGenderPreference) return 4;
+      if (!hasAgeRange) return 5;
+      return 6; // show relationship goals
+    }
+    // relationshipIntent "friendship" = BFF; need age range (5) then interests (7)
+    if (status.relationshipIntent === "friendship") {
+      if (!hasAgeRange) return 5;
+      return 7; // skip goals, go to interests
+    }
+    // relationshipIntent "undecided" = saved who-to-meet but not yet selected a goal → show goals (6)
+    if (status.relationshipIntent === "undecided") return 6;
     return 3; // Date/BFF not saved yet; stay on dating mode step
   }
-  if (!status.hasInterests) return 6;
-  if (!status.hasPersonality || !status.hasAvailability) return 7;
-  // Always show photos step (8) until user explicitly clicks Done; then page redirects
-  return 8;
+  if (!status.hasInterests) return 7;
+  if (!status.hasPersonality || !status.hasAvailability) return 8;
+  // Always show photos step (9) until user explicitly clicks Done; then page redirects
+  return 9;
 }
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -640,6 +650,9 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   });
   const [genderPreference, setGenderPreference] = useState<string[]>([]);
   const [openToAll, setOpenToAll] = useState(false);
+  const [ageRangeMin, setAgeRangeMin] = useState<string>("");
+  const [ageRangeMax, setAgeRangeMax] = useState<string>("");
+  const [ageRangeError, setAgeRangeError] = useState<string | null>(null);
   const [relationshipGoal, setRelationshipGoal] = useState<string[]>(() => status.relationshipGoals ?? []);
   const [interests, setInterests] = useState<string[]>([]);
   const [interestSearch, setInterestSearch] = useState("");
@@ -683,8 +696,22 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
         setLoading(false);
         return;
       }
-      if (subStep === 5 && datingMode === "date" && relationshipGoal.length < 2) {
+      if (subStep === 6 && datingMode === "date" && relationshipGoal.length < 2) {
         setStepError("Please select at least 2 options to continue.");
+        setLoading(false);
+        return;
+      }
+      if (subStep === 5) {
+        setAgeRangeError(null);
+        const minNum = ageRangeMin.trim() === "" ? NaN : parseInt(ageRangeMin.trim(), 10);
+        const maxNum = ageRangeMax.trim() === "" ? NaN : parseInt(ageRangeMax.trim(), 10);
+        if (Number.isNaN(minNum) || Number.isNaN(maxNum) || minNum < 18 || minNum > 100 || maxNum < 18 || maxNum > 100 || minNum > maxNum) {
+          setAgeRangeError("Minimum must be 18–100 and less than or equal to maximum.");
+          setLoading(false);
+          return;
+        }
+        await apiPost("age-range", { ageRangeMin: minNum, ageRangeMax: maxNum });
+        setSubStep(datingMode === "date" ? 6 : 7);
         setLoading(false);
         return;
       }
@@ -728,7 +755,9 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
 
       if (subStep === 3 && datingMode === "bff") {
         await apiPost("dating-mode", { mode: "bff" });
-        setSubStep(6); setLoading(false); return;
+        setSubStep(5);
+        setLoading(false);
+        return;
       }
 
       if (subStep === 3 && datingMode === "date") {
@@ -738,22 +767,21 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       if (subStep === 4) {
         await apiPost("gender-preference", {
           genderPreference: openToAll ? DEFAULT_GENDER_PREFERENCE : genderPreference,
-          ageRangeMin: 18, ageRangeMax: 55,
         });
       }
 
-      if (subStep === 5 && datingMode === "date") {
+      if (subStep === 6 && datingMode === "date") {
         await apiPost("relationship-goals", { relationshipGoals: relationshipGoal });
       }
 
-      if (subStep === 6) {
+      if (subStep === 7) {
         await apiPost("interests", {
           hobbies: interests.length > 0 ? interests : ["Other"],
           favouriteActivities: [], musicTaste: [], foodTaste: [],
         });
       }
 
-      if (subStep === 7) {
+      if (subStep === 8) {
         await apiPost("personality", {
           socialLevel: drinkingHabit || "Not specified",
           conversationStyle: smokingHabit || "Not specified",
@@ -766,6 +794,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
     } catch (e) {
       const msg = (e as Error).message;
       if (subStep === 2) setInviteCodeError(msg);
+      else if (subStep === 5) setAgeRangeError(msg);
       else setStepError(msg);
     } finally {
       setLoading(false);
@@ -776,10 +805,10 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
     setLoading(true);
     setStepError(null);
     try {
-      if (subStep === 6) {
+      if (subStep === 7) {
         await apiPost("interests", { hobbies: ["Other"], favouriteActivities: [], musicTaste: [], foodTaste: [] });
       }
-      if (subStep === 7) {
+      if (subStep === 8) {
         await apiPost("personality", { socialLevel: "Not specified", conversationStyle: "Not specified" });
         await apiPost("availability", { days: ["fri", "sat", "sun"], times: ["evening"] });
       }
@@ -805,17 +834,22 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       case 2: return inviteCode.trim().length > 0;
       case 3: return datingMode !== "";
       case 4: return openToAll || genderPreference.length > 0;
-      case 5: return datingMode === "bff" || relationshipGoal.length >= 2;
-      case 6: return interests.length > 0;
-      case 7: return true;
+      case 5: {
+        const minNum = ageRangeMin.trim() === "" ? NaN : parseInt(ageRangeMin.trim(), 10);
+        const maxNum = ageRangeMax.trim() === "" ? NaN : parseInt(ageRangeMax.trim(), 10);
+        return !Number.isNaN(minNum) && !Number.isNaN(maxNum) && minNum >= 18 && minNum <= 100 && maxNum >= 18 && maxNum <= 100 && minNum <= maxNum;
+      }
+      case 6: return datingMode === "bff" || relationshipGoal.length >= 2;
+      case 7: return interests.length > 0;
+      case 8: return true;
       default: return true;
     }
   })();
 
-  const isSkippable = subStep === 6 || subStep === 7;
+  const isSkippable = subStep === 7 || subStep === 8;
   const progressPct = Math.round(((subStep + 1) / TOTAL_SUB_STEPS) * 100);
 
-  if (subStep === 8) {
+  if (subStep === 9) {
     return <PhotosStep token={token} status={status} onDone={() => router.refresh()} />;
   }
 
@@ -1110,8 +1144,70 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           </div>
         )}
 
-        {/* ── STEP 5: Relationship goals ──────────────────────────────────── */}
+        {/* ── STEP 5: Age range (Date and BFF) ─────────────────────────────── */}
         {subStep === 5 && (
+          <div className="flex flex-col flex-1">
+            <div className="flex justify-start mb-6">
+              <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <Heading>What age range are you open to?</Heading>
+            <p className="text-sm text-gray-500 mb-6">
+              Min 18, max 100. Minimum must be less than or equal to maximum.
+            </p>
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm text-gray-500 mb-1">Minimum age</label>
+                <input
+                  type="number"
+                  min={18}
+                  max={100}
+                  value={ageRangeMin}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === "" || /^\d+$/.test(raw)) {
+                      setAgeRangeMin(raw);
+                      setAgeRangeError(null);
+                    }
+                  }}
+                  placeholder="18"
+                  className={`${inputCls} ${ageRangeError ? "border-red-500" : ""}`}
+                  aria-label="Minimum age"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-500 mb-1">Maximum age</label>
+                <input
+                  type="number"
+                  min={18}
+                  max={100}
+                  value={ageRangeMax}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === "" || /^\d+$/.test(raw)) {
+                      setAgeRangeMax(raw);
+                      setAgeRangeError(null);
+                    }
+                  }}
+                  placeholder="100"
+                  className={`${inputCls} ${ageRangeError ? "border-red-500" : ""}`}
+                  aria-label="Maximum age"
+                />
+              </div>
+            </div>
+
+            {ageRangeError && <InlineError message={ageRangeError} />}
+
+            <div className="mt-auto pt-8 flex items-end justify-end">
+              <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 6: Relationship goals ──────────────────────────────────── */}
+        {subStep === 6 && (
           <div className="flex flex-col flex-1">
             <div className="flex justify-start mb-6">
               <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1149,8 +1245,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           </div>
         )}
 
-        {/* ── STEP 6: Interests ───────────────────────────────────────────── */}
-        {subStep === 6 && (
+        {/* ── STEP 7: Interests ───────────────────────────────────────────── */}
+        {subStep === 7 && (
           <div className="flex flex-col flex-1">
             <div className="flex justify-start mb-6">
               <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1215,8 +1311,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           </div>
         )}
 
-        {/* ── STEP 7: Habits ──────────────────────────────────────────────── */}
-        {subStep === 7 && (
+        {/* ── STEP 8: Habits ──────────────────────────────────────────────── */}
+        {subStep === 8 && (
           <div className="flex flex-col flex-1">
             <div className="flex justify-start mb-6">
               <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

@@ -8,6 +8,7 @@ import {
   inviteCodeSchema,
   datingModeSchema,
   genderPreferenceSchema,
+  ageRangeSchema,
   relationshipGoalsSchema,
   preferencesSchema,
   interestsSchema,
@@ -76,6 +77,18 @@ export class OnboardingController {
       const input = genderPreferenceSchema.parse(body);
       const result = await this.onboardingService.saveGenderPreference(ctx.userId, input);
       return createdResponse(result, "Who to meet saved");
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  // POST /api/onboarding/age-range (step 5 — Date and BFF)
+  async saveAgeRange(req: NextRequest, ctx: RequestContext) {
+    try {
+      const body = await req.json();
+      const input = ageRangeSchema.parse(body);
+      const result = await this.onboardingService.saveAgeRange(ctx.userId, input);
+      return createdResponse(result, "Age range saved");
     } catch (error) {
       return handleError(error);
     }

@@ -17,6 +17,7 @@ import type {
   GenderIdentityInput,
   PreferencesInput,
   GenderPreferenceInput,
+  AgeRangeInput,
   RelationshipGoalsInput,
   InterestsInput,
   PersonalityInput,
@@ -42,6 +43,7 @@ export interface IOnboardingRepository {
   upsertGenderIdentity(userId: string, data: GenderIdentityInput): Promise<Preferences>;
   upsertDatingMode(userId: string, mode: "date" | "bff"): Promise<Preferences>;
   upsertGenderPreference(userId: string, data: GenderPreferenceInput): Promise<Preferences>;
+  upsertAgeRange(userId: string, data: AgeRangeInput): Promise<Preferences>;
   upsertRelationshipGoals(userId: string, data: RelationshipGoalsInput): Promise<Preferences>;
   upsertPreferences(userId: string, data: PreferencesInput): Promise<Preferences>;
   upsertInterests(userId: string, data: InterestsInput): Promise<Interests>;
@@ -64,6 +66,9 @@ export interface IOnboardingRepository {
     genderIdentity?: string;
     relationshipIntent?: string;
     relationshipGoals?: string[];
+    ageRangeMin?: number;
+    ageRangeMax?: number;
+    hasGenderPreference: boolean;
   }>;
   getGenderIdentity(userId: string): Promise<string | null>;
 }
@@ -165,6 +170,30 @@ export class OnboardingRepository implements IOnboardingRepository {
         relationshipGoals: [],
       },
       update: updateData,
+    });
+    return {
+      id: r.id,
+      userId: r.userId,
+      genderIdentity: n(r.genderIdentity),
+      genderPreference: r.genderPreference,
+      ageRangeMin: n(r.ageRangeMin),
+      ageRangeMax: n(r.ageRangeMax),
+      relationshipIntent: n(r.relationshipIntent),
+      relationshipGoals: r.relationshipGoals ?? [],
+    };
+  }
+
+  async upsertAgeRange(userId: string, data: AgeRangeInput): Promise<Preferences> {
+    const r = await this.db.preferences.upsert({
+      where: { userId },
+      create: {
+        userId,
+        genderPreference: DEFAULT_GENDER_PREFERENCE,
+        ageRangeMin: data.ageRangeMin,
+        ageRangeMax: data.ageRangeMax,
+        relationshipGoals: [],
+      },
+      update: { ageRangeMin: data.ageRangeMin, ageRangeMax: data.ageRangeMax },
     });
     return {
       id: r.id,
@@ -313,7 +342,7 @@ export class OnboardingRepository implements IOnboardingRepository {
     const [profile, preferences, inviteCodeUsed, interests, personality, availability, photoCount] =
       await this.db.$transaction([
         this.db.profile.findUnique({ where: { userId }, select: { id: true, fullName: true } }),
-        this.db.preferences.findUnique({ where: { userId }, select: { id: true, relationshipIntent: true, genderIdentity: true, relationshipGoals: true } }),
+        this.db.preferences.findUnique({ where: { userId }, select: { id: true, relationshipIntent: true, genderIdentity: true, relationshipGoals: true, genderPreference: true, ageRangeMin: true, ageRangeMax: true } }),
         this.db.inviteCode.count({ where: { usedById: userId } }),
         this.db.interests.findUnique({ where: { userId }, select: { id: true } }),
         this.db.personality.findUnique({ where: { userId }, select: { id: true } }),
@@ -338,6 +367,9 @@ export class OnboardingRepository implements IOnboardingRepository {
       photoCount,
       fullName: profile?.fullName ?? undefined,
       genderIdentity: preferences?.genderIdentity ?? undefined,
+      ageRangeMin: preferences?.ageRangeMin ?? undefined,
+      ageRangeMax: preferences?.ageRangeMax ?? undefined,
+      hasGenderPreference: (preferences?.genderPreference?.length ?? 0) > 0,
     };
   }
 

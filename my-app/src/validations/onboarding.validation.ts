@@ -73,6 +73,18 @@ export const relationshipGoalsSchema = z.object({
   relationshipGoals: z.array(z.string().min(1).max(100).trim()).min(2).max(5),
 });
 
+// ─── Age range only (step 5 — Date and BFF) ────────────────────────────────
+
+export const ageRangeSchema = z
+  .object({
+    ageRangeMin: z.number().int().min(18).max(100),
+    ageRangeMax: z.number().int().min(18).max(100),
+  })
+  .refine((d) => d.ageRangeMax >= d.ageRangeMin, {
+    message: "ageRangeMax must be >= ageRangeMin",
+    path: ["ageRangeMax"],
+  });
+
 // ─── Preferences (who to meet, age range; relationshipIntent optional) ─────
 // When relationshipIntent is omitted, existing value is preserved (e.g. step 4 does not overwrite "date").
 
@@ -130,6 +142,7 @@ export type InviteCodeInput = z.infer<typeof inviteCodeSchema>;
 export type DatingModeInput = z.infer<typeof datingModeSchema>;
 export type GenderPreferenceInput = z.infer<typeof genderPreferenceSchema>;
 export type RelationshipGoalsInput = z.infer<typeof relationshipGoalsSchema>;
+export type AgeRangeInput = z.infer<typeof ageRangeSchema>;
 export type PreferencesInput = z.infer<typeof preferencesSchema>;
 export type InterestsInput = z.infer<typeof interestsSchema>;
 export type PersonalityInput = z.infer<typeof personalitySchema>;
