@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Phone, ShieldCheck, AlertTriangle } from "lucide-react";
 
 type Step = "phone" | "otp";
@@ -18,7 +17,6 @@ const COUNTRY_CODES = [
 ] as const;
 
 export default function LoginForm() {
-  const router = useRouter();
   const [step, setStep] = useState<Step>("phone");
   const [countryCode, setCountryCode] = useState<(typeof COUNTRY_CODES)[number]>(COUNTRY_CODES[0]);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
@@ -72,16 +70,36 @@ export default function LoginForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: fullPhone, code: otp }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error?.message ?? "Invalid OTP");
-
-      const { token, redirectTo } = json.data as {
-        token: { accessToken: string };
-        redirectTo: string;
+      const json = (await res.json()) as {
+        success?: boolean;
+        data?: {
+          token?: { accessToken?: string } | string;
+          redirectTo?: string;
+        };
+        error?: { message?: string };
       };
 
-      document.cookie = `access_token=${token.accessToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
-      router.push(redirectTo);
+      if (!res.ok) {
+        throw new Error(json.error?.message ?? "Invalid OTP");
+      }
+
+      const data = json.data;
+      const tokenVal = data?.token;
+      const accessToken =
+        typeof tokenVal === "string" ? tokenVal : tokenVal?.accessToken;
+      const redirectTo =
+        typeof data?.redirectTo === "string" && data.redirectTo
+          ? data.redirectTo
+          : "/onboarding";
+
+      if (!accessToken || typeof accessToken !== "string") {
+        throw new Error("No access token in response. Please try again.");
+      }
+
+      const maxAge = 7 * 24 * 60 * 60;
+      document.cookie = `access_token=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
+      // Force full page navigation so cookie is sent on next request
+      window.location.assign(redirectTo.startsWith("/") ? redirectTo : `/onboarding`);
     } catch (err) {
       setError((err as Error).message);
     } finally {

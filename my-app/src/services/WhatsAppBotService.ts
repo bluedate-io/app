@@ -326,7 +326,9 @@ export class WhatsAppBotService {
     const n = normalise(text);
     if (n !== "date" && n !== "bff") return MSG.ERROR_DATING_MODE;
 
-    const datingMode = n;
+    const datingMode = n as "date" | "bff";
+    const userId = tempData.userId as string;
+    await this.onboardingRepo.upsertDatingMode(userId, datingMode);
     await this.sessionRepo.upsert(phone, STEPS.WHO_TO_MEET, { ...tempData, datingMode });
     return datingMode === "bff" ? MSG.WHO_TO_MEET_BFF : MSG.WHO_TO_MEET_DATE;
   }
@@ -345,18 +347,24 @@ export class WhatsAppBotService {
     const datingMode = tempData.datingMode as string;
 
     if (datingMode === "bff") {
-      // Skip relationship goals — save preferences immediately
+      // Skip relationship goals — update who-to-meet only (relationshipIntent already "friendship" from dating-mode step)
       await this.onboardingRepo.upsertPreferences(userId, {
         genderIdentity: tempData.genderIdentity as string,
         genderPreference,
         ageRangeMin: 18,
         ageRangeMax: 60,
-        relationshipIntent: "Friendship",
       });
       await this.sessionRepo.upsert(phone, STEPS.INTERESTS, { ...tempData, genderPreference });
       return MSG.INTERESTS;
     }
 
+    // Date mode: save who-to-meet without overwriting relationshipIntent ("date")
+    await this.onboardingRepo.upsertPreferences(userId, {
+      genderIdentity: tempData.genderIdentity as string,
+      genderPreference,
+      ageRangeMin: 18,
+      ageRangeMax: 60,
+    });
     await this.sessionRepo.upsert(phone, STEPS.RELATIONSHIP_GOALS, {
       ...tempData,
       genderPreference,
@@ -371,10 +379,10 @@ export class WhatsAppBotService {
   ): Promise<string> {
     const n = normalise(text);
     const map: Record<string, string> = {
-      casual: "Casual dating",
+      casual: "Fun, casual dates",
       "long-term": "A long-term relationship",
       "long term": "A long-term relationship",
-      marriage: "Looking to get married",
+      marriage: "Marriage",
     };
     const intent = map[n];
     if (!intent) return MSG.ERROR_RELATIONSHIP_GOALS;
@@ -386,6 +394,7 @@ export class WhatsAppBotService {
       ageRangeMin: 18,
       ageRangeMax: 60,
       relationshipIntent: intent,
+      relationshipGoals: [intent],
     });
 
     await this.sessionRepo.upsert(phone, STEPS.INTERESTS, { ...tempData, relationshipIntent: intent });

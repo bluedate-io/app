@@ -78,7 +78,20 @@ export class OnboardingService {
     return toGenderDTO(prefs);
   }
 
-  // ─── Preferences ─────────────────────────────────────────────────────────────
+  // ─── Dating mode only (Date vs BFF) ─────────────────────────────────────────
+
+  async saveDatingMode(userId: string, mode: "date" | "bff"): Promise<PreferencesResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Dating mode save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
+    const prefs = await this.onboardingRepo.upsertDatingMode(userId, mode);
+    log.info("Dating mode saved", { userId, mode });
+    return toPreferencesDTO(prefs);
+  }
+
+  // ─── Preferences (who to meet, age range, optional relationship goal) ─────────
 
   async savePreferences(userId: string, data: PreferencesInput): Promise<PreferencesResponseDTO> {
     const userExists = await this.userRepo.exists(userId);
