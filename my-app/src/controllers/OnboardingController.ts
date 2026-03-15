@@ -7,6 +7,8 @@ import {
   genderIdentitySchema,
   inviteCodeSchema,
   datingModeSchema,
+  genderPreferenceSchema,
+  relationshipGoalsSchema,
   preferencesSchema,
   interestsSchema,
   personalitySchema,
@@ -62,6 +64,30 @@ export class OnboardingController {
       const input = datingModeSchema.parse(body);
       const result = await this.onboardingService.saveDatingMode(ctx.userId, input.mode);
       return createdResponse(result, "Dating mode saved");
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  // POST /api/onboarding/gender-preference (who to meet — step 4)
+  async saveGenderPreference(req: NextRequest, ctx: RequestContext) {
+    try {
+      const body = await req.json();
+      const input = genderPreferenceSchema.parse(body);
+      const result = await this.onboardingService.saveGenderPreference(ctx.userId, input);
+      return createdResponse(result, "Who to meet saved");
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  // POST /api/onboarding/relationship-goals (step 5 — only goals, no override of other fields)
+  async saveRelationshipGoals(req: NextRequest, ctx: RequestContext) {
+    try {
+      const body = await req.json();
+      const input = relationshipGoalsSchema.parse(body);
+      const result = await this.onboardingService.saveRelationshipGoals(ctx.userId, input);
+      return createdResponse(result, "Relationship goals saved");
     } catch (error) {
       return handleError(error);
     }
