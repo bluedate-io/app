@@ -49,6 +49,7 @@ model User {
   availability  Availability?
   aiSignals     AiSignals?
   photos        Photo[]
+  openingMove   OpeningMove?
   inviteCodesCreated InviteCode[] @relation("InviteCodeCreator")
   inviteCodesUsed    InviteCode[] @relation("InviteCodeUsed")
 
@@ -161,6 +162,26 @@ model AiSignals {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("ai_signals")
+}
+
+// ─── Opening move — first message prompt (Date mode only) ───────────────────────
+
+model OpeningMove {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  // Stores a stable key for the chosen preset prompt (if any), e.g. "houseplants" or "dream_vacation".
+  // For custom prompts this will be null.
+  promptKey String?
+  // The actual text of the opening move question shown to matches.
+  promptText String
+  // True when the user wrote their own opening move instead of choosing a preset.
+  isCustom  Boolean  @default(false)
+  // True once the user has completed this onboarding step.
+  completed Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("opening_moves")
 }
 
 // ─── Invite codes (profile creation gate: men ↔ women) ───────────────────────

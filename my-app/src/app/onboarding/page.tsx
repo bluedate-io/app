@@ -65,6 +65,8 @@ export interface OnboardingStatus {
   hasPhotosStepCompleted: boolean;
   /** True when BFF-only relationship status step has been saved at least once */
   hasRelationshipStatus: boolean;
+  /** True when Date-mode opening move has been saved at least once */
+  hasOpeningMove: boolean;
 }
 
 export default async function OnboardingPage() {

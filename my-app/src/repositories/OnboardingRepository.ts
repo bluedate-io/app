@@ -11,6 +11,7 @@ import type {
   Availability,
   AiSignals,
   Photo,
+  OpeningMove,
 } from "@/domains/User";
 import type {
   ProfileInput,
@@ -28,6 +29,7 @@ import type {
   LifeExperiencesInput,
   BffInterestsInput,
   RelationshipStatusInput,
+  OpeningMoveInput,
 } from "@/validations/onboarding.validation";
 
 // null → undefined helpers
@@ -61,6 +63,7 @@ export interface IOnboardingRepository {
   upsertAiSignals(userId: string, data: AiSignalsInput): Promise<AiSignals>;
   upsertLifeExperiences(userId: string, data: LifeExperiencesInput): Promise<Personality>;
   upsertRelationshipStatus(userId: string, data: RelationshipStatusInput): Promise<Personality>;
+  upsertOpeningMove(userId: string, data: OpeningMoveInput): Promise<OpeningMove>;
   addPhoto(userId: string, url: string, order: number): Promise<Photo>;
   getPhotos(userId: string): Promise<Photo[]>;
   deletePhoto(photoId: string, userId: string): Promise<void>;
@@ -88,6 +91,7 @@ export interface IOnboardingRepository {
     hasLifeExperiences: boolean;
     hasBffInterests: boolean;
     hasPhotosStepCompleted: boolean;
+    hasOpeningMove: boolean;
   }>;
   getGenderIdentity(userId: string): Promise<string | null>;
 }
@@ -548,6 +552,35 @@ export class OnboardingRepository implements IOnboardingRepository {
     };
   }
 
+  async upsertOpeningMove(userId: string, data: OpeningMoveInput): Promise<OpeningMove> {
+    // Cast to any until the generated client is refreshed after adding OpeningMove.
+    const isCustom = !data.promptKey || data.promptKey === "custom";
+    const r = await (this.db as any).openingMove.upsert({
+      where: { userId },
+      create: {
+        userId,
+        promptKey: data.promptKey ?? null,
+        promptText: data.promptText,
+        isCustom,
+        completed: true,
+      },
+      update: {
+        promptKey: data.promptKey ?? null,
+        promptText: data.promptText,
+        isCustom,
+        completed: true,
+      },
+    });
+    return {
+      id: r.id,
+      userId: r.userId,
+      promptKey: n(r.promptKey),
+      promptText: r.promptText,
+      isCustom: !!r.isCustom,
+      completed: !!r.completed,
+    };
+  }
+
   async addPhoto(userId: string, url: string, order: number): Promise<Photo> {
     const r = await this.db.photo.create({ data: { userId, url, order } });
     return { id: r.id, userId: r.userId, url: r.url, order: r.order, createdAt: r.createdAt };
@@ -583,7 +616,16 @@ export class OnboardingRepository implements IOnboardingRepository {
   }
 
   async getOnboardingStatus(userId: string) {
-    const [profile, preferences, inviteCodeUsed, interests, personality, availability, photoCount] =
+    const [
+      profile,
+      preferences,
+      inviteCodeUsed,
+      interests,
+      personality,
+      availability,
+      photoCount,
+      openingMove,
+    ] =
       await this.db.$transaction([
         this.db.profile.findUnique({ where: { userId }, select: { id: true, fullName: true } }),
         this.db.preferences.findUnique({
@@ -619,6 +661,10 @@ export class OnboardingRepository implements IOnboardingRepository {
         }),
         this.db.availability.findUnique({ where: { userId }, select: { id: true } }),
         this.db.photo.count({ where: { userId } }),
+        (this.db as any).openingMove.findUnique({
+          where: { userId },
+          select: { id: true, completed: true },
+        }),
       ]);
     const relationshipIntent = preferences?.relationshipIntent ?? undefined;
     const relationshipGoals = preferences?.relationshipGoals ?? [];
@@ -633,6 +679,7 @@ export class OnboardingRepository implements IOnboardingRepository {
     const hasRelationshipStatus = !!(personality && (personality as any).relationshipStatusCompleted);
     const hasBffInterests = !!(interests && interests.bffInterestsCompleted);
     const hasPhotosStepCompleted = !!(preferences && preferences.photosStepCompleted);
+    const hasOpeningMove = !!(openingMove && openingMove.completed);
     return {
       hasProfile: !!profile,
       hasPreferences: !!preferences,
@@ -658,6 +705,7 @@ export class OnboardingRepository implements IOnboardingRepository {
       hasBffInterests,
       hasPhotosStepCompleted,
       hasRelationshipStatus,
+      hasOpeningMove,
     };
   }
 
