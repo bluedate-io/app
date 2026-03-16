@@ -7,7 +7,7 @@ import type { OnboardingStatus } from "./page";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TOTAL_SUB_STEPS = 13;
+const TOTAL_SUB_STEPS = 14;
 
 const HEIGHT_CM_MIN = 91;
 const HEIGHT_CM_MAX = 220;
@@ -203,9 +203,10 @@ function getInitialSubStep(status: OnboardingStatus): number {
     if (!goalsComplete) return 6;
     if (!hasHeight) return 7;
   }
-  // BFF: go straight to photos (upload images) after selecting intent
+  // BFF: photos (12) → life experiences (13)
   if (status.relationshipIntent === "friendship") {
-    return 12;
+    if (status.photoCount < 2) return 12;
+    if (!status.hasLifeExperiences) return 13;
   }
   // Undecided: need goals (6) to resolve intent
   if (status.relationshipIntent === "undecided" && !goalsComplete) return 6;
@@ -397,6 +398,141 @@ function InlineError({ message }: { message: string }) {
   );
 }
 
+const LIFE_EXPERIENCE_SYMBOLS: Record<string, string> = {
+  // Travel
+  "New to town": "👋",
+  "Living abroad": "🌍",
+  "Moved country": "✈️",
+  Travelling: "🧳",
+  // Education
+  "At uni": "🎓",
+  University: "🎓",
+  "Just graduated": "🎉",
+  "Working and studying": "💼",
+  "Postgrad degree": "📚",
+  "Gap year": "🌎",
+  "Studying abroad": "🗺️",
+  // Working it
+  "Career focused": "💻",
+  "New job": "🎊",
+  "First job": "🆕",
+  "In-between jobs": "↔️",
+  "Changing career": "🔁",
+  "Armed forces": "🎖️",
+  "Stay at home parent": "🏡",
+  "Working parent": "👨‍💻",
+  // House and home
+  "Roommate life": "🏠",
+  "Putting down roots": "🪴",
+  "Buying a house": "📝",
+  "First time home owner": "🔑",
+  "Living with family": "👨‍👩‍👧‍👦",
+  "Living with partner": "🏡",
+  // LGBTQIA+
+  "Exploring my identity": "🏳️‍🌈",
+  "Community leader": "🌈",
+  Transitioning: "🦋",
+  "Out and proud": "🏳️‍🌈",
+  Questioning: "❓",
+  // Family life
+  Pregnant: "💖",
+  "New parent": "👶",
+  "Got toddlers": "🍼",
+  "Have teenagers": "🧑",
+  "Empty nester": "🏡",
+  "Planning for a family": "📝",
+  "Fertility journey": "🌱",
+  "Adoption journey": "🤝",
+  // Self-love
+  "Fresh start": "✨",
+  "Exploring my culture": "🌏",
+  "Enjoying each day as it comes": "🌅",
+  "Sober life": "🚫🍸",
+  "Working on myself": "💪",
+  "Body positivity": "😍",
+  "Going to therapy": "💬",
+  "Exploring spirituality": "🕊️",
+};
+
+const LIFE_EXPERIENCE_SECTIONS = [
+  {
+    title: "Travel",
+    options: ["New to town", "Living abroad", "Moved country", "Travelling"],
+  },
+  {
+    title: "Education",
+    options: [
+      "At uni",
+      "University",
+      "Just graduated",
+      "Working and studying",
+      "Postgrad degree",
+      "Gap year",
+      "Studying abroad",
+    ],
+  },
+  {
+    title: "Working it",
+    options: [
+      "Career focused",
+      "New job",
+      "First job",
+      "In-between jobs",
+      "Changing career",
+      "Armed forces",
+      "Stay at home parent",
+      "Working parent",
+    ],
+  },
+  {
+    title: "House and home",
+    options: [
+      "Roommate life",
+      "Putting down roots",
+      "Buying a house",
+      "First time home owner",
+      "Living with family",
+      "Living with partner",
+    ],
+  },
+  {
+    title: "LGBTQIA+",
+    options: [
+      "Exploring my identity",
+      "Community leader",
+      "Transitioning",
+      "Out and proud",
+      "Questioning",
+    ],
+  },
+  {
+    title: "Family life",
+    options: [
+      "Pregnant",
+      "New parent",
+      "Got toddlers",
+      "Have teenagers",
+      "Empty nester",
+      "Planning for a family",
+      "Fertility journey",
+      "Adoption journey",
+    ],
+  },
+  {
+    title: "Self-love",
+    options: [
+      "Fresh start",
+      "Exploring my culture",
+      "Enjoying each day as it comes",
+      "Sober life",
+      "Working on myself",
+      "Body positivity",
+      "Going to therapy",
+      "Exploring spirituality",
+    ],
+  },
+];
+
 /** Custom month dropdown — single select, styled like other inputs */
 function MonthDropdown({
   value,
@@ -488,10 +624,12 @@ interface PhotoItem {
 function PhotosStep({
   token,
   status,
+  mode,
   onDone,
 }: {
   token: string;
   status: OnboardingStatus;
+  mode: "date" | "bff";
   onDone: () => void;
 }) {
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
@@ -564,6 +702,10 @@ function PhotosStep({
   };
 
   const complete = async () => {
+    if (mode === "bff") {
+      onDone();
+      return;
+    }
     setCompleting(true);
     setError(null);
     const res = await fetch("/api/onboarding/complete", {
@@ -655,22 +797,9 @@ function PhotosStep({
 
         <div className="mt-auto pt-8 flex flex-col gap-4">
           {count >= 2 && (
-            <button
-              type="button"
-              onClick={complete}
-              disabled={completing}
-              className="w-full py-4 rounded-xl font-semibold text-white disabled:opacity-50 transition-opacity"
-              style={{ backgroundColor: ACCENT }}
-            >
-              {completing ? (
-                <span className="inline-flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Completing…
-                </span>
-              ) : (
-                "Done"
-              )}
-            </button>
+            <div className="flex items-end justify-end">
+              <Fab onClick={complete} disabled={completing} loading={completing} />
+            </div>
           )}
           <p className="text-sm text-gray-400">
             Want to make sure you really shine?{" "}
@@ -740,6 +869,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const [kidsPlans, setKidsPlans] = useState("");
   const [religion, setReligion] = useState<string[]>([]);
   const [politics, setPolitics] = useState<string[]>([]);
+  const [lifeExperiences, setLifeExperiences] = useState<string[]>([]);
 
   // Scroll height list so the current selection appears centered initially,
   // to signal that the list can be scrolled.
@@ -980,7 +1110,23 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const progressPct = Math.round(((subStep + 1) / TOTAL_SUB_STEPS) * 100);
 
   if (subStep === 12) {
-    return <PhotosStep token={token} status={status} onDone={() => router.refresh()} />;
+    const mode: "date" | "bff" =
+      datingMode || (status.relationshipIntent === "friendship" ? "bff" : "date");
+
+    return (
+      <PhotosStep
+        token={token}
+        status={status}
+        mode={mode}
+        onDone={() => {
+          if (mode === "bff") {
+            setSubStep(13);
+          } else {
+            router.refresh();
+          }
+        }}
+      />
+    );
   }
 
   const filteredInterests = interestSearch.trim()
@@ -1628,7 +1774,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           </div>
         )}
 
-        {/* ── STEP 11: What's important in your life? ─────────────────────── */}
+        {/* ── STEP 11: What's important in your life? (Date only) ─────────── */}
         {subStep === 11 && datingMode === "date" && (
           <div className="flex flex-col flex-1 overflow-hidden">
             <div className="flex justify-start mb-6">
@@ -1722,6 +1868,128 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                 Skip
               </button>
               <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
+            </div>
+          </div>
+        )}
+        {/* ── STEP 13: Your life (BFF only) ───────────────────────────────── */}
+        {subStep === 13 && (
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex justify-start mb-6">
+              <svg
+                className="w-12 h-12 text-gray-900"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 3C7.03 3 3 6.589 3 11c0 2.347 1.169 4.466 3.06 5.953L6 21l3.39-1.695A10.3 10.3 0 0 0 12 19c4.97 0 9-3.589 9-8s-4.03-8-9-8z"
+                />
+              </svg>
+            </div>
+
+            <Heading>Your life</Heading>
+            <p className="text-sm text-gray-800 mb-2">
+              Pick <b>up to 3</b> to find friends with <b>similar life experiences</b>.
+            </p>
+            <p className="text-xs text-gray-500 mb-4">Shown on my profile</p>
+
+            <div className="flex-1 overflow-y-auto space-y-6 pr-1">
+              {LIFE_EXPERIENCE_SECTIONS.map((section) => (
+                <div key={section.title}>
+                  <p className="text-sm font-semibold text-gray-700 mb-3">
+                    {section.title}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {section.options.map((opt) => {
+                      const selected = lifeExperiences.includes(opt);
+                      const symbol = LIFE_EXPERIENCE_SYMBOLS[opt] ?? "•";
+                      const label = `${symbol} ${opt}`;
+                      return (
+                        <Pill
+                          key={opt}
+                          label={label}
+                          selected={selected}
+                          onClick={() => {
+                            setLifeExperiences((prev) => {
+                              if (selected) return prev.filter((v) => v !== opt);
+                              if (prev.length >= 3) return prev;
+                              return [...prev, opt];
+                            });
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {stepError && <InlineError message={stepError} />}
+
+            <div className="mt-4 pt-4 pb-2 flex items-end justify-between">
+              <button
+                type="button"
+                onClick={async () => {
+                  setLoading(true);
+                  setStepError(null);
+                  try {
+                    await apiPost("life-experiences", { experiences: [] });
+                    const res = await fetch("/api/onboarding/complete", {
+                      method: "POST",
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (!res.ok) {
+                      const j = await res.json();
+                      throw new Error(j.error?.message ?? "Could not complete onboarding");
+                    }
+                    router.refresh();
+                  } catch (e) {
+                    setStepError((e as Error).message);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+                className="text-sm font-medium hover:underline disabled:opacity-50"
+                style={{ color: ACCENT }}
+              >
+                Skip
+              </button>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-400">
+                  {lifeExperiences.length}/3 selected
+                </span>
+                <Fab
+                  onClick={async () => {
+                    if (!lifeExperiences.length) return;
+                    setLoading(true);
+                    setStepError(null);
+                    try {
+                      await apiPost("life-experiences", {
+                        experiences: lifeExperiences,
+                      });
+                      const res = await fetch("/api/onboarding/complete", {
+                        method: "POST",
+                        headers: { Authorization: `Bearer ${token}` },
+                      });
+                      if (!res.ok) {
+                        const j = await res.json();
+                        throw new Error(j.error?.message ?? "Could not complete onboarding");
+                      }
+                      router.refresh();
+                    } catch (e) {
+                      setStepError((e as Error).message);
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={lifeExperiences.length === 0 || loading}
+                  loading={loading}
+                />
+              </div>
             </div>
           </div>
         )}

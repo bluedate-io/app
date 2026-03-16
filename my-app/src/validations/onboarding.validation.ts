@@ -162,9 +162,71 @@ const politicsValues = [
   "Socialist",
 ] as const;
 
+const lifeExperienceValues = [
+  // Travel
+  "New to town",
+  "Living abroad",
+  "Moved country",
+  "Travelling",
+  // Education
+  "At uni",
+  "University",
+  "Just graduated",
+  "Working and studying",
+  "Postgrad degree",
+  "Gap year",
+  "Studying abroad",
+  // Working it
+  "Career focused",
+  "New job",
+  "First job",
+  "In-between jobs",
+  "Changing career",
+  "Armed forces",
+  "Stay at home parent",
+  "Working parent",
+  // House and home
+  "Roommate life",
+  "Putting down roots",
+  "Buying a house",
+  "First time home owner",
+  "Living with family",
+  "Living with partner",
+  // LGBTQIA+
+  "Exploring my identity",
+  "Community leader",
+  "Transitioning",
+  "Out and proud",
+  "Questioning",
+  // Family life
+  "Pregnant",
+  "New parent",
+  "Got toddlers",
+  "Have teenagers",
+  "Empty nester",
+  "Planning for a family",
+  "Fertility journey",
+  "Adoption journey",
+  // Self-love
+  "Fresh start",
+  "Exploring my culture",
+  "Enjoying each day as it comes",
+  "Sober life",
+  "Working on myself",
+  "Body positivity",
+  "Going to therapy",
+  "Exploring spirituality",
+] as const;
+
 export const importantLifeSchema = z.object({
   religion: z.array(z.enum(religionValues)).max(5).optional().default([]),
   politics: z.array(z.enum(politicsValues)).max(3).optional().default([]),
+});
+
+// ─── Step: Life experiences (BFF flow only) ─────────────────────────────────────
+
+export const lifeExperiencesSchema = z.object({
+  experiences: z.array(z.enum(lifeExperienceValues)).max(3),
 });
 
 // ─── Step 5: Availability ─────────────────────────────────────────────────────
@@ -201,3 +263,4 @@ export type AvailabilityInput = z.infer<typeof availabilitySchema>;
 export type AiSignalsInput = z.infer<typeof aiSignalsSchema>;
 export type FamilyPlansInput = z.infer<typeof familyPlansSchema>;
 export type ImportantLifeInput = z.infer<typeof importantLifeSchema>;
+export type LifeExperiencesInput = z.infer<typeof lifeExperiencesSchema>;
