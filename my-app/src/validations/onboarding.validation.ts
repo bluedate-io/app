@@ -73,6 +73,12 @@ export const relationshipGoalsSchema = z.object({
   relationshipGoals: z.array(z.string().min(1).max(100).trim()).min(2).max(5),
 });
 
+// ─── Height (cm) — collected after relationship goals / BFF intent ─────────────
+// Valid range: 91–220 cm (inclusive)
+export const heightSchema = z.object({
+  heightCm: z.number().int().min(91).max(220),
+});
+
 // ─── Age range only (step 5 — Date and BFF) ────────────────────────────────
 
 export const ageRangeSchema = z
@@ -142,6 +148,7 @@ export type InviteCodeInput = z.infer<typeof inviteCodeSchema>;
 export type DatingModeInput = z.infer<typeof datingModeSchema>;
 export type GenderPreferenceInput = z.infer<typeof genderPreferenceSchema>;
 export type RelationshipGoalsInput = z.infer<typeof relationshipGoalsSchema>;
+export type HeightInput = z.infer<typeof heightSchema>;
 export type AgeRangeInput = z.infer<typeof ageRangeSchema>;
 export type PreferencesInput = z.infer<typeof preferencesSchema>;
 export type InterestsInput = z.infer<typeof interestsSchema>;

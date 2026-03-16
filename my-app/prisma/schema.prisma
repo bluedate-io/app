@@ -84,6 +84,7 @@ model Preferences {
   ageRangeMax         Int?
   relationshipIntent  String?  // set only when user selects Date or BFF on step 3; "date" | "friendship" | goal
   relationshipGoals   String[] @default([]) // all selected goals (1–2) from step 5
+  heightCm            Int?     // user height in centimeters, collected during onboarding
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

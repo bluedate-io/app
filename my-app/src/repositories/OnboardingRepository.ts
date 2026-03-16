@@ -19,6 +19,7 @@ import type {
   GenderPreferenceInput,
   AgeRangeInput,
   RelationshipGoalsInput,
+  HeightInput,
   InterestsInput,
   PersonalityInput,
   AvailabilityInput,
@@ -45,6 +46,7 @@ export interface IOnboardingRepository {
   upsertGenderPreference(userId: string, data: GenderPreferenceInput): Promise<Preferences>;
   upsertAgeRange(userId: string, data: AgeRangeInput): Promise<Preferences>;
   upsertRelationshipGoals(userId: string, data: RelationshipGoalsInput): Promise<Preferences>;
+  upsertHeight(userId: string, data: HeightInput): Promise<Preferences>;
   upsertPreferences(userId: string, data: PreferencesInput): Promise<Preferences>;
   upsertInterests(userId: string, data: InterestsInput): Promise<Interests>;
   upsertPersonality(userId: string, data: PersonalityInput): Promise<Personality>;
@@ -68,6 +70,7 @@ export interface IOnboardingRepository {
     relationshipGoals?: string[];
     ageRangeMin?: number;
     ageRangeMax?: number;
+    heightCm?: number;
     hasGenderPreference: boolean;
   }>;
   getGenderIdentity(userId: string): Promise<string | null>;
@@ -231,6 +234,31 @@ export class OnboardingRepository implements IOnboardingRepository {
     };
   }
 
+  async upsertHeight(userId: string, data: HeightInput): Promise<Preferences> {
+    const r = await this.db.preferences.upsert({
+      where: { userId },
+      create: {
+        userId,
+        genderPreference: DEFAULT_GENDER_PREFERENCE,
+        ageRangeMin: 18,
+        ageRangeMax: 55,
+        relationshipGoals: [],
+        heightCm: data.heightCm,
+      },
+      update: { heightCm: data.heightCm },
+    });
+    return {
+      id: r.id,
+      userId: r.userId,
+      genderIdentity: n(r.genderIdentity),
+      genderPreference: r.genderPreference,
+      ageRangeMin: n(r.ageRangeMin),
+      ageRangeMax: n(r.ageRangeMax),
+      relationshipIntent: n(r.relationshipIntent),
+      relationshipGoals: r.relationshipGoals ?? [],
+    };
+  }
+
   async upsertPreferences(userId: string, data: PreferencesInput): Promise<Preferences> {
     const updatePayload: Record<string, unknown> = {
       genderIdentity: data.genderIdentity,
@@ -342,7 +370,19 @@ export class OnboardingRepository implements IOnboardingRepository {
     const [profile, preferences, inviteCodeUsed, interests, personality, availability, photoCount] =
       await this.db.$transaction([
         this.db.profile.findUnique({ where: { userId }, select: { id: true, fullName: true } }),
-        this.db.preferences.findUnique({ where: { userId }, select: { id: true, relationshipIntent: true, genderIdentity: true, relationshipGoals: true, genderPreference: true, ageRangeMin: true, ageRangeMax: true } }),
+        this.db.preferences.findUnique({
+          where: { userId },
+          select: {
+            id: true,
+            relationshipIntent: true,
+            genderIdentity: true,
+            relationshipGoals: true,
+            genderPreference: true,
+            ageRangeMin: true,
+            ageRangeMax: true,
+            heightCm: true,
+          },
+        }),
         this.db.inviteCode.count({ where: { usedById: userId } }),
         this.db.interests.findUnique({ where: { userId }, select: { id: true } }),
         this.db.personality.findUnique({ where: { userId }, select: { id: true } }),
@@ -369,6 +409,7 @@ export class OnboardingRepository implements IOnboardingRepository {
       genderIdentity: preferences?.genderIdentity ?? undefined,
       ageRangeMin: preferences?.ageRangeMin ?? undefined,
       ageRangeMax: preferences?.ageRangeMax ?? undefined,
+      heightCm: preferences?.heightCm ?? undefined,
       hasGenderPreference: (preferences?.genderPreference?.length ?? 0) > 0,
     };
   }

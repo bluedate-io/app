@@ -7,7 +7,14 @@ import type { OnboardingStatus } from "./page";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TOTAL_SUB_STEPS = 10;
+const TOTAL_SUB_STEPS = 11;
+
+const HEIGHT_CM_MIN = 91;
+const HEIGHT_CM_MAX = 220;
+const HEIGHT_OPTIONS = Array.from(
+  { length: HEIGHT_CM_MAX - HEIGHT_CM_MIN + 1 },
+  (_, i) => HEIGHT_CM_MIN + i,
+);
 const ACCENT = "#8F3A8F";
 const BG = "#FBF8F6";
 const FAB_BG = "#E0E0E0";
@@ -124,26 +131,30 @@ function getInitialSubStep(status: OnboardingStatus): number {
   if (!status.hasPreferences) return 1;
   if (!status.hasUsedInviteCode) return 2;
   const hasAgeRange = status.ageRangeMin != null && status.ageRangeMax != null;
+  const hasHeight = status.heightCm != null;
+  const goalsComplete = (status.relationshipGoals?.length ?? 0) >= 2;
   if (!status.hasPreferencesComplete) {
-    // relationshipIntent "date" = chose Date at step 3; need who-to-meet (4) then age range (5) then goals (6)
+    // relationshipIntent "date" = who-to-meet (4) → age (5) → goals (6) → height (7) → interests (8)
     if (status.relationshipIntent === "date") {
       if (!status.hasGenderPreference) return 4;
       if (!hasAgeRange) return 5;
-      return 6; // show relationship goals
+      if (!goalsComplete) return 6; // relationship goals
+      if (!hasHeight) return 7; // height
+      return 8; // then interests
     }
-    // relationshipIntent "friendship" = BFF; need age range (5) then interests (7)
+    // relationshipIntent "friendship" = BFF; age range (5) → height (7) → interests (8)
     if (status.relationshipIntent === "friendship") {
       if (!hasAgeRange) return 5;
-      return 7; // skip goals, go to interests
+      if (!hasHeight) return 7; // skip goals (6), go to height
+      return 8;
     }
-    // relationshipIntent "undecided" = saved who-to-meet but not yet selected a goal → show goals (6)
+    // relationshipIntent "undecided" = need goals (6)
     if (status.relationshipIntent === "undecided") return 6;
-    return 3; // Date/BFF not saved yet; stay on dating mode step
+    return 3; // Date/BFF not saved yet
   }
-  if (!status.hasInterests) return 7;
-  if (!status.hasPersonality || !status.hasAvailability) return 8;
-  // Always show photos step (9) until user explicitly clicks Done; then page redirects
-  return 9;
+  if (!status.hasInterests) return 8;
+  if (!status.hasPersonality || !status.hasAvailability) return 9;
+  return 10; // photos step
 }
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -653,6 +664,11 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const [ageRangeMin, setAgeRangeMin] = useState<string>("");
   const [ageRangeMax, setAgeRangeMax] = useState<string>("");
   const [ageRangeError, setAgeRangeError] = useState<string | null>(null);
+  const [heightCm, setHeightCm] = useState<number>(() => {
+    const h = status.heightCm;
+    return h != null && h >= HEIGHT_CM_MIN && h <= HEIGHT_CM_MAX ? h : 168;
+  });
+  const [heightError, setHeightError] = useState<string | null>(null);
   const [relationshipGoal, setRelationshipGoal] = useState<string[]>(() => status.relationshipGoals ?? []);
   const [interests, setInterests] = useState<string[]>([]);
   const [interestSearch, setInterestSearch] = useState("");
@@ -711,7 +727,25 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           return;
         }
         await apiPost("age-range", { ageRangeMin: minNum, ageRangeMax: maxNum });
-        setSubStep(datingMode === "date" ? 6 : 7);
+        setSubStep(datingMode === "date" ? 6 : 7); // Date → goals (6), BFF → height (7)
+        setLoading(false);
+        return;
+      }
+      if (subStep === 6 && datingMode === "date") {
+        await apiPost("relationship-goals", { relationshipGoals: relationshipGoal });
+        setSubStep(7);
+        setLoading(false);
+        return;
+      }
+      if (subStep === 7) {
+        setHeightError(null);
+        if (heightCm < HEIGHT_CM_MIN || heightCm > HEIGHT_CM_MAX) {
+          setHeightError(`Please choose a height between ${HEIGHT_CM_MIN} and ${HEIGHT_CM_MAX} cm.`);
+          setLoading(false);
+          return;
+        }
+        await apiPost("height", { heightCm });
+        setSubStep(8);
         setLoading(false);
         return;
       }
@@ -770,18 +804,14 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
         });
       }
 
-      if (subStep === 6 && datingMode === "date") {
-        await apiPost("relationship-goals", { relationshipGoals: relationshipGoal });
-      }
-
-      if (subStep === 7) {
+      if (subStep === 8) {
         await apiPost("interests", {
           hobbies: interests.length > 0 ? interests : ["Other"],
           favouriteActivities: [], musicTaste: [], foodTaste: [],
         });
       }
 
-      if (subStep === 8) {
+      if (subStep === 9) {
         await apiPost("personality", {
           socialLevel: drinkingHabit || "Not specified",
           conversationStyle: smokingHabit || "Not specified",
@@ -795,6 +825,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       const msg = (e as Error).message;
       if (subStep === 2) setInviteCodeError(msg);
       else if (subStep === 5) setAgeRangeError(msg);
+      else if (subStep === 7) setHeightError(msg);
       else setStepError(msg);
     } finally {
       setLoading(false);
@@ -805,10 +836,10 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
     setLoading(true);
     setStepError(null);
     try {
-      if (subStep === 7) {
+      if (subStep === 8) {
         await apiPost("interests", { hobbies: ["Other"], favouriteActivities: [], musicTaste: [], foodTaste: [] });
       }
-      if (subStep === 8) {
+      if (subStep === 9) {
         await apiPost("personality", { socialLevel: "Not specified", conversationStyle: "Not specified" });
         await apiPost("availability", { days: ["fri", "sat", "sun"], times: ["evening"] });
       }
@@ -840,16 +871,17 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
         return !Number.isNaN(minNum) && !Number.isNaN(maxNum) && minNum >= 18 && minNum <= 100 && maxNum >= 18 && maxNum <= 100 && minNum <= maxNum;
       }
       case 6: return datingMode === "bff" || relationshipGoal.length >= 2;
-      case 7: return interests.length > 0;
-      case 8: return true;
+      case 7: return heightCm >= HEIGHT_CM_MIN && heightCm <= HEIGHT_CM_MAX;
+      case 8: return interests.length > 0;
+      case 9: return true;
       default: return true;
     }
   })();
 
-  const isSkippable = subStep === 7 || subStep === 8;
+  const isSkippable = subStep === 8 || subStep === 9;
   const progressPct = Math.round(((subStep + 1) / TOTAL_SUB_STEPS) * 100);
 
-  if (subStep === 9) {
+  if (subStep === 10) {
     return <PhotosStep token={token} status={status} onDone={() => router.refresh()} />;
   }
 
@@ -1216,7 +1248,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
             </div>
             <Heading>And what are you hoping to find?</Heading>
             <p className="text-sm text-gray-500 mb-6">
-              It's your dating journey, so choose 1 or 2 options that feel right for you.
+              It&apos;s your dating journey, so choose 1 or 2 options that feel right for you.
             </p>
 
             <div>
@@ -1245,8 +1277,62 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           </div>
         )}
 
-        {/* ── STEP 7: Interests ───────────────────────────────────────────── */}
+        {/* ── STEP 7: Height ───────────────────────────────────────────────── */}
         {subStep === 7 && (
+          <div className="flex flex-col flex-1">
+            <div className="flex justify-start mb-6">
+              <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+            </div>
+            <Heading>Now, let&apos;s talk about you</Heading>
+            <p className="text-sm text-gray-500 mb-6">
+              Let&apos;s get the small talk out of the way. We&apos;ll get into the deep and meaningful later.
+            </p>
+
+            <p className="text-base font-semibold text-gray-900 mb-3">Your height</p>
+            <div
+              className="w-full overflow-hidden rounded-xl py-2 mb-6"
+              style={{ maxHeight: 360 }}
+            >
+              <div
+                className="overflow-y-auto overscroll-contain w-full flex flex-col py-2"
+                style={{ height: 340 }}
+              >
+                {HEIGHT_OPTIONS.map((cm) => {
+                  const selected = heightCm === cm;
+                  return (
+                    <button
+                      key={cm}
+                      type="button"
+                      onClick={() => setHeightCm(cm)}
+                      className={`w-full py-2.5 text-center text-base font-medium transition-colors rounded-lg border-2 ${selected ? "border-gray-900 text-gray-900 bg-transparent" : "border-transparent text-gray-900 hover:bg-gray-100"}`}
+                    >
+                      {cm} cm
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {heightError && <InlineError message={heightError} />}
+
+            <div className="mt-auto pt-8 flex items-end justify-between">
+              <button
+                type="button"
+                onClick={() => { setSubStep(8); setHeightError(null); }}
+                className="text-sm font-medium hover:underline disabled:opacity-50"
+                style={{ color: ACCENT }}
+              >
+                Skip
+              </button>
+              <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 8: Interests ───────────────────────────────────────────── */}
+        {subStep === 8 && (
           <div className="flex flex-col flex-1">
             <div className="flex justify-start mb-6">
               <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1311,8 +1397,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           </div>
         )}
 
-        {/* ── STEP 8: Habits ──────────────────────────────────────────────── */}
-        {subStep === 8 && (
+        {/* ── STEP 9: Habits ──────────────────────────────────────────────── */}
+        {subStep === 9 && (
           <div className="flex flex-col flex-1">
             <div className="flex justify-start mb-6">
               <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

@@ -13,6 +13,7 @@ import type {
   GenderPreferenceInput,
   AgeRangeInput,
   RelationshipGoalsInput,
+  HeightInput,
   InterestsInput,
   PersonalityInput,
   AvailabilityInput,
@@ -130,6 +131,19 @@ export class OnboardingService {
     }
     const prefs = await this.onboardingRepo.upsertRelationshipGoals(userId, data);
     log.info("Relationship goals saved", { userId });
+    return toPreferencesDTO(prefs);
+  }
+
+  // ─── Height (cm) ───────────────────────────────────────────────────────────────
+
+  async saveHeight(userId: string, data: HeightInput): Promise<PreferencesResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Height save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
+    const prefs = await this.onboardingRepo.upsertHeight(userId, data);
+    log.info("Height saved", { userId });
     return toPreferencesDTO(prefs);
   }
 
@@ -275,6 +289,12 @@ export class OnboardingService {
       (status.ageRangeMin == null || status.ageRangeMax == null)
     ) {
       missing.push("age range");
+    }
+    if (
+      (status.relationshipIntent === "date" || status.relationshipIntent === "friendship") &&
+      status.heightCm == null
+    ) {
+      missing.push("height");
     }
     if (!status.hasInterests) missing.push("interests");
     if (!status.hasPersonality) missing.push("personality");
