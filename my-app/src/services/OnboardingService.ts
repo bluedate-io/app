@@ -18,6 +18,7 @@ import type {
   PersonalityInput,
   AvailabilityInput,
   AiSignalsInput,
+  FamilyPlansInput,
 } from "@/validations/onboarding.validation";
 import type {
   ProfileResponseDTO,
@@ -183,6 +184,19 @@ export class OnboardingService {
     }
     const personality = await this.onboardingRepo.upsertPersonality(userId, data);
     log.info("Personality saved", { userId });
+    return toPersonalityDTO(personality);
+  }
+
+  // ─── Family plans / kids ──────────────────────────────────────────────────────
+
+  async saveFamilyPlans(userId: string, data: FamilyPlansInput): Promise<PersonalityResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Family plans save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
+    const personality = await this.onboardingRepo.upsertFamilyPlans(userId, data);
+    log.info("Family plans saved", { userId });
     return toPersonalityDTO(personality);
   }
 

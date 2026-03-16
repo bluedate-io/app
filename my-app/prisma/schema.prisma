@@ -114,6 +114,8 @@ model Personality {
   socialLevel       String?
   conversationStyle String?
   funFact           String?
+  kidsStatus        String?
+  kidsPreference    String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

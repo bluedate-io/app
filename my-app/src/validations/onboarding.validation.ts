@@ -123,6 +123,18 @@ export const personalitySchema = z.object({
   funFact: z.string().max(200).trim().optional(),
 });
 
+// ─── Step: Family plans / kids ──────────────────────────────────────────────────
+
+export const familyPlansSchema = z.object({
+  kidsStatus: z.enum(["Have kids", "Don't have kids"]),
+  kidsPreference: z.enum([
+    "Don't want kids",
+    "Open to kids",
+    "Want kids",
+    "Not sure",
+  ]),
+});
+
 // ─── Step 5: Availability ─────────────────────────────────────────────────────
 
 export const availabilitySchema = z.object({
@@ -155,3 +167,4 @@ export type InterestsInput = z.infer<typeof interestsSchema>;
 export type PersonalityInput = z.infer<typeof personalitySchema>;
 export type AvailabilityInput = z.infer<typeof availabilitySchema>;
 export type AiSignalsInput = z.infer<typeof aiSignalsSchema>;
+export type FamilyPlansInput = z.infer<typeof familyPlansSchema>;
