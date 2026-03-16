@@ -225,8 +225,9 @@ const lifeExperienceValues = [
 ] as const;
 
 export const importantLifeSchema = z.object({
-  religion: z.array(z.enum(religionValues)).max(5).optional().default([]),
-  politics: z.array(z.enum(politicsValues)).max(3).optional().default([]),
+  // Allow users to pick any number of items; the client can enforce soft limits.
+  religion: z.array(z.enum(religionValues)).optional().default([]),
+  politics: z.array(z.enum(politicsValues)).optional().default([]),
 });
 
 // ─── Step: Life experiences (BFF flow only) ─────────────────────────────────────
