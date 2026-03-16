@@ -125,7 +125,7 @@ export class InviteCodeService {
 
     if (!canUseCode(record.creatorGender, userGender)) {
       throw new BadRequestError(
-        "This code isn't valid for your profile. Men need a code from a woman; women need a code from a man.",
+        "This code doesn’t match your profile. Men need a code from a woman, and women need a code from a man.",
       );
     }
 
