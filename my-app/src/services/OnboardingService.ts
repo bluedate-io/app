@@ -20,6 +20,7 @@ import type {
   AiSignalsInput,
   FamilyPlansInput,
   ImportantLifeInput,
+  LifeExperiencesInput,
 } from "@/validations/onboarding.validation";
 import type {
   ProfileResponseDTO,
@@ -218,6 +219,22 @@ export class OnboardingService {
     return toPersonalityDTO(personality);
   }
 
+  // ─── Life experiences (BFF flow only) ─────────────────────────────────────────
+
+  async saveLifeExperiences(
+    userId: string,
+    data: LifeExperiencesInput,
+  ): Promise<PersonalityResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Life experiences save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
+    const personality = await this.onboardingRepo.upsertLifeExperiences(userId, data);
+    log.info("Life experiences saved", { userId });
+    return toPersonalityDTO(personality);
+  }
+
   // ─── Availability ─────────────────────────────────────────────────────────────
 
   async saveAvailability(userId: string, data: AvailabilityInput): Promise<AvailabilityResponseDTO> {
@@ -334,6 +351,9 @@ export class OnboardingService {
     }
     if (status.relationshipIntent === "date" && !status.hasAvailability) {
       missing.push("availability");
+    }
+    if (status.relationshipIntent === "friendship" && !status.hasLifeExperiences) {
+      missing.push("life experiences");
     }
     if (status.photoCount < 2) missing.push("at least 2 photos");
 

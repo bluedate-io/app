@@ -25,6 +25,7 @@ import type {
   AvailabilityInput,
   AiSignalsInput,
   FamilyPlansInput,
+  LifeExperiencesInput,
 } from "@/validations/onboarding.validation";
 
 // null → undefined helpers
@@ -55,6 +56,7 @@ export interface IOnboardingRepository {
   upsertImportantLife(userId: string, religion: string[], politics: string[]): Promise<Personality>;
   upsertAvailability(userId: string, data: AvailabilityInput): Promise<Availability>;
   upsertAiSignals(userId: string, data: AiSignalsInput): Promise<AiSignals>;
+  upsertLifeExperiences(userId: string, data: LifeExperiencesInput): Promise<Personality>;
   addPhoto(userId: string, url: string, order: number): Promise<Photo>;
   getPhotos(userId: string): Promise<Photo[]>;
   deletePhoto(photoId: string, userId: string): Promise<void>;
@@ -78,6 +80,7 @@ export interface IOnboardingRepository {
     hasGenderPreference: boolean;
     hasFamilyPlans: boolean;
     hasImportantLife: boolean;
+     hasLifeExperiences: boolean;
   }>;
   getGenderIdentity(userId: string): Promise<string | null>;
 }
@@ -367,6 +370,43 @@ export class OnboardingRepository implements IOnboardingRepository {
     };
   }
 
+  async upsertLifeExperiences(
+    userId: string,
+    data: LifeExperiencesInput,
+  ): Promise<Personality> {
+    const r = await this.db.personality.upsert({
+      where: { userId },
+      create: {
+        userId,
+        socialLevel: "Not specified",
+        conversationStyle: "Not specified",
+        funFact: null,
+        kidsStatus: null,
+        kidsPreference: null,
+        religion: [],
+        politics: [],
+        lifeExperiences: data.experiences,
+        lifeExperiencesCompleted: true,
+      },
+      update: {
+        lifeExperiences: data.experiences,
+        lifeExperiencesCompleted: true,
+      },
+    });
+    return {
+      id: r.id,
+      userId: r.userId,
+      socialLevel: n(r.socialLevel),
+      conversationStyle: n(r.conversationStyle),
+      funFact: n(r.funFact),
+      kidsStatus: n(r.kidsStatus),
+      kidsPreference: n(r.kidsPreference),
+      religion: r.religion ?? [],
+      politics: r.politics ?? [],
+      lifeExperiences: r.lifeExperiences ?? [],
+    };
+  }
+
   async upsertImportantLife(
     userId: string,
     religion: string[],
@@ -473,6 +513,7 @@ export class OnboardingRepository implements IOnboardingRepository {
             id: true,
             familyPlansCompleted: true,
             importantLifeCompleted: true,
+            lifeExperiencesCompleted: true,
           },
         }),
         this.db.availability.findUnique({ where: { userId }, select: { id: true } }),
@@ -487,6 +528,7 @@ export class OnboardingRepository implements IOnboardingRepository {
     const hasDatingMode = !!(preferences && preferences.datingModeCompleted);
     const hasFamilyPlans = !!(personality && personality.familyPlansCompleted);
     const hasImportantLife = !!(personality && personality.importantLifeCompleted);
+    const hasLifeExperiences = !!(personality && personality.lifeExperiencesCompleted);
     return {
       hasProfile: !!profile,
       hasPreferences: !!preferences,
@@ -508,6 +550,7 @@ export class OnboardingRepository implements IOnboardingRepository {
       hasGenderPreference: (preferences?.genderPreference?.length ?? 0) > 0,
       hasFamilyPlans,
       hasImportantLife,
+      hasLifeExperiences,
     };
   }
 

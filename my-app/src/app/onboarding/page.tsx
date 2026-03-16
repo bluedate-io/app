@@ -57,6 +57,8 @@ export interface OnboardingStatus {
   hasFamilyPlans: boolean;
   /** True when religion/politics step has been submitted (including skip) */
   hasImportantLife: boolean;
+  /** True when BFF “Your life” experiences have been saved at least once */
+  hasLifeExperiences: boolean;
 }
 
 export default async function OnboardingPage() {

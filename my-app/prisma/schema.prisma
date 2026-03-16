@@ -112,17 +112,19 @@ model Interests {
 // ─── Personality ──────────────────────────────────────────────────────────────
 
 model Personality {
-  id                String  @id @default(cuid())
-  userId            String  @unique
-  socialLevel       String?
-  conversationStyle String?
-  funFact           String?
-  kidsStatus        String?
-  kidsPreference    String?
-  religion          String[] @default([])
-  politics          String[] @default([])
-  importantLifeCompleted Boolean @default(false)
-  familyPlansCompleted   Boolean @default(false)
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  socialLevel             String?
+  conversationStyle       String?
+  funFact                 String?
+  kidsStatus              String?
+  kidsPreference          String?
+  religion                String[] @default([])
+  politics                String[] @default([])
+  importantLifeCompleted  Boolean  @default(false)
+  familyPlansCompleted    Boolean  @default(false)
+  lifeExperiences         String[] @default([])
+  lifeExperiencesCompleted Boolean @default(false)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

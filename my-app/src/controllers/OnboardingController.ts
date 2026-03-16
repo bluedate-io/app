@@ -18,6 +18,7 @@ import {
   aiSignalsSchema,
   familyPlansSchema,
   importantLifeSchema,
+  lifeExperiencesSchema,
 } from "@/validations/onboarding.validation";
 import { successResponse, createdResponse, noContentResponse, handleError } from "@/utils/response";
 import type { RequestContext } from "@/types";
@@ -176,6 +177,18 @@ export class OnboardingController {
       const input = importantLifeSchema.parse(body);
       const result = await this.onboardingService.saveImportantLife(ctx.userId, input);
       return createdResponse(result, "Important life preferences saved");
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  // POST /api/onboarding/life-experiences
+  async saveLifeExperiences(req: NextRequest, ctx: RequestContext) {
+    try {
+      const body = await req.json();
+      const input = lifeExperiencesSchema.parse(body);
+      const result = await this.onboardingService.saveLifeExperiences(ctx.userId, input);
+      return createdResponse(result, "Life experiences saved");
     } catch (error) {
       return handleError(error);
     }
