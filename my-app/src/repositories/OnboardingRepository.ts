@@ -26,6 +26,7 @@ import type {
   AiSignalsInput,
   FamilyPlansInput,
   LifeExperiencesInput,
+  BffInterestsInput,
 } from "@/validations/onboarding.validation";
 
 // null → undefined helpers
@@ -51,6 +52,7 @@ export interface IOnboardingRepository {
   upsertHeight(userId: string, data: HeightInput): Promise<Preferences>;
   upsertPreferences(userId: string, data: PreferencesInput): Promise<Preferences>;
   upsertInterests(userId: string, data: InterestsInput): Promise<Interests>;
+  upsertBffInterests(userId: string, data: BffInterestsInput): Promise<Interests>;
   upsertPersonality(userId: string, data: PersonalityInput): Promise<Personality>;
   upsertFamilyPlans(userId: string, data: FamilyPlansInput): Promise<Personality>;
   upsertImportantLife(userId: string, religion: string[], politics: string[]): Promise<Personality>;
@@ -60,6 +62,7 @@ export interface IOnboardingRepository {
   addPhoto(userId: string, url: string, order: number): Promise<Photo>;
   getPhotos(userId: string): Promise<Photo[]>;
   deletePhoto(photoId: string, userId: string): Promise<void>;
+  markPhotosStepCompleted(userId: string): Promise<void>;
   getOnboardingStatus(userId: string): Promise<{
     hasProfile: boolean;
     hasPreferences: boolean;
@@ -80,7 +83,9 @@ export interface IOnboardingRepository {
     hasGenderPreference: boolean;
     hasFamilyPlans: boolean;
     hasImportantLife: boolean;
-     hasLifeExperiences: boolean;
+    hasLifeExperiences: boolean;
+    hasBffInterests: boolean;
+    hasPhotosStepCompleted: boolean;
   }>;
   getGenderIdentity(userId: string): Promise<string | null>;
 }
@@ -318,6 +323,35 @@ export class OnboardingRepository implements IOnboardingRepository {
       favouriteActivities: r.favouriteActivities,
       musicTaste: r.musicTaste,
       foodTaste: r.foodTaste,
+      bffInterests: r.bffInterests ?? [],
+    };
+  }
+
+  async upsertBffInterests(userId: string, data: BffInterestsInput): Promise<Interests> {
+    const r = await this.db.interests.upsert({
+      where: { userId },
+      create: {
+        userId,
+        hobbies: [],
+        favouriteActivities: [],
+        musicTaste: [],
+        foodTaste: [],
+        bffInterests: data.interests,
+        bffInterestsCompleted: true,
+      },
+      update: {
+        bffInterests: data.interests,
+        bffInterestsCompleted: true,
+      },
+    });
+    return {
+      id: r.id,
+      userId: r.userId,
+      hobbies: r.hobbies,
+      favouriteActivities: r.favouriteActivities,
+      musicTaste: r.musicTaste,
+      foodTaste: r.foodTaste,
+      bffInterests: r.bffInterests ?? [],
     };
   }
 
@@ -486,6 +520,21 @@ export class OnboardingRepository implements IOnboardingRepository {
     await this.db.photo.deleteMany({ where: { id: photoId, userId } });
   }
 
+  async markPhotosStepCompleted(userId: string): Promise<void> {
+    await this.db.preferences.upsert({
+      where: { userId },
+      create: {
+        userId,
+        genderPreference: DEFAULT_GENDER_PREFERENCE,
+        ageRangeMin: 18,
+        ageRangeMax: 55,
+        relationshipGoals: [],
+        photosStepCompleted: true,
+      },
+      update: { photosStepCompleted: true },
+    });
+  }
+
   async getOnboardingStatus(userId: string) {
     const [profile, preferences, inviteCodeUsed, interests, personality, availability, photoCount] =
       await this.db.$transaction([
@@ -502,11 +551,15 @@ export class OnboardingRepository implements IOnboardingRepository {
             ageRangeMax: true,
             heightCm: true,
             heightCompleted: true,
-          datingModeCompleted: true,
+            datingModeCompleted: true,
+            photosStepCompleted: true,
           },
         }),
         this.db.inviteCode.count({ where: { usedById: userId } }),
-        this.db.interests.findUnique({ where: { userId }, select: { id: true } }),
+        this.db.interests.findUnique({
+          where: { userId },
+          select: { id: true, bffInterestsCompleted: true },
+        }),
         this.db.personality.findUnique({
           where: { userId },
           select: {
@@ -529,6 +582,8 @@ export class OnboardingRepository implements IOnboardingRepository {
     const hasFamilyPlans = !!(personality && personality.familyPlansCompleted);
     const hasImportantLife = !!(personality && personality.importantLifeCompleted);
     const hasLifeExperiences = !!(personality && personality.lifeExperiencesCompleted);
+    const hasBffInterests = !!(interests && interests.bffInterestsCompleted);
+    const hasPhotosStepCompleted = !!(preferences && preferences.photosStepCompleted);
     return {
       hasProfile: !!profile,
       hasPreferences: !!preferences,
@@ -551,6 +606,8 @@ export class OnboardingRepository implements IOnboardingRepository {
       hasFamilyPlans,
       hasImportantLife,
       hasLifeExperiences,
+      hasBffInterests,
+      hasPhotosStepCompleted,
     };
   }
 

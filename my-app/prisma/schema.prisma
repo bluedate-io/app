@@ -88,6 +88,7 @@ model Preferences {
   heightCompleted     Boolean  @default(false)
   /// True once the user has explicitly chosen Date or BFF (step 3)
   datingModeCompleted Boolean  @default(false)
+  photosStepCompleted Boolean  @default(false)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -103,6 +104,8 @@ model Interests {
   favouriteActivities String[]
   musicTaste          String[]
   foodTaste           String[]
+  bffInterests        String[] @default([])
+  bffInterestsCompleted Boolean @default(false)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

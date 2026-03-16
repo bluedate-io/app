@@ -21,6 +21,7 @@ import type {
   FamilyPlansInput,
   ImportantLifeInput,
   LifeExperiencesInput,
+  BffInterestsInput,
 } from "@/validations/onboarding.validation";
 import type {
   ProfileResponseDTO,
@@ -176,6 +177,17 @@ export class OnboardingService {
     return toInterestsDTO(interests);
   }
 
+  async saveBffInterests(userId: string, data: BffInterestsInput): Promise<InterestsResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("BFF interests save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
+    const interests = await this.onboardingRepo.upsertBffInterests(userId, data);
+    log.info("BFF interests saved", { userId });
+    return toInterestsDTO(interests);
+  }
+
   // ─── Personality ─────────────────────────────────────────────────────────────
 
   async savePersonality(userId: string, data: PersonalityInput): Promise<PersonalityResponseDTO> {
@@ -310,6 +322,16 @@ export class OnboardingService {
     return photos.map(toPhotoDTO);
   }
 
+  async markPhotosStepCompleted(userId: string): Promise<void> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Photos step complete rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
+    await this.onboardingRepo.markPhotosStepCompleted(userId);
+    log.info("Photos step marked completed", { userId });
+  }
+
   // ─── Invite code ─────────────────────────────────────────────────────────────
 
   async validateInviteCode(userId: string, code: string): Promise<void> {
@@ -354,6 +376,9 @@ export class OnboardingService {
     }
     if (status.relationshipIntent === "friendship" && !status.hasLifeExperiences) {
       missing.push("life experiences");
+    }
+    if (status.relationshipIntent === "friendship" && !status.hasBffInterests) {
+      missing.push("BFF interests");
     }
     if (status.photoCount < 2) missing.push("at least 2 photos");
 
