@@ -6,6 +6,7 @@ import type {
   Availability,
   AiSignals,
   Photo,
+  OpeningMove,
 } from "@/domains/User";
 
 // ─── Response DTOs ────────────────────────────────────────────────────────────
@@ -66,6 +67,13 @@ export interface AiSignalsResponseDTO {
   selfDescription?: string;
   idealPartner?: string;
   idealDate?: string;
+}
+
+export interface OpeningMoveResponseDTO {
+  id: string;
+  promptKey?: string;
+  promptText: string;
+  isCustom: boolean;
 }
 
 export interface PhotoResponseDTO {
@@ -138,4 +146,11 @@ export const toPhotoDTO = (p: Photo): PhotoResponseDTO => ({
   id: p.id,
   url: p.url,
   order: p.order,
+});
+
+export const toOpeningMoveDTO = (o: OpeningMove): OpeningMoveResponseDTO => ({
+  id: o.id,
+  promptKey: o.promptKey,
+  promptText: o.promptText,
+  isCustom: o.isCustom,
 });

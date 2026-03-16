@@ -23,6 +23,7 @@ import type {
   LifeExperiencesInput,
   BffInterestsInput,
   RelationshipStatusInput,
+  OpeningMoveInput,
 } from "@/validations/onboarding.validation";
 import type {
   ProfileResponseDTO,
@@ -33,6 +34,7 @@ import type {
   AvailabilityResponseDTO,
   AiSignalsResponseDTO,
   PhotoResponseDTO,
+  OpeningMoveResponseDTO,
 } from "@/dto/OnboardingDTO";
 import {
   toProfileDTO,
@@ -43,6 +45,7 @@ import {
   toAvailabilityDTO,
   toAiSignalsDTO,
   toPhotoDTO,
+  toOpeningMoveDTO,
 } from "@/dto/OnboardingDTO";
 import { NotFoundError, BadRequestError, UnauthorizedError } from "@/utils/errors";
 import { logger } from "@/utils/logger";
@@ -283,6 +286,31 @@ export class OnboardingService {
     const signals = await this.onboardingRepo.upsertAiSignals(userId, data);
     log.info("AI signals saved", { userId });
     return toAiSignalsDTO(signals);
+  }
+
+  // ─── Opening move (Date mode only) ────────────────────────────────────────────
+
+  async saveOpeningMove(userId: string, data: OpeningMoveInput): Promise<OpeningMoveResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Opening move save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
+
+    const status = await this.onboardingRepo.getOnboardingStatus(userId);
+    if (status.relationshipIntent !== "date") {
+      log.warn("Opening move save rejected: relationship intent is not 'date'", {
+        userId,
+        relationshipIntent: status.relationshipIntent,
+      });
+      throw new BadRequestError(
+        "Opening moves are only available for people who selected Date as their intent.",
+      );
+    }
+
+    const openingMove = await this.onboardingRepo.upsertOpeningMove(userId, data);
+    log.info("Opening move saved", { userId, promptKey: openingMove.promptKey });
+    return toOpeningMoveDTO(openingMove);
   }
 
   // ─── Photos (Supabase Storage) ───────────────────────────────────────────────

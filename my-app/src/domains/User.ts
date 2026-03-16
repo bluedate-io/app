@@ -90,6 +90,15 @@ export interface AiSignals {
   idealDate?: string;
 }
 
+export interface OpeningMove {
+  id: string;
+  userId: string;
+  promptKey?: string;
+  promptText: string;
+  isCustom: boolean;
+  completed: boolean;
+}
+
 export interface Photo {
   id: string;
   userId: string;

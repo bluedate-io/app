@@ -21,6 +21,7 @@ import {
   lifeExperiencesSchema,
   bffInterestsSchema,
   relationshipStatusSchema,
+  openingMoveSchema,
 } from "@/validations/onboarding.validation";
 import { successResponse, createdResponse, noContentResponse, handleError } from "@/utils/response";
 import type { RequestContext } from "@/types";
@@ -239,6 +240,18 @@ export class OnboardingController {
       const input = aiSignalsSchema.parse(body);
       const result = await this.onboardingService.saveAiSignals(ctx.userId, input);
       return createdResponse(result, "AI signals saved");
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  // POST /api/onboarding/opening-move
+  async saveOpeningMove(req: NextRequest, ctx: RequestContext) {
+    try {
+      const body = await req.json();
+      const input = openingMoveSchema.parse(body);
+      const result = await this.onboardingService.saveOpeningMove(ctx.userId, input);
+      return createdResponse(result, "Opening move saved");
     } catch (error) {
       return handleError(error);
     }

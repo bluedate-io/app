@@ -7,7 +7,7 @@ import type { OnboardingStatus } from "./page";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TOTAL_SUB_STEPS = 16;
+const TOTAL_SUB_STEPS = 18;
 
 const HEIGHT_CM_MIN = 91;
 const HEIGHT_CM_MAX = 220;
@@ -73,6 +73,16 @@ const RELATIONSHIP_GOALS = [
   "Intimacy, without commitment",
   "Marriage",
   "Ethical non-monogamy",
+];
+
+const OPENING_MOVE_PRESET_PROMPTS: { key: string; label: string }[] = [
+  { key: "custom", label: "Write your own Opening Move" },
+  { key: "houseplants", label: "What’s an acceptable number of houseplants to have?" },
+  { key: "food_you_be", label: "If you were a food, what food would you be and why?" },
+  { key: "cooking_lately", label: "What have you been cooking lately?" },
+  { key: "best_advice", label: "What’s the best piece of advice you’ve ever received?" },
+  { key: "dream_vacation", label: "What’s your dream vacation destination?" },
+  { key: "one_book", label: "What’s one book you think everyone should read?" },
 ];
 
 const DRINKING_OPTIONS = [
@@ -202,6 +212,13 @@ function getInitialSubStep(status: OnboardingStatus): number {
     if (!hasAgeRange) return 5;
     if (!goalsComplete) return 6;
     if (!hasHeight) return 7;
+    if (!status.hasInterests) return 8;
+    if (!status.hasPersonality || !status.hasAvailability) return 9;
+    if (!status.hasFamilyPlans) return 10;
+    if (!status.hasImportantLife) return 11;
+    if (!status.hasPhotosStepCompleted) return 12;
+    if (!status.hasOpeningMove) return 16;
+    return 12;
   }
   // BFF: photos (12) → life experiences (13) → BFF interests (14) → relationship status (15)
   if (status.relationshipIntent === "friendship") {
@@ -217,7 +234,7 @@ function getInitialSubStep(status: OnboardingStatus): number {
   if (!status.hasPersonality || !status.hasAvailability) return 9;
   if (!status.hasFamilyPlans) return 10;
   if (!status.hasImportantLife) return 11;
-  return 12; // photos step
+  return 12; // photos step (Date and BFF)
 }
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -707,28 +724,16 @@ function PhotosStep({
     setCompleting(true);
     setError(null);
     try {
-      if (mode === "bff") {
-        const res = await fetch("/api/onboarding/photos-step-complete", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) {
-          const j = await res.json();
-          throw new Error(j.error?.message ?? "Could not save photos step");
-        }
-        onDone();
-        return;
-      }
-      const res = await fetch("/api/onboarding/complete", {
+      const res = await fetch("/api/onboarding/photos-step-complete", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) {
-        onDone();
-      } else {
+      if (!res.ok) {
         const j = await res.json();
-        throw new Error(j.error?.message ?? "Could not complete onboarding");
+        throw new Error(j.error?.message ?? "Could not save photos step");
       }
+      onDone();
+      setCompleting(false);
     } catch (err) {
       setError((err as Error).message);
       setCompleting(false);
@@ -886,6 +891,13 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const [politics, setPolitics] = useState<string[]>([]);
   const [lifeExperiences, setLifeExperiences] = useState<string[]>([]);
   const [relationshipStatus, setRelationshipStatus] = useState<string>("");
+  const [openingMovePromptKey, setOpeningMovePromptKey] = useState<string | null>(null);
+  const [openingMovePromptText, setOpeningMovePromptText] = useState<string>("");
+  // Persist the last saved custom opening move even if the user switches
+  // to another preset, so they can come back to it later.
+  const [openingMoveCustomSaved, setOpeningMoveCustomSaved] = useState<string>("");
+  const [openingMoveCustomDraft, setOpeningMoveCustomDraft] = useState<string>("");
+  const [openingMoveError, setOpeningMoveError] = useState<string | null>(null);
 
   // Scroll height list so the current selection appears centered initially,
   // to signal that the list can be scrolled.
@@ -1119,6 +1131,14 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       case 10: return kidsStatus !== "" || kidsPlans !== "";
       case 11: return religion.length > 0 || politics.length > 0;
       case 15: return relationshipStatus !== "";
+      case 16: {
+        const len = openingMovePromptText.trim().length;
+        return len >= 10 && len <= 160;
+      }
+      case 17: {
+        const len = openingMoveCustomDraft.trim().length;
+        return len >= 10 && len <= 160;
+      }
       default: return true;
     }
   })();
@@ -1139,7 +1159,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           if (mode === "bff") {
             setSubStep(13);
           } else {
-            router.refresh();
+            // Date mode: move into Opening Move flow (step 16).
+            setSubStep(16);
           }
         }}
       />
@@ -2190,6 +2211,254 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                 disabled={!canProceed || loading}
                 loading={loading}
               />
+            </div>
+          </div>
+        )}
+        {/* ── STEP 16: Opening move — choose preset or custom (Date only) ──────── */}
+        {subStep === 16 && datingMode === "date" && (
+          <div className="flex flex-col flex-1">
+            <div className="flex justify-start mb-6">
+              <svg
+                className="w-12 h-12 text-gray-900"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M8 4h8a2 2 0 012 2v9a2 2 0 01-2 2h-3l-3 3v-3H8a2 2 0 01-2-2V6a2 2 0 012-2z"
+                />
+              </svg>
+            </div>
+            <Heading>What will your Opening Move be?</Heading>
+            <p className="text-sm text-gray-500 mb-4">
+              Choose a first message for all your new matches to reply to. Easy.
+            </p>
+
+            <div className="flex-1 overflow-y-auto pr-1">
+              <div className="space-y-3">
+                {OPENING_MOVE_PRESET_PROMPTS.map((prompt) => {
+                  const isCustom = prompt.key === "custom";
+                  const selected = openingMovePromptKey === prompt.key;
+                  const showCustomText =
+                    isCustom && openingMoveCustomSaved.trim().length > 0;
+                  return (
+                    <div
+                      key={prompt.key}
+                      className="rounded-2xl bg-white border border-gray-200 px-4 py-4 flex items-center justify-between gap-3 cursor-pointer"
+                      onClick={() => {
+                        if (isCustom) {
+                          // Always open editor when tapping the custom card.
+                          // Only ever seed it with the user's previously saved
+                          // custom text (if any), never with a preset option.
+                          setOpeningMoveCustomDraft(openingMoveCustomSaved || "");
+                          setOpeningMoveError(null);
+                          setSubStep(17);
+                        } else {
+                          setOpeningMovePromptKey(prompt.key);
+                          setOpeningMovePromptText(prompt.label);
+                          setOpeningMoveError(null);
+                        }
+                      }}
+                    >
+                      <div className="flex-1">
+                        <p
+                          className="text-base text-gray-900 font-medium"
+                          style={{
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {showCustomText ? openingMoveCustomSaved : prompt.label}
+                        </p>
+                      </div>
+                      {isCustom ? (
+                        <span
+                          className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0"
+                          style={{
+                            borderColor: selected ? ACCENT : "#D1D5DB",
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpeningMoveCustomDraft(openingMoveCustomSaved || "");
+                            setOpeningMoveError(null);
+                            setSubStep(17);
+                          }}
+                        >
+                          {showCustomText ? (
+                            <svg
+                              className="w-3 h-3"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={1.5}
+                              style={{ color: selected ? ACCENT : "#D1D5DB" }}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"
+                              />
+                            </svg>
+                          ) : (
+                            <span
+                              className="text-base leading-none"
+                              style={{ color: selected ? ACCENT : "#D1D5DB" }}
+                            >
+                              +
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0"
+                          style={{ borderColor: selected ? ACCENT : "#D1D5DB" }}
+                        >
+                          {selected && (
+                            <span
+                              className="w-2.5 h-2.5 rounded-full"
+                              style={{ backgroundColor: ACCENT }}
+                            />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {openingMoveError && <InlineError message={openingMoveError} />}
+
+            <div className="mt-6 pt-4 flex items-end justify-between">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    setOpeningMoveError(null);
+                    const res = await fetch("/api/onboarding/complete", {
+                      method: "POST",
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (!res.ok) {
+                      const j = await res.json();
+                      throw new Error(j.error?.message ?? "Could not complete onboarding");
+                    }
+                    router.refresh();
+                  } catch (e) {
+                    setOpeningMoveError((e as Error).message);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="text-sm font-medium hover:underline disabled:opacity-50"
+                style={{ color: ACCENT }}
+                disabled={loading}
+              >
+                Skip
+              </button>
+              <Fab
+                onClick={async () => {
+                  const text = openingMovePromptText.trim();
+                  if (!text) {
+                    setOpeningMoveError("Please choose or write an opening move.");
+                    return;
+                  }
+                  try {
+                    setLoading(true);
+                    setOpeningMoveError(null);
+                    await apiPost("opening-move", {
+                      promptKey: openingMovePromptKey ?? undefined,
+                      promptText: text,
+                    });
+                    const res = await fetch("/api/onboarding/complete", {
+                      method: "POST",
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (!res.ok) {
+                      const j = await res.json();
+                      throw new Error(j.error?.message ?? "Could not complete onboarding");
+                    }
+                    router.refresh();
+                  } catch (e) {
+                    setOpeningMoveError((e as Error).message);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={!canProceed || loading}
+                loading={loading}
+              />
+            </div>
+          </div>
+        )}
+        {/* ── STEP 17: Opening move — write your own (Date only) ───────────────── */}
+        {subStep === 17 && datingMode === "date" && (
+          <div className="flex flex-col flex-1">
+            <p className="text-sm font-semibold text-gray-900 mb-3">
+              Write your own Opening Move
+            </p>
+
+            <div className="flex-1 flex">
+              <textarea
+                value={openingMoveCustomDraft}
+                onChange={(e) => {
+                  const text = e.target.value;
+                  if (text.length <= 160) {
+                    setOpeningMoveCustomDraft(text);
+                    setOpeningMoveError(null);
+                  }
+                }}
+                className="w-full flex-1 rounded-2xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-gray-400 resize-none"
+                placeholder="e.g. What math models or algorithms can best predict the strongest chess opening move from the starting position, and how can probability improve move decisions?"
+              />
+            </div>
+
+            <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+              <span>Between 10 and 160 characters</span>
+              <span>{openingMoveCustomDraft.trim().length}/160</span>
+            </div>
+            {openingMoveError && <InlineError message={openingMoveError} />}
+
+            <div className="mt-6 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  setOpeningMoveCustomDraft(openingMoveCustomSaved || openingMovePromptText);
+                  setOpeningMoveError(null);
+                  setSubStep(16);
+                }}
+                className="text-sm font-medium text-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const text = openingMoveCustomDraft.trim();
+                  if (text.length < 10 || text.length > 160) {
+                    setOpeningMoveError(
+                      "Opening move must be between 10 and 160 characters.",
+                    );
+                    return;
+                  }
+                  setOpeningMoveCustomSaved(text);
+                  setOpeningMovePromptKey("custom");
+                  setOpeningMovePromptText(text);
+                  setOpeningMoveError(null);
+                  setSubStep(16);
+                }}
+                className="px-5 py-2 rounded-full text-sm font-semibold text-white"
+                style={{ backgroundColor: "#111111" }}
+              >
+                Done
+              </button>
             </div>
           </div>
         )}
