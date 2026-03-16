@@ -63,6 +63,8 @@ export interface OnboardingStatus {
   hasBffInterests: boolean;
   /** True when user has explicitly advanced past the photos step */
   hasPhotosStepCompleted: boolean;
+  /** True when BFF-only relationship status step has been saved at least once */
+  hasRelationshipStatus: boolean;
 }
 
 export default async function OnboardingPage() {

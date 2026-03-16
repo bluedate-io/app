@@ -168,6 +168,16 @@ const politicsValues = [
   "Socialist",
 ] as const;
 
+const relationshipStatusValues = [
+  "Single",
+  "In a relationship",
+  "Engaged",
+  "Married",
+  "It's complicated",
+  "Divorced",
+  "Widowed",
+] as const;
+
 const lifeExperienceValues = [
   // Travel
   "New to town",
@@ -230,6 +240,12 @@ export const importantLifeSchema = z.object({
   politics: z.array(z.enum(politicsValues)).optional().default([]),
 });
 
+// ─── Step: Relationship status (BFF flow only, after BFF interests) ─────────────
+
+export const relationshipStatusSchema = z.object({
+  relationshipStatus: z.enum(relationshipStatusValues).optional(),
+});
+
 // ─── Step: Life experiences (BFF flow only) ─────────────────────────────────────
 
 export const lifeExperiencesSchema = z.object({
@@ -272,3 +288,4 @@ export type FamilyPlansInput = z.infer<typeof familyPlansSchema>;
 export type ImportantLifeInput = z.infer<typeof importantLifeSchema>;
 export type LifeExperiencesInput = z.infer<typeof lifeExperiencesSchema>;
 export type BffInterestsInput = z.infer<typeof bffInterestsSchema>;
+export type RelationshipStatusInput = z.infer<typeof relationshipStatusSchema>;

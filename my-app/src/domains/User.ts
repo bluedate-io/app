@@ -72,6 +72,7 @@ export interface Personality {
   religion?: string[];
   politics?: string[];
   lifeExperiences?: string[];
+  relationshipStatus?: string;
 }
 
 export interface Availability {

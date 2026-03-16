@@ -20,6 +20,7 @@ import {
   importantLifeSchema,
   lifeExperiencesSchema,
   bffInterestsSchema,
+  relationshipStatusSchema,
 } from "@/validations/onboarding.validation";
 import { successResponse, createdResponse, noContentResponse, handleError } from "@/utils/response";
 import type { RequestContext } from "@/types";
@@ -202,6 +203,18 @@ export class OnboardingController {
       const input = lifeExperiencesSchema.parse(body);
       const result = await this.onboardingService.saveLifeExperiences(ctx.userId, input);
       return createdResponse(result, "Life experiences saved");
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  // POST /api/onboarding/relationship-status (BFF flow only)
+  async saveRelationshipStatus(req: NextRequest, ctx: RequestContext) {
+    try {
+      const body = await req.json();
+      const input = relationshipStatusSchema.parse(body);
+      const result = await this.onboardingService.saveRelationshipStatus(ctx.userId, input);
+      return createdResponse(result, "Relationship status saved");
     } catch (error) {
       return handleError(error);
     }

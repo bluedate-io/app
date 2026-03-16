@@ -22,6 +22,7 @@ import type {
   ImportantLifeInput,
   LifeExperiencesInput,
   BffInterestsInput,
+  RelationshipStatusInput,
 } from "@/validations/onboarding.validation";
 import type {
   ProfileResponseDTO,
@@ -247,6 +248,22 @@ export class OnboardingService {
     return toPersonalityDTO(personality);
   }
 
+  // ─── Relationship status (BFF flow only) ──────────────────────────────────────
+
+  async saveRelationshipStatus(
+    userId: string,
+    data: RelationshipStatusInput,
+  ): Promise<PersonalityResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Relationship status save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
+    const personality = await this.onboardingRepo.upsertRelationshipStatus(userId, data);
+    log.info("Relationship status saved", { userId });
+    return toPersonalityDTO(personality);
+  }
+
   // ─── Availability ─────────────────────────────────────────────────────────────
 
   async saveAvailability(userId: string, data: AvailabilityInput): Promise<AvailabilityResponseDTO> {
@@ -379,6 +396,9 @@ export class OnboardingService {
     }
     if (status.relationshipIntent === "friendship" && !status.hasBffInterests) {
       missing.push("BFF interests");
+    }
+    if (status.relationshipIntent === "friendship" && !(status as any).hasRelationshipStatus) {
+      missing.push("relationship status");
     }
     if (status.photoCount < 2) missing.push("at least 2 photos");
 
