@@ -1319,11 +1319,13 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
             </div>
             <Heading>Enter your invite code</Heading>
             <p className="text-sm text-gray-500 mb-6">
-              {genderIdentity === "Man"
-                ? "Men need an invite code from a woman to join. Ask a woman to message us \"invite code\" on WhatsApp—she'll get a code to share with you."
-                : genderIdentity === "Woman"
-                  ? "Women need an invite code from a man to join. Ask a man to message us \"invite code\" on WhatsApp—he'll get a code to share with you."
-                  : "You need an invite code from a man or woman. Ask them to message us \"invite code\" on WhatsApp, then enter the code they receive."}
+              {
+                genderIdentity === "Man"
+                  ? "To join, you need an invite code from a woman. Ask her to message \"invite code\" on WhatsApp and share the code with you."
+                  : genderIdentity === "Woman"
+                    ? "To join, you need an invite code from a man. Ask him to message \"invite code\" on WhatsApp and share the code with you."
+                    : "To join, ask a friend to message \"invite code\" on WhatsApp and share the code they receive with you."
+              }
             </p>
 
             <div className="mb-4">
@@ -1340,6 +1342,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                 autoComplete="off"
                 maxLength={20}
               />
+              <InfoLine text="Codes are usually 4-8 characters long." />
               {inviteCodeError && <InlineError message={inviteCodeError} />}
             </div>
 
@@ -1572,11 +1575,10 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                         setHeightCm(cm);
                         setHeightTouched(true);
                       }}
-                      className={`w-full py-2.5 text-center text-base font-medium transition-colors rounded-lg border-2 ${
-                        selected
+                      className={`w-full py-2.5 text-center text-base font-medium transition-colors rounded-lg border-2 ${selected
                           ? "border-gray-900 text-gray-900"
                           : "border-transparent text-gray-900 hover:bg-gray-50"
-                      }`}
+                        }`}
                     >
                       {cm} cm
                     </button>
@@ -1725,7 +1727,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
               >
                 Skip
               </button>
-          <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
+              <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
             </div>
           </div>
         )}
