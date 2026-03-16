@@ -44,6 +44,7 @@ CREATE TABLE "preferences" (
     "heightCm" INTEGER,
     "heightCompleted" BOOLEAN NOT NULL DEFAULT false,
     "datingModeCompleted" BOOLEAN NOT NULL DEFAULT false,
+    "photosStepCompleted" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "preferences_pkey" PRIMARY KEY ("id")
 );
