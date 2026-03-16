@@ -7,7 +7,7 @@ import type { OnboardingStatus } from "./page";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TOTAL_SUB_STEPS = 14;
+const TOTAL_SUB_STEPS = 15;
 
 const HEIGHT_CM_MIN = 91;
 const HEIGHT_CM_MAX = 220;
@@ -203,10 +203,11 @@ function getInitialSubStep(status: OnboardingStatus): number {
     if (!goalsComplete) return 6;
     if (!hasHeight) return 7;
   }
-  // BFF: photos (12) → life experiences (13)
+  // BFF: photos (12) → life experiences (13) → BFF interests (14)
   if (status.relationshipIntent === "friendship") {
-    if (status.photoCount < 2) return 12;
+    if (!status.hasPhotosStepCompleted) return 12;
     if (!status.hasLifeExperiences) return 13;
+    if (!status.hasBffInterests) return 14;
   }
   // Undecided: need goals (6) to resolve intent
   if (status.relationshipIntent === "undecided" && !goalsComplete) return 6;
@@ -702,21 +703,33 @@ function PhotosStep({
   };
 
   const complete = async () => {
-    if (mode === "bff") {
-      onDone();
-      return;
-    }
     setCompleting(true);
     setError(null);
-    const res = await fetch("/api/onboarding/complete", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) {
-      onDone();
-    } else {
-      const j = await res.json();
-      setError(j.error?.message ?? "Could not complete onboarding");
+    try {
+      if (mode === "bff") {
+        const res = await fetch("/api/onboarding/photos-step-complete", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          const j = await res.json();
+          throw new Error(j.error?.message ?? "Could not save photos step");
+        }
+        onDone();
+        return;
+      }
+      const res = await fetch("/api/onboarding/complete", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        onDone();
+      } else {
+        const j = await res.json();
+        throw new Error(j.error?.message ?? "Could not complete onboarding");
+      }
+    } catch (err) {
+      setError((err as Error).message);
       setCompleting(false);
     }
   };
@@ -863,6 +876,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const [relationshipGoal, setRelationshipGoal] = useState<string[]>(() => status.relationshipGoals ?? []);
   const [interests, setInterests] = useState<string[]>([]);
   const [interestSearch, setInterestSearch] = useState("");
+  const [bffInterests, setBffInterests] = useState<string[]>([]);
   const [drinkingHabit, setDrinkingHabit] = useState("");
   const [smokingHabit, setSmokingHabit] = useState("");
   const [kidsStatus, setKidsStatus] = useState("");
@@ -1937,15 +1951,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                   setStepError(null);
                   try {
                     await apiPost("life-experiences", { experiences: [] });
-                    const res = await fetch("/api/onboarding/complete", {
-                      method: "POST",
-                      headers: { Authorization: `Bearer ${token}` },
-                    });
-                    if (!res.ok) {
-                      const j = await res.json();
-                      throw new Error(j.error?.message ?? "Could not complete onboarding");
-                    }
-                    router.refresh();
+                    setSubStep(14);
                   } catch (e) {
                     setStepError((e as Error).message);
                   } finally {
@@ -1971,6 +1977,110 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                       await apiPost("life-experiences", {
                         experiences: lifeExperiences,
                       });
+                      setSubStep(14);
+                    } catch (e) {
+                      setStepError((e as Error).message);
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={lifeExperiences.length === 0 || loading}
+                  loading={loading}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+        {/* ── STEP 14: BFF interests (BFF only) ───────────────────────────── */}
+        {subStep === 14 && (
+          <div className="flex flex-col flex-1">
+            <div className="flex justify-start mb-6">
+              <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
+              </svg>
+            </div>
+            <Heading>Choose 5 things you&apos;re really into</Heading>
+            <p className="text-sm text-gray-500 mb-6">
+              Proud foodie or big on bouldering? Add interests to your profile to help you match with people who love them too.
+            </p>
+
+            <div className="relative mb-5">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+              </svg>
+              <input
+                type="text"
+                value={interestSearch}
+                onChange={(e) => setInterestSearch(e.target.value)}
+                placeholder="What are you into?"
+                className="w-full bg-white border border-gray-200 rounded-lg pl-9 pr-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-gray-400"
+              />
+            </div>
+
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">You might like...</p>
+
+            <div className="flex flex-wrap gap-2">
+              {filteredInterests.map((interest) => {
+                const selected = bffInterests.includes(interest);
+                const symbol = INTEREST_SYMBOLS[interest] ?? "•";
+                const displayLabel = `${symbol} ${interest}`;
+                return (
+                  <Pill
+                    key={interest}
+                    label={displayLabel}
+                    selected={selected}
+                    onClick={() => {
+                      if (selected) setBffInterests((p) => p.filter((x) => x !== interest));
+                      else if (bffInterests.length < 5) setBffInterests((p) => [...p, interest]);
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            {stepError && <InlineError message={stepError} />}
+
+            <div className="mt-auto pt-8 flex items-end justify-between">
+              <button
+                type="button"
+                onClick={async () => {
+                  setLoading(true);
+                  setStepError(null);
+                  try {
+                    await apiPost("bff-interests", { interests: [] });
+                    const res = await fetch("/api/onboarding/complete", {
+                      method: "POST",
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (!res.ok) {
+                      const j = await res.json();
+                      throw new Error(j.error?.message ?? "Could not complete onboarding");
+                    }
+                    router.refresh();
+                  } catch (e) {
+                    setStepError((e as Error).message);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+                className="text-sm font-medium hover:underline disabled:opacity-50"
+                style={{ color: ACCENT }}
+              >
+                Skip
+              </button>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-400">
+                  {bffInterests.length}/5 selected
+                </span>
+                <Fab
+                  onClick={async () => {
+                    if (!bffInterests.length) return;
+                    setLoading(true);
+                    setStepError(null);
+                    try {
+                      await apiPost("bff-interests", { interests: bffInterests });
                       const res = await fetch("/api/onboarding/complete", {
                         method: "POST",
                         headers: { Authorization: `Bearer ${token}` },
@@ -1986,7 +2096,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                       setLoading(false);
                     }
                   }}
-                  disabled={lifeExperiences.length === 0 || loading}
+                  disabled={bffInterests.length === 0 || loading}
                   loading={loading}
                 />
               </div>

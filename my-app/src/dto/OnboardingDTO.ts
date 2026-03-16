@@ -40,6 +40,7 @@ export interface InterestsResponseDTO {
   favouriteActivities: string[];
   musicTaste: string[];
   foodTaste: string[];
+  bffInterests?: string[];
 }
 
 export interface PersonalityResponseDTO {
@@ -105,6 +106,7 @@ export const toInterestsDTO = (i: Interests): InterestsResponseDTO => ({
   favouriteActivities: i.favouriteActivities,
   musicTaste: i.musicTaste,
   foodTaste: i.foodTaste,
+  bffInterests: i.bffInterests,
 });
 
 export const toPersonalityDTO = (p: Personality): PersonalityResponseDTO => ({

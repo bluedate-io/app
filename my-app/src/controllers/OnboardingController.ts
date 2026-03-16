@@ -19,6 +19,7 @@ import {
   familyPlansSchema,
   importantLifeSchema,
   lifeExperiencesSchema,
+  bffInterestsSchema,
 } from "@/validations/onboarding.validation";
 import { successResponse, createdResponse, noContentResponse, handleError } from "@/utils/response";
 import type { RequestContext } from "@/types";
@@ -146,6 +147,18 @@ export class OnboardingController {
     }
   }
 
+  // POST /api/onboarding/bff-interests
+  async saveBffInterests(req: NextRequest, ctx: RequestContext) {
+    try {
+      const body = await req.json();
+      const input = bffInterestsSchema.parse(body);
+      const result = await this.onboardingService.saveBffInterests(ctx.userId, input);
+      return createdResponse(result, "BFF interests saved");
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
   // POST /api/onboarding/personality
   async savePersonality(req: NextRequest, ctx: RequestContext) {
     try {
@@ -241,6 +254,16 @@ export class OnboardingController {
       const order = orderRaw ? parseInt(String(orderRaw), 10) : 0;
       const result = await this.onboardingService.uploadPhoto(ctx.userId, file, order);
       return createdResponse(result, "Photo uploaded");
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  // POST /api/onboarding/photos-step-complete
+  async completePhotosStep(_req: NextRequest, ctx: RequestContext) {
+    try {
+      await this.onboardingService.markPhotosStepCompleted(ctx.userId);
+      return successResponse(null, { message: "Photos step completed" });
     } catch (error) {
       return handleError(error);
     }

@@ -48,6 +48,7 @@ export interface Preferences {
   heightCompleted?: boolean;
    /** True once the user has explicitly chosen Date or BFF (step 3) */
   datingModeCompleted?: boolean;
+  photosStepCompleted?: boolean;
 }
 
 export interface Interests {
@@ -57,6 +58,7 @@ export interface Interests {
   favouriteActivities: string[];
   musicTaste: string[];
   foodTaste: string[];
+  bffInterests?: string[];
 }
 
 export interface Personality {

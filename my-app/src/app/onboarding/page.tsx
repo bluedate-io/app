@@ -59,6 +59,10 @@ export interface OnboardingStatus {
   hasImportantLife: boolean;
   /** True when BFF “Your life” experiences have been saved at least once */
   hasLifeExperiences: boolean;
+  /** True when BFF-only interests step has been saved at least once */
+  hasBffInterests: boolean;
+  /** True when user has explicitly advanced past the photos step */
+  hasPhotosStepCompleted: boolean;
 }
 
 export default async function OnboardingPage() {

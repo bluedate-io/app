@@ -115,6 +115,12 @@ export const interestsSchema = z.object({
   foodTaste: z.array(z.string().min(1).max(60)).max(20).default([]),
 });
 
+// ─── BFF-only: top 5 interests ────────────────────────────────────────────────
+
+export const bffInterestsSchema = z.object({
+  interests: z.array(z.string().min(1).max(60)).max(5),
+});
+
 // ─── Step 4: Personality ─────────────────────────────────────────────────────
 
 export const personalitySchema = z.object({
@@ -264,3 +270,4 @@ export type AiSignalsInput = z.infer<typeof aiSignalsSchema>;
 export type FamilyPlansInput = z.infer<typeof familyPlansSchema>;
 export type ImportantLifeInput = z.infer<typeof importantLifeSchema>;
 export type LifeExperiencesInput = z.infer<typeof lifeExperiencesSchema>;
+export type BffInterestsInput = z.infer<typeof bffInterestsSchema>;
