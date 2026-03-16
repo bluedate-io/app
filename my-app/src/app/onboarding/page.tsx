@@ -45,6 +45,8 @@ export interface OnboardingStatus {
   /** Age range for matching (step 5 — Date and BFF) */
   ageRangeMin?: number;
   ageRangeMax?: number;
+  /** Saved height in cm (91–220) collected after goals/BFF */
+  heightCm?: number;
   /** True when user has saved "who to meet" (gender preference) — Date flow only */
   hasGenderPreference?: boolean;
 }

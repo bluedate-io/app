@@ -10,6 +10,7 @@ import {
   genderPreferenceSchema,
   ageRangeSchema,
   relationshipGoalsSchema,
+  heightSchema,
   preferencesSchema,
   interestsSchema,
   personalitySchema,
@@ -101,6 +102,18 @@ export class OnboardingController {
       const input = relationshipGoalsSchema.parse(body);
       const result = await this.onboardingService.saveRelationshipGoals(ctx.userId, input);
       return createdResponse(result, "Relationship goals saved");
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  // POST /api/onboarding/height
+  async saveHeight(req: NextRequest, ctx: RequestContext) {
+    try {
+      const body = await req.json();
+      const input = heightSchema.parse(body);
+      const result = await this.onboardingService.saveHeight(ctx.userId, input);
+      return createdResponse(result, "Height saved");
     } catch (error) {
       return handleError(error);
     }
