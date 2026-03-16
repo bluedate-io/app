@@ -316,21 +316,25 @@ export class OnboardingService {
     if (!status.hasProfile) missing.push("profile");
     if (!status.hasPreferences) missing.push("preferences");
     if (!status.hasUsedInviteCode) missing.push("invite code");
+    // For Date intent, require full preferences stack.
     if (
-      (status.relationshipIntent === "date" || status.relationshipIntent === "friendship") &&
+      status.relationshipIntent === "date" &&
       (status.ageRangeMin == null || status.ageRangeMax == null)
     ) {
       missing.push("age range");
     }
-    if (
-      (status.relationshipIntent === "date" || status.relationshipIntent === "friendship") &&
-      status.heightCm == null
-    ) {
+    if (status.relationshipIntent === "date" && status.heightCm == null) {
       missing.push("height");
     }
-    if (!status.hasInterests) missing.push("interests");
-    if (!status.hasPersonality) missing.push("personality");
-    if (!status.hasAvailability) missing.push("availability");
+    if (status.relationshipIntent === "date" && !status.hasInterests) {
+      missing.push("interests");
+    }
+    if (status.relationshipIntent === "date" && !status.hasPersonality) {
+      missing.push("personality");
+    }
+    if (status.relationshipIntent === "date" && !status.hasAvailability) {
+      missing.push("availability");
+    }
     if (status.photoCount < 2) missing.push("at least 2 photos");
 
     if (missing.length > 0) {

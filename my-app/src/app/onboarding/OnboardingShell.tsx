@@ -203,10 +203,9 @@ function getInitialSubStep(status: OnboardingStatus): number {
     if (!goalsComplete) return 6;
     if (!hasHeight) return 7;
   }
-  // BFF: age range (5) → height (7) → interests (8)
+  // BFF: go straight to photos (upload images) after selecting intent
   if (status.relationshipIntent === "friendship") {
-    if (!hasAgeRange) return 5;
-    if (!hasHeight) return 7;
+    return 12;
   }
   // Undecided: need goals (6) to resolve intent
   if (status.relationshipIntent === "undecided" && !goalsComplete) return 6;
@@ -865,7 +864,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
 
       if (subStep === 3 && datingMode === "bff") {
         await apiPost("dating-mode", { mode: "bff" });
-        setSubStep(5);
+        // For BFF intent, navigate directly to the photos upload step
+        setSubStep(12);
         setLoading(false);
         return;
       }
