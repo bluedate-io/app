@@ -45,6 +45,9 @@ export interface Preferences {
   ageRangeMax?: number;
   relationshipIntent?: string;
   relationshipGoals: string[];
+  heightCompleted?: boolean;
+   /** True once the user has explicitly chosen Date or BFF (step 3) */
+  datingModeCompleted?: boolean;
 }
 
 export interface Interests {
@@ -64,6 +67,8 @@ export interface Personality {
   funFact?: string;
   kidsStatus?: string;
   kidsPreference?: string;
+  religion?: string[];
+  politics?: string[];
 }
 
 export interface Availability {

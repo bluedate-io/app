@@ -49,6 +49,8 @@ export interface PersonalityResponseDTO {
   funFact?: string;
   kidsStatus?: string;
   kidsPreference?: string;
+  religion?: string[];
+  politics?: string[];
 }
 
 export interface AvailabilityResponseDTO {
@@ -111,6 +113,8 @@ export const toPersonalityDTO = (p: Personality): PersonalityResponseDTO => ({
   funFact: p.funFact,
   kidsStatus: p.kidsStatus,
   kidsPreference: p.kidsPreference,
+  religion: p.religion ?? [],
+  politics: p.politics ?? [],
 });
 
 export const toAvailabilityDTO = (a: Availability): AvailabilityResponseDTO => ({

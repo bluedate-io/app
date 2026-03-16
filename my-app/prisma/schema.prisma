@@ -85,6 +85,9 @@ model Preferences {
   relationshipIntent  String?  // set only when user selects Date or BFF on step 3; "date" | "friendship" | goal
   relationshipGoals   String[] @default([]) // all selected goals (1–2) from step 5
   heightCm            Int?     // user height in centimeters, collected during onboarding
+  heightCompleted     Boolean  @default(false)
+  /// True once the user has explicitly chosen Date or BFF (step 3)
+  datingModeCompleted Boolean  @default(false)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -116,6 +119,10 @@ model Personality {
   funFact           String?
   kidsStatus        String?
   kidsPreference    String?
+  religion          String[] @default([])
+  politics          String[] @default([])
+  importantLifeCompleted Boolean @default(false)
+  familyPlansCompleted   Boolean @default(false)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

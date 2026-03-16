@@ -27,6 +27,8 @@ export interface OnboardingStatus {
   hasPreferences: boolean;
   /** True after user has chosen Date/BFF and saved (relationshipIntent set) */
   hasPreferencesComplete: boolean;
+  /** True once the user has explicitly chosen Date or BFF (step 3) */
+  hasDatingMode: boolean;
   hasUsedInviteCode: boolean;
   hasInterests: boolean;
   hasPersonality: boolean;
@@ -49,6 +51,12 @@ export interface OnboardingStatus {
   heightCm?: number;
   /** True when user has saved "who to meet" (gender preference) — Date flow only */
   hasGenderPreference?: boolean;
+  /** True when height step (Next or Skip) has been completed */
+  hasHeight: boolean;
+  /** True when kids / family plans have been saved at least once */
+  hasFamilyPlans: boolean;
+  /** True when religion/politics step has been submitted (including skip) */
+  hasImportantLife: boolean;
 }
 
 export default async function OnboardingPage() {
@@ -68,7 +76,9 @@ export default async function OnboardingPage() {
       ? "preferences"
       : !status.hasUsedInviteCode
         ? "inviteCode"
-        : !status.hasInterests
+        : !status.hasDatingMode
+          ? "preferences"
+          : !status.hasInterests
           ? "interests"
           : !status.hasPersonality || !status.hasAvailability
             ? "personality"

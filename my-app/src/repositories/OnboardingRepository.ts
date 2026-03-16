@@ -52,6 +52,7 @@ export interface IOnboardingRepository {
   upsertInterests(userId: string, data: InterestsInput): Promise<Interests>;
   upsertPersonality(userId: string, data: PersonalityInput): Promise<Personality>;
   upsertFamilyPlans(userId: string, data: FamilyPlansInput): Promise<Personality>;
+  upsertImportantLife(userId: string, religion: string[], politics: string[]): Promise<Personality>;
   upsertAvailability(userId: string, data: AvailabilityInput): Promise<Availability>;
   upsertAiSignals(userId: string, data: AiSignalsInput): Promise<AiSignals>;
   addPhoto(userId: string, url: string, order: number): Promise<Photo>;
@@ -73,7 +74,10 @@ export interface IOnboardingRepository {
     ageRangeMin?: number;
     ageRangeMax?: number;
     heightCm?: number;
+    hasHeight: boolean;
     hasGenderPreference: boolean;
+    hasFamilyPlans: boolean;
+    hasImportantLife: boolean;
   }>;
   getGenderIdentity(userId: string): Promise<string | null>;
 }
@@ -144,8 +148,9 @@ export class OnboardingRepository implements IOnboardingRepository {
         ageRangeMin: 18,
         ageRangeMax: 55,
         relationshipGoals: [],
+        datingModeCompleted: true,
       },
-      update: { relationshipIntent },
+      update: { relationshipIntent, datingModeCompleted: true },
     });
     return {
       id: r.id,
@@ -246,8 +251,9 @@ export class OnboardingRepository implements IOnboardingRepository {
         ageRangeMax: 55,
         relationshipGoals: [],
         heightCm: data.heightCm,
+        heightCompleted: true,
       },
-      update: { heightCm: data.heightCm },
+      update: { heightCm: data.heightCm, heightCompleted: true },
     });
     return {
       id: r.id,
@@ -325,6 +331,8 @@ export class OnboardingRepository implements IOnboardingRepository {
       funFact: n(r.funFact),
       kidsStatus: n(r.kidsStatus),
       kidsPreference: n(r.kidsPreference),
+      religion: r.religion ?? [],
+      politics: r.politics ?? [],
     };
   }
 
@@ -336,12 +344,14 @@ export class OnboardingRepository implements IOnboardingRepository {
         socialLevel: "Not specified",
         conversationStyle: "Not specified",
         funFact: null,
-        kidsStatus: data.kidsStatus,
-        kidsPreference: data.kidsPreference,
+        kidsStatus: data.kidsStatus ?? null,
+        kidsPreference: data.kidsPreference ?? null,
+        familyPlansCompleted: true,
       },
       update: {
-        kidsStatus: data.kidsStatus,
-        kidsPreference: data.kidsPreference,
+        kidsStatus: data.kidsStatus ?? null,
+        kidsPreference: data.kidsPreference ?? null,
+        familyPlansCompleted: true,
       },
     });
     return {
@@ -352,6 +362,45 @@ export class OnboardingRepository implements IOnboardingRepository {
       funFact: n(r.funFact),
       kidsStatus: n(r.kidsStatus),
       kidsPreference: n(r.kidsPreference),
+      religion: r.religion ?? [],
+      politics: r.politics ?? [],
+    };
+  }
+
+  async upsertImportantLife(
+    userId: string,
+    religion: string[],
+    politics: string[],
+  ): Promise<Personality> {
+    const r = await this.db.personality.upsert({
+      where: { userId },
+      create: {
+        userId,
+        socialLevel: "Not specified",
+        conversationStyle: "Not specified",
+        funFact: null,
+        kidsStatus: null,
+        kidsPreference: null,
+        religion,
+        politics,
+        importantLifeCompleted: true,
+      },
+      update: {
+        religion,
+        politics,
+        importantLifeCompleted: true,
+      },
+    });
+    return {
+      id: r.id,
+      userId: r.userId,
+      socialLevel: n(r.socialLevel),
+      conversationStyle: n(r.conversationStyle),
+      funFact: n(r.funFact),
+      kidsStatus: n(r.kidsStatus),
+      kidsPreference: n(r.kidsPreference),
+      religion: r.religion ?? [],
+      politics: r.politics ?? [],
     };
   }
 
@@ -412,11 +461,20 @@ export class OnboardingRepository implements IOnboardingRepository {
             ageRangeMin: true,
             ageRangeMax: true,
             heightCm: true,
+            heightCompleted: true,
+          datingModeCompleted: true,
           },
         }),
         this.db.inviteCode.count({ where: { usedById: userId } }),
         this.db.interests.findUnique({ where: { userId }, select: { id: true } }),
-        this.db.personality.findUnique({ where: { userId }, select: { id: true } }),
+        this.db.personality.findUnique({
+          where: { userId },
+          select: {
+            id: true,
+            familyPlansCompleted: true,
+            importantLifeCompleted: true,
+          },
+        }),
         this.db.availability.findUnique({ where: { userId }, select: { id: true } }),
         this.db.photo.count({ where: { userId } }),
       ]);
@@ -425,10 +483,15 @@ export class OnboardingRepository implements IOnboardingRepository {
     const intentComplete = !!(relationshipIntent != null && relationshipIntent !== "" && relationshipIntent !== "undecided" && relationshipIntent !== "date");
     const goalsComplete = relationshipGoals.length >= 2;
     const hasPreferencesComplete = intentComplete || goalsComplete;
+    const hasHeight = !!(preferences && preferences.heightCompleted);
+    const hasDatingMode = !!(preferences && preferences.datingModeCompleted);
+    const hasFamilyPlans = !!(personality && personality.familyPlansCompleted);
+    const hasImportantLife = !!(personality && personality.importantLifeCompleted);
     return {
       hasProfile: !!profile,
       hasPreferences: !!preferences,
       hasPreferencesComplete,
+      hasDatingMode,
       relationshipIntent: relationshipIntent ?? undefined,
       relationshipGoals: preferences?.relationshipGoals ?? undefined,
       hasUsedInviteCode: inviteCodeUsed > 0,
@@ -441,7 +504,10 @@ export class OnboardingRepository implements IOnboardingRepository {
       ageRangeMin: preferences?.ageRangeMin ?? undefined,
       ageRangeMax: preferences?.ageRangeMax ?? undefined,
       heightCm: preferences?.heightCm ?? undefined,
+      hasHeight,
       hasGenderPreference: (preferences?.genderPreference?.length ?? 0) > 0,
+      hasFamilyPlans,
+      hasImportantLife,
     };
   }
 

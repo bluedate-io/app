@@ -124,15 +124,47 @@ export const personalitySchema = z.object({
 });
 
 // ─── Step: Family plans / kids ──────────────────────────────────────────────────
+// Both fields optional; client enforces "at least one" for Next, but Skip is allowed.
 
 export const familyPlansSchema = z.object({
-  kidsStatus: z.enum(["Have kids", "Don't have kids"]),
-  kidsPreference: z.enum([
-    "Don't want kids",
-    "Open to kids",
-    "Want kids",
-    "Not sure",
-  ]),
+  kidsStatus: z.enum(["Have kids", "Don't have kids"]).optional(),
+  kidsPreference: z
+    .enum(["Don't want kids", "Open to kids", "Want kids", "Not sure"])
+    .optional(),
+});
+
+// ─── Step: What's important in your life? (religion & politics) ─────────────────
+
+const religionValues = [
+  "Agnostic",
+  "Atheist",
+  "Buddhist",
+  "Catholic",
+  "Christian",
+  "Hindu",
+  "Jain",
+  "Jewish",
+  "Mormon",
+  "Latter-day Saint",
+  "Muslim",
+  "Zoroastrian",
+  "Sikh",
+  "Spiritual",
+  "Other",
+] as const;
+
+const politicsValues = [
+  "Apolitical",
+  "Moderate",
+  "Left",
+  "Right",
+  "Communist",
+  "Socialist",
+] as const;
+
+export const importantLifeSchema = z.object({
+  religion: z.array(z.enum(religionValues)).max(5).optional().default([]),
+  politics: z.array(z.enum(politicsValues)).max(3).optional().default([]),
 });
 
 // ─── Step 5: Availability ─────────────────────────────────────────────────────
@@ -168,3 +200,4 @@ export type PersonalityInput = z.infer<typeof personalitySchema>;
 export type AvailabilityInput = z.infer<typeof availabilitySchema>;
 export type AiSignalsInput = z.infer<typeof aiSignalsSchema>;
 export type FamilyPlansInput = z.infer<typeof familyPlansSchema>;
+export type ImportantLifeInput = z.infer<typeof importantLifeSchema>;
