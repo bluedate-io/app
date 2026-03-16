@@ -7,7 +7,7 @@ import type { OnboardingStatus } from "./page";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TOTAL_SUB_STEPS = 12;
+const TOTAL_SUB_STEPS = 13;
 
 const HEIGHT_CM_MIN = 91;
 const HEIGHT_CM_MAX = 220;
@@ -80,6 +80,59 @@ const DRINKING_OPTIONS = [
   "No, I don't drink", "I'm sober",
 ];
 const SMOKING_OPTIONS = ["I smoke sometimes", "No, I don't smoke"];
+const RELIGION_OPTIONS = [
+  "Agnostic",
+  "Atheist",
+  "Buddhist",
+  "Catholic",
+  "Christian",
+  "Hindu",
+  "Jain",
+  "Jewish",
+  "Mormon",
+  "Latter-day Saint",
+  "Muslim",
+  "Zoroastrian",
+  "Sikh",
+  "Spiritual",
+  "Other",
+] as const;
+
+const RELIGION_SYMBOLS: Record<(typeof RELIGION_OPTIONS)[number], string> = {
+  Agnostic: "❓",
+  Atheist: "🚫",
+  Buddhist: "☸️",
+  Catholic: "✝️",
+  Christian: "✝️",
+  Hindu: "🕉️",
+  Jain: "🪔",
+  Jewish: "✡️",
+  Mormon: "🏛️",
+  "Latter-day Saint": "🏛️",
+  Muslim: "☪️",
+  Zoroastrian: "🔥",
+  Sikh: "🛡️",
+  Spiritual: "✨",
+  Other: "🌈",
+};
+
+const POLITICS_OPTIONS = [
+  "Apolitical",
+  "Moderate",
+  "Left",
+  "Right",
+  "Communist",
+  "Socialist",
+] as const;
+
+const POLITICS_SYMBOLS: Record<(typeof POLITICS_OPTIONS)[number], string> = {
+  Apolitical: "🤝",
+  Moderate: "⚖️",
+  Left: "⬅️",
+  Right: "➡️",
+  Communist: "🛠️",
+  Socialist: "🤲",
+};
 const KIDS_HAVE_OPTIONS = ["Have kids", "Don't have kids"] as const;
 const KIDS_PLANS_OPTIONS = [
   "Don't want kids",
@@ -137,31 +190,32 @@ function getInitialSubStep(status: OnboardingStatus): number {
   if (!status.hasProfile) return 0;
   if (!status.hasPreferences) return 1;
   if (!status.hasUsedInviteCode) return 2;
+  // Require an explicit Date/BFF choice before moving past step 3
+  if (!status.hasDatingMode) return 3;
   const hasAgeRange = status.ageRangeMin != null && status.ageRangeMax != null;
-  const hasHeight = status.heightCm != null;
+  const hasHeight = status.hasHeight;
   const goalsComplete = (status.relationshipGoals?.length ?? 0) >= 2;
-  if (!status.hasPreferencesComplete) {
-    // relationshipIntent "date" = who-to-meet (4) → age (5) → goals (6) → height (7) → interests (8)
-    if (status.relationshipIntent === "date") {
-      if (!status.hasGenderPreference) return 4;
-      if (!hasAgeRange) return 5;
-      if (!goalsComplete) return 6; // relationship goals
-      if (!hasHeight) return 7; // height
-      return 8; // then interests
-    }
-    // relationshipIntent "friendship" = BFF; age range (5) → height (7) → interests (8)
-    if (status.relationshipIntent === "friendship") {
-      if (!hasAgeRange) return 5;
-      if (!hasHeight) return 7; // skip goals (6), go to height
-      return 8;
-    }
-    // relationshipIntent "undecided" = need goals (6)
-    if (status.relationshipIntent === "undecided") return 6;
-    return 3; // Date/BFF not saved yet
+  // Always respect in-progress ordering for Date/BFF, even if hasPreferencesComplete is true.
+  // Date: who to meet (4) → age range (5) → goals (6) → height (7) → interests (8)
+  if (status.relationshipIntent === "date") {
+    if (!status.hasGenderPreference) return 4;
+    if (!hasAgeRange) return 5;
+    if (!goalsComplete) return 6;
+    if (!hasHeight) return 7;
   }
+  // BFF: age range (5) → height (7) → interests (8)
+  if (status.relationshipIntent === "friendship") {
+    if (!hasAgeRange) return 5;
+    if (!hasHeight) return 7;
+  }
+  // Undecided: need goals (6) to resolve intent
+  if (status.relationshipIntent === "undecided" && !goalsComplete) return 6;
+
   if (!status.hasInterests) return 8;
   if (!status.hasPersonality || !status.hasAvailability) return 9;
-  return 10; // photos step
+  if (!status.hasFamilyPlans) return 10;
+  if (!status.hasImportantLife) return 11;
+  return 12; // photos step
 }
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -651,6 +705,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const dayInputRef = useRef<HTMLInputElement>(null);
   const monthButtonRef = useRef<HTMLButtonElement>(null);
   const yearInputRef = useRef<HTMLInputElement>(null);
+  const heightListRef = useRef<HTMLDivElement>(null);
 
   // ── Form state ────────────────────────────────────────────────────────────
   const [firstName, setFirstName] = useState("");
@@ -675,6 +730,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
     const h = status.heightCm;
     return h != null && h >= HEIGHT_CM_MIN && h <= HEIGHT_CM_MAX ? h : 168;
   });
+  const [heightTouched, setHeightTouched] = useState(false);
   const [heightError, setHeightError] = useState<string | null>(null);
   const [relationshipGoal, setRelationshipGoal] = useState<string[]>(() => status.relationshipGoals ?? []);
   const [interests, setInterests] = useState<string[]>([]);
@@ -683,6 +739,17 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const [smokingHabit, setSmokingHabit] = useState("");
   const [kidsStatus, setKidsStatus] = useState("");
   const [kidsPlans, setKidsPlans] = useState("");
+  const [religion, setReligion] = useState<string[]>([]);
+  const [politics, setPolitics] = useState<string[]>([]);
+
+  // Scroll height list so the current selection appears centered initially,
+  // to signal that the list can be scrolled.
+  useEffect(() => {
+    if (subStep !== 7) return;
+    const el = document.getElementById(`height-option-${heightCm}`);
+    if (!el) return;
+    el.scrollIntoView({ block: "center" });
+  }, [subStep, heightCm]);
 
   const apiPost = async (path: string, body: unknown) => {
     const res = await fetch(`/api/onboarding/${path}`, {
@@ -829,9 +896,16 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       }
 
       if (subStep === 10) {
-        await apiPost("family-plans", {
-          kidsStatus,
-          kidsPreference: kidsPlans,
+        const payload: { kidsStatus?: string; kidsPreference?: string } = {};
+        if (kidsStatus) payload.kidsStatus = kidsStatus;
+        if (kidsPlans) payload.kidsPreference = kidsPlans;
+        await apiPost("family-plans", payload);
+      }
+
+      if (subStep === 11 && datingMode === "date") {
+        await apiPost("important-life", {
+          religion,
+          politics,
         });
       }
 
@@ -858,6 +932,12 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       if (subStep === 9) {
         await apiPost("personality", { socialLevel: "Not specified", conversationStyle: "Not specified" });
         await apiPost("availability", { days: ["fri", "sat", "sun"], times: ["evening"] });
+      }
+      if (subStep === 10) {
+        await apiPost("family-plans", {});
+      }
+      if (subStep === 11) {
+        await apiPost("important-life", { religion: [], politics: [] });
       }
       setSubStep((s) => s + 1);
     } catch (e) {
@@ -887,18 +967,19 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
         return !Number.isNaN(minNum) && !Number.isNaN(maxNum) && minNum >= 18 && minNum <= 100 && maxNum >= 18 && maxNum <= 100 && minNum <= maxNum;
       }
       case 6: return datingMode === "bff" || relationshipGoal.length >= 2;
-      case 7: return heightCm >= HEIGHT_CM_MIN && heightCm <= HEIGHT_CM_MAX;
+      case 7: return heightTouched && heightCm >= HEIGHT_CM_MIN && heightCm <= HEIGHT_CM_MAX;
       case 8: return interests.length > 0;
-      case 9: return true;
-      case 10: return kidsStatus !== "" && kidsPlans !== "";
+      case 9: return !!drinkingHabit || !!smokingHabit;
+      case 10: return kidsStatus !== "" || kidsPlans !== "";
+      case 11: return religion.length > 0 || politics.length > 0;
       default: return true;
     }
   })();
 
-  const isSkippable = subStep === 8 || subStep === 9 || subStep === 10;
+  const isSkippable = subStep === 8 || subStep === 9 || subStep === 10 || subStep === 11;
   const progressPct = Math.round(((subStep + 1) / TOTAL_SUB_STEPS) * 100);
 
-  if (subStep === 11) {
+  if (subStep === 12) {
     return <PhotosStep token={token} status={status} onDone={() => router.refresh()} />;
   }
 
@@ -1313,17 +1394,26 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
               style={{ maxHeight: 360 }}
             >
               <div
+                ref={heightListRef}
                 className="overflow-y-auto overscroll-contain w-full flex flex-col py-2"
                 style={{ height: 340 }}
               >
                 {HEIGHT_OPTIONS.map((cm) => {
-                  const selected = heightCm === cm;
+                  const selected = heightTouched && heightCm === cm;
                   return (
                     <button
+                      id={`height-option-${cm}`}
                       key={cm}
                       type="button"
-                      onClick={() => setHeightCm(cm)}
-                      className={`w-full py-2.5 text-center text-base font-medium transition-colors rounded-lg border-2 ${selected ? "border-gray-900 text-gray-900 bg-transparent" : "border-transparent text-gray-900 hover:bg-gray-100"}`}
+                      onClick={() => {
+                        setHeightCm(cm);
+                        setHeightTouched(true);
+                      }}
+                      className={`w-full py-2.5 text-center text-base font-medium transition-colors rounded-lg border-2 ${
+                        selected
+                          ? "border-gray-900 text-gray-900"
+                          : "border-transparent text-gray-900 hover:bg-gray-50"
+                      }`}
                     >
                       {cm} cm
                     </button>
@@ -1337,9 +1427,22 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
             <div className="mt-auto pt-8 flex items-end justify-between">
               <button
                 type="button"
-                onClick={() => { setSubStep(8); setHeightError(null); }}
+                onClick={async () => {
+                  setLoading(true);
+                  setStepError(null);
+                  setHeightError(null);
+                  try {
+                    await apiPost("height", { heightCm });
+                    setSubStep(8);
+                  } catch (e) {
+                    setStepError((e as Error).message);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
                 className="text-sm font-medium hover:underline disabled:opacity-50"
                 style={{ color: ACCENT }}
+                disabled={loading}
               >
                 Skip
               </button>
@@ -1459,7 +1562,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
               >
                 Skip
               </button>
-              <Fab onClick={handleNext} loading={loading} />
+          <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
             </div>
           </div>
         )}
@@ -1515,6 +1618,104 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
             <div className="mt-auto pt-8 flex items-end justify-between">
               <button
                 onClick={handleSkip} disabled={loading}
+                className="text-sm font-medium hover:underline disabled:opacity-50"
+                style={{ color: ACCENT }}
+              >
+                Skip
+              </button>
+              <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 11: What's important in your life? ─────────────────────── */}
+        {subStep === 11 && datingMode === "date" && (
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex justify-start mb-6">
+              <svg
+                className="w-12 h-12 text-gray-900"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 3C7.03 3 3 6.589 3 11c0 2.347 1.169 4.466 3.06 5.953L6 21l3.39-1.695A10.3 10.3 0 0 0 12 19c4.97 0 9-3.589 9-8s-4.03-8-9-8z"
+                />
+              </svg>
+            </div>
+
+            <Heading>What&apos;s important in your life?</Heading>
+            <p className="text-sm text-gray-500 mb-4">
+              This is sensitive information that will be on your profile. It helps you find people, and people find you.
+              It&apos;s totally optional.
+            </p>
+
+            <button
+              type="button"
+              className="text-xs text-start font-medium underline mb-4 text-gray-500"
+              onClick={(e) => e.preventDefault()}
+            >
+              Why we&apos;re asking
+            </button>
+
+            {/* Scrollable chip area */}
+            <div className="flex-1 overflow-y-auto pr-1 space-y-6">
+              <div>
+                <p className="text-sm font-semibold text-gray-700 mb-2">Religion</p>
+                <div className="flex flex-wrap gap-2">
+                  {RELIGION_OPTIONS.map((opt) => {
+                    const selected = religion.includes(opt);
+                    const label = `${RELIGION_SYMBOLS[opt] ?? "•"} ${opt}`;
+                    return (
+                      <Pill
+                        key={opt}
+                        label={label}
+                        selected={selected}
+                        onClick={() =>
+                          setReligion((prev) =>
+                            selected ? prev.filter((v) => v !== opt) : [...prev, opt],
+                          )
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-gray-700 mb-2">Politics</p>
+                <div className="flex flex-wrap gap-2">
+                  {POLITICS_OPTIONS.map((opt) => {
+                    const selected = politics.includes(opt);
+                    const label = `${POLITICS_SYMBOLS[opt] ?? "•"} ${opt}`;
+                    return (
+                      <Pill
+                        key={opt}
+                        label={label}
+                        selected={selected}
+                        onClick={() =>
+                          setPolitics((prev) =>
+                            selected ? prev.filter((v) => v !== opt) : [...prev, opt],
+                          )
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {stepError && <InlineError message={stepError} />}
+
+            {/* Fixed bottom actions within the step */}
+            <div className="mt-4 pt-4 pb-2 flex items-end justify-between">
+              <button
+                type="button"
+                onClick={handleSkip}
+                disabled={loading}
                 className="text-sm font-medium hover:underline disabled:opacity-50"
                 style={{ color: ACCENT }}
               >

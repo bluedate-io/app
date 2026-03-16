@@ -19,6 +19,7 @@ import type {
   AvailabilityInput,
   AiSignalsInput,
   FamilyPlansInput,
+  ImportantLifeInput,
 } from "@/validations/onboarding.validation";
 import type {
   ProfileResponseDTO,
@@ -197,6 +198,23 @@ export class OnboardingService {
     }
     const personality = await this.onboardingRepo.upsertFamilyPlans(userId, data);
     log.info("Family plans saved", { userId });
+    return toPersonalityDTO(personality);
+  }
+
+  // ─── What's important in your life? (religion & politics) ─────────────────────
+
+  async saveImportantLife(userId: string, data: ImportantLifeInput): Promise<PersonalityResponseDTO> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) {
+      log.warn("Important life save rejected: user not found", { userId });
+      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    }
+    const personality = await this.onboardingRepo.upsertImportantLife(
+      userId,
+      data.religion ?? [],
+      data.politics ?? [],
+    );
+    log.info("Important life saved", { userId });
     return toPersonalityDTO(personality);
   }
 
