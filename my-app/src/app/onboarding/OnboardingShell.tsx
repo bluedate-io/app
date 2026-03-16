@@ -7,7 +7,7 @@ import type { OnboardingStatus } from "./page";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TOTAL_SUB_STEPS = 15;
+const TOTAL_SUB_STEPS = 16;
 
 const HEIGHT_CM_MIN = 91;
 const HEIGHT_CM_MAX = 220;
@@ -203,11 +203,12 @@ function getInitialSubStep(status: OnboardingStatus): number {
     if (!goalsComplete) return 6;
     if (!hasHeight) return 7;
   }
-  // BFF: photos (12) → life experiences (13) → BFF interests (14)
+  // BFF: photos (12) → life experiences (13) → BFF interests (14) → relationship status (15)
   if (status.relationshipIntent === "friendship") {
     if (!status.hasPhotosStepCompleted) return 12;
     if (!status.hasLifeExperiences) return 13;
     if (!status.hasBffInterests) return 14;
+    if (!status.hasRelationshipStatus) return 15;
   }
   // Undecided: need goals (6) to resolve intent
   if (status.relationshipIntent === "undecided" && !goalsComplete) return 6;
@@ -884,6 +885,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const [religion, setReligion] = useState<string[]>([]);
   const [politics, setPolitics] = useState<string[]>([]);
   const [lifeExperiences, setLifeExperiences] = useState<string[]>([]);
+  const [relationshipStatus, setRelationshipStatus] = useState<string>("");
 
   // Scroll height list so the current selection appears centered initially,
   // to signal that the list can be scrolled.
@@ -1116,6 +1118,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       case 9: return !!drinkingHabit || !!smokingHabit;
       case 10: return kidsStatus !== "" || kidsPlans !== "";
       case 11: return religion.length > 0 || politics.length > 0;
+      case 15: return relationshipStatus !== "";
       default: return true;
     }
   })();
@@ -2049,15 +2052,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                   setStepError(null);
                   try {
                     await apiPost("bff-interests", { interests: [] });
-                    const res = await fetch("/api/onboarding/complete", {
-                      method: "POST",
-                      headers: { Authorization: `Bearer ${token}` },
-                    });
-                    if (!res.ok) {
-                      const j = await res.json();
-                      throw new Error(j.error?.message ?? "Could not complete onboarding");
-                    }
-                    router.refresh();
+                    setSubStep(15);
                   } catch (e) {
                     setStepError((e as Error).message);
                   } finally {
@@ -2081,15 +2076,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                     setStepError(null);
                     try {
                       await apiPost("bff-interests", { interests: bffInterests });
-                      const res = await fetch("/api/onboarding/complete", {
-                        method: "POST",
-                        headers: { Authorization: `Bearer ${token}` },
-                      });
-                      if (!res.ok) {
-                        const j = await res.json();
-                        throw new Error(j.error?.message ?? "Could not complete onboarding");
-                      }
-                      router.refresh();
+                      setSubStep(15);
                     } catch (e) {
                       setStepError((e as Error).message);
                     } finally {
@@ -2100,6 +2087,107 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                   loading={loading}
                 />
               </div>
+            </div>
+          </div>
+        )}
+        {/* ── STEP 15: Your relationship (BFF only) ───────────────────────────── */}
+        {subStep === 15 && (
+          <div className="flex flex-col flex-1">
+            <div className="flex justify-start mb-6">
+              <svg
+                className="w-12 h-12 text-gray-900"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                />
+              </svg>
+            </div>
+            <Heading>Your relationship</Heading>
+            <p className="text-sm text-gray-500 mb-2">
+              You can change this later. It&apos;ll show on your profile.
+            </p>
+
+            <div className="mt-4">
+              {[
+                "Single",
+                "In a relationship",
+                "Engaged",
+                "Married",
+                "It's complicated",
+                "Divorced",
+                "Widowed",
+              ].map((option) => (
+                <RadioRow
+                  key={option}
+                  label={option}
+                  selected={relationshipStatus === option}
+                  onClick={() => setRelationshipStatus(option)}
+                />
+              ))}
+            </div>
+
+            {stepError && <InlineError message={stepError} />}
+
+            <div className="mt-auto pt-8 flex items-end justify-between">
+              <button
+                type="button"
+                onClick={async () => {
+                  setLoading(true);
+                  setStepError(null);
+                  try {
+                    await apiPost("relationship-status", {});
+                    const res = await fetch("/api/onboarding/complete", {
+                      method: "POST",
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (!res.ok) {
+                      const j = await res.json();
+                      throw new Error(j.error?.message ?? "Could not complete onboarding");
+                    }
+                    router.refresh();
+                  } catch (e) {
+                    setStepError((e as Error).message);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+                className="text-sm font-medium hover:underline disabled:opacity-50"
+                style={{ color: ACCENT }}
+              >
+                Skip
+              </button>
+              <Fab
+                onClick={async () => {
+                  if (!relationshipStatus) return;
+                  setLoading(true);
+                  setStepError(null);
+                  try {
+                    await apiPost("relationship-status", { relationshipStatus });
+                    const res = await fetch("/api/onboarding/complete", {
+                      method: "POST",
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (!res.ok) {
+                      const j = await res.json();
+                      throw new Error(j.error?.message ?? "Could not complete onboarding");
+                    }
+                    router.refresh();
+                  } catch (e) {
+                    setStepError((e as Error).message);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={!canProceed || loading}
+                loading={loading}
+              />
             </div>
           </div>
         )}

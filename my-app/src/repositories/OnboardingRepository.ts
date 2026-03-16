@@ -27,6 +27,7 @@ import type {
   FamilyPlansInput,
   LifeExperiencesInput,
   BffInterestsInput,
+  RelationshipStatusInput,
 } from "@/validations/onboarding.validation";
 
 // null → undefined helpers
@@ -59,6 +60,7 @@ export interface IOnboardingRepository {
   upsertAvailability(userId: string, data: AvailabilityInput): Promise<Availability>;
   upsertAiSignals(userId: string, data: AiSignalsInput): Promise<AiSignals>;
   upsertLifeExperiences(userId: string, data: LifeExperiencesInput): Promise<Personality>;
+  upsertRelationshipStatus(userId: string, data: RelationshipStatusInput): Promise<Personality>;
   addPhoto(userId: string, url: string, order: number): Promise<Photo>;
   getPhotos(userId: string): Promise<Photo[]>;
   deletePhoto(photoId: string, userId: string): Promise<void>;
@@ -478,6 +480,51 @@ export class OnboardingRepository implements IOnboardingRepository {
     };
   }
 
+  async upsertRelationshipStatus(
+    userId: string,
+    data: RelationshipStatusInput,
+  ): Promise<Personality> {
+    // New fields relationshipStatus / relationshipStatusCompleted are added in Prisma schema.
+    // Cast to any until the generated client is refreshed.
+    const r = await (this.db.personality as any).upsert({
+      where: { userId },
+      create: {
+        userId,
+        socialLevel: "Not specified",
+        conversationStyle: "Not specified",
+        funFact: null,
+        kidsStatus: null,
+        kidsPreference: null,
+        religion: [],
+        politics: [],
+        lifeExperiences: [],
+        lifeExperiencesCompleted: false,
+        importantLifeCompleted: false,
+        familyPlansCompleted: false,
+        relationshipStatus: data.relationshipStatus ?? null,
+        relationshipStatusCompleted: true,
+      },
+      update: {
+        relationshipStatus: data.relationshipStatus ?? null,
+        relationshipStatusCompleted: true,
+      },
+    });
+    return {
+      id: r.id,
+      userId: r.userId,
+      socialLevel: n(r.socialLevel),
+      conversationStyle: n(r.conversationStyle),
+      funFact: n(r.funFact),
+      kidsStatus: n(r.kidsStatus),
+      kidsPreference: n(r.kidsPreference),
+      religion: r.religion ?? [],
+      politics: r.politics ?? [],
+      lifeExperiences: r.lifeExperiences ?? [],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      relationshipStatus: n((r as any).relationshipStatus),
+    };
+  }
+
   async upsertAvailability(userId: string, data: AvailabilityInput): Promise<Availability> {
     const r = await this.db.availability.upsert({
       where: { userId },
@@ -560,13 +607,14 @@ export class OnboardingRepository implements IOnboardingRepository {
           where: { userId },
           select: { id: true, bffInterestsCompleted: true },
         }),
-        this.db.personality.findUnique({
+        (this.db.personality as any).findUnique({
           where: { userId },
           select: {
             id: true,
             familyPlansCompleted: true,
             importantLifeCompleted: true,
             lifeExperiencesCompleted: true,
+            relationshipStatusCompleted: true,
           },
         }),
         this.db.availability.findUnique({ where: { userId }, select: { id: true } }),
@@ -579,9 +627,10 @@ export class OnboardingRepository implements IOnboardingRepository {
     const hasPreferencesComplete = intentComplete || goalsComplete;
     const hasHeight = !!(preferences && preferences.heightCompleted);
     const hasDatingMode = !!(preferences && preferences.datingModeCompleted);
-    const hasFamilyPlans = !!(personality && personality.familyPlansCompleted);
-    const hasImportantLife = !!(personality && personality.importantLifeCompleted);
-    const hasLifeExperiences = !!(personality && personality.lifeExperiencesCompleted);
+    const hasFamilyPlans = !!(personality && (personality as any).familyPlansCompleted);
+    const hasImportantLife = !!(personality && (personality as any).importantLifeCompleted);
+    const hasLifeExperiences = !!(personality && (personality as any).lifeExperiencesCompleted);
+    const hasRelationshipStatus = !!(personality && (personality as any).relationshipStatusCompleted);
     const hasBffInterests = !!(interests && interests.bffInterestsCompleted);
     const hasPhotosStepCompleted = !!(preferences && preferences.photosStepCompleted);
     return {
@@ -608,6 +657,7 @@ export class OnboardingRepository implements IOnboardingRepository {
       hasLifeExperiences,
       hasBffInterests,
       hasPhotosStepCompleted,
+      hasRelationshipStatus,
     };
   }
 
