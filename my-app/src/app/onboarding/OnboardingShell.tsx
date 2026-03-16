@@ -7,7 +7,7 @@ import type { OnboardingStatus } from "./page";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TOTAL_SUB_STEPS = 11;
+const TOTAL_SUB_STEPS = 12;
 
 const HEIGHT_CM_MIN = 91;
 const HEIGHT_CM_MAX = 220;
@@ -80,6 +80,13 @@ const DRINKING_OPTIONS = [
   "No, I don't drink", "I'm sober",
 ];
 const SMOKING_OPTIONS = ["I smoke sometimes", "No, I don't smoke"];
+const KIDS_HAVE_OPTIONS = ["Have kids", "Don't have kids"] as const;
+const KIDS_PLANS_OPTIONS = [
+  "Don't want kids",
+  "Open to kids",
+  "Want kids",
+  "Not sure",
+] as const;
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -674,6 +681,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const [interestSearch, setInterestSearch] = useState("");
   const [drinkingHabit, setDrinkingHabit] = useState("");
   const [smokingHabit, setSmokingHabit] = useState("");
+  const [kidsStatus, setKidsStatus] = useState("");
+  const [kidsPlans, setKidsPlans] = useState("");
 
   const apiPost = async (path: string, body: unknown) => {
     const res = await fetch(`/api/onboarding/${path}`, {
@@ -819,6 +828,13 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
         await apiPost("availability", { days: ["fri", "sat", "sun"], times: ["evening"] });
       }
 
+      if (subStep === 10) {
+        await apiPost("family-plans", {
+          kidsStatus,
+          kidsPreference: kidsPlans,
+        });
+      }
+
       setSubStep((s) => s + 1);
       setInviteCodeError(null);
     } catch (e) {
@@ -874,14 +890,15 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       case 7: return heightCm >= HEIGHT_CM_MIN && heightCm <= HEIGHT_CM_MAX;
       case 8: return interests.length > 0;
       case 9: return true;
+      case 10: return kidsStatus !== "" && kidsPlans !== "";
       default: return true;
     }
   })();
 
-  const isSkippable = subStep === 8 || subStep === 9;
+  const isSkippable = subStep === 8 || subStep === 9 || subStep === 10;
   const progressPct = Math.round(((subStep + 1) / TOTAL_SUB_STEPS) * 100);
 
-  if (subStep === 10) {
+  if (subStep === 11) {
     return <PhotosStep token={token} status={status} onDone={() => router.refresh()} />;
   }
 
@@ -1443,6 +1460,67 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                 Skip
               </button>
               <Fab onClick={handleNext} loading={loading} />
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 10: Kids / family plans ───────────────────────────────── */}
+        {subStep === 10 && (
+          <div className="flex flex-col flex-1">
+            <div className="flex justify-start mb-6">
+              <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9.813 7.5 9 9.75l-.813-2.25A4.5 4.5 0 0 0 4.5 5.25H3.75A.75.75 0 0 0 3 6v11.25A1.75 1.75 0 0 0 4.75 19h3.5A1.75 1.75 0 0 0 10 17.25V13.5h4.25A2.75 2.75 0 0 0 17 10.75v-3A2.75 2.75 0 0 0 14.25 5H12a2.25 2.25 0 0 0-2.187 2.5z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M18 9.75A2.25 2.25 0 0 1 20.25 12v5.25A1.75 1.75 0 0 1 18.5 19h-3.5A1.75 1.75 0 0 1 13.25 17.25V13.5"
+                />
+              </svg>
+            </div>
+            <Heading>Do you have kids or family plans?</Heading>
+            <p className="text-sm text-gray-500 mb-8">
+              Let&apos;s get deeper. Feel free to skip if you&apos;d prefer not to say.
+            </p>
+
+            <p className="text-sm font-semibold text-gray-700 mb-3">Have kids</p>
+            <div className="flex flex-wrap gap-2 mb-7">
+              {KIDS_HAVE_OPTIONS.map((opt) => (
+                <Pill
+                  key={opt}
+                  label={opt}
+                  selected={kidsStatus === opt}
+                  onClick={() => setKidsStatus(kidsStatus === opt ? "" : opt)}
+                />
+              ))}
+            </div>
+
+            <p className="text-sm font-semibold text-gray-700 mb-3">Kids</p>
+            <div className="flex flex-wrap gap-2">
+              {KIDS_PLANS_OPTIONS.map((opt) => (
+                <Pill
+                  key={opt}
+                  label={opt}
+                  selected={kidsPlans === opt}
+                  onClick={() => setKidsPlans(kidsPlans === opt ? "" : opt)}
+                />
+              ))}
+            </div>
+
+            {stepError && <InlineError message={stepError} />}
+
+            <div className="mt-auto pt-8 flex items-end justify-between">
+              <button
+                onClick={handleSkip} disabled={loading}
+                className="text-sm font-medium hover:underline disabled:opacity-50"
+                style={{ color: ACCENT }}
+              >
+                Skip
+              </button>
+              <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
             </div>
           </div>
         )}

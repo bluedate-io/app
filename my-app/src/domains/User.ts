@@ -62,6 +62,8 @@ export interface Personality {
   socialLevel?: string;
   conversationStyle?: string;
   funFact?: string;
+  kidsStatus?: string;
+  kidsPreference?: string;
 }
 
 export interface Availability {

@@ -47,6 +47,8 @@ export interface PersonalityResponseDTO {
   socialLevel?: string;
   conversationStyle?: string;
   funFact?: string;
+  kidsStatus?: string;
+  kidsPreference?: string;
 }
 
 export interface AvailabilityResponseDTO {
@@ -107,6 +109,8 @@ export const toPersonalityDTO = (p: Personality): PersonalityResponseDTO => ({
   socialLevel: p.socialLevel,
   conversationStyle: p.conversationStyle,
   funFact: p.funFact,
+  kidsStatus: p.kidsStatus,
+  kidsPreference: p.kidsPreference,
 });
 
 export const toAvailabilityDTO = (a: Availability): AvailabilityResponseDTO => ({

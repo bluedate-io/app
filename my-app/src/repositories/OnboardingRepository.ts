@@ -24,6 +24,7 @@ import type {
   PersonalityInput,
   AvailabilityInput,
   AiSignalsInput,
+  FamilyPlansInput,
 } from "@/validations/onboarding.validation";
 
 // null → undefined helpers
@@ -50,6 +51,7 @@ export interface IOnboardingRepository {
   upsertPreferences(userId: string, data: PreferencesInput): Promise<Preferences>;
   upsertInterests(userId: string, data: InterestsInput): Promise<Interests>;
   upsertPersonality(userId: string, data: PersonalityInput): Promise<Personality>;
+  upsertFamilyPlans(userId: string, data: FamilyPlansInput): Promise<Personality>;
   upsertAvailability(userId: string, data: AvailabilityInput): Promise<Availability>;
   upsertAiSignals(userId: string, data: AiSignalsInput): Promise<AiSignals>;
   addPhoto(userId: string, url: string, order: number): Promise<Photo>;
@@ -321,6 +323,35 @@ export class OnboardingRepository implements IOnboardingRepository {
       socialLevel: n(r.socialLevel),
       conversationStyle: n(r.conversationStyle),
       funFact: n(r.funFact),
+      kidsStatus: n(r.kidsStatus),
+      kidsPreference: n(r.kidsPreference),
+    };
+  }
+
+  async upsertFamilyPlans(userId: string, data: FamilyPlansInput): Promise<Personality> {
+    const r = await this.db.personality.upsert({
+      where: { userId },
+      create: {
+        userId,
+        socialLevel: "Not specified",
+        conversationStyle: "Not specified",
+        funFact: null,
+        kidsStatus: data.kidsStatus,
+        kidsPreference: data.kidsPreference,
+      },
+      update: {
+        kidsStatus: data.kidsStatus,
+        kidsPreference: data.kidsPreference,
+      },
+    });
+    return {
+      id: r.id,
+      userId: r.userId,
+      socialLevel: n(r.socialLevel),
+      conversationStyle: n(r.conversationStyle),
+      funFact: n(r.funFact),
+      kidsStatus: n(r.kidsStatus),
+      kidsPreference: n(r.kidsPreference),
     };
   }
 
