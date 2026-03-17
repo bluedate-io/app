@@ -1,28 +1,17 @@
 // ─── POST /api/webhooks/whatsapp ──────────────────────────────────────────────
 // Twilio sends incoming WhatsApp messages here as application/x-www-form-urlencoded.
-// We validate the Twilio signature, run the bot state machine, and reply with TwiML.
+// We validate the Twilio signature, run the bot state machine, and send the reply
+// via Twilio REST API (interactive messages). TwiML returns an empty <Response/>.
 
 import { NextRequest, NextResponse } from "next/server";
 import twilio from "twilio";
 import { container } from "@/lib/container";
 import { config } from "@/config";
 
-function twiml(message: string): NextResponse {
-  const body = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${escapeXml(message)}</Message></Response>`;
-  return new NextResponse(body, {
-    status: 200,
-    headers: { "Content-Type": "text/xml; charset=utf-8" },
-  });
-}
-
-function escapeXml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
+const EMPTY_RESPONSE = new NextResponse(
+  `<?xml version="1.0" encoding="UTF-8"?><Response/>`,
+  { status: 200, headers: { "Content-Type": "text/xml; charset=utf-8" } },
+);
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // Parse form body
@@ -52,12 +41,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return new NextResponse("Bad Request", { status: 400 });
   }
 
-  const reply = await container.whatsAppBotService.handleMessage(
+  const msg = await container.whatsAppBotService.handleMessage(
     from,
     body,
     mediaUrl,
     mediaContentType,
   );
 
-  return twiml(reply);
+  // Send reply via Twilio REST API (await so Twilio doesn't retry on timeout)
+  await container.waInteractiveService.send(from, msg).catch(() => {
+    // Errors already logged inside WaInteractiveService
+  });
+
+  return EMPTY_RESPONSE;
 }

@@ -12,6 +12,7 @@ import { AuthService } from "@/services/AuthService";
 import { OnboardingService } from "@/services/OnboardingService";
 import { InviteCodeService } from "@/services/InviteCodeService";
 import { WhatsAppBotService } from "@/services/WhatsAppBotService";
+import { WaInteractiveService } from "@/services/WaInteractiveService";
 import { AuthController } from "@/controllers/AuthController";
 import { OnboardingController } from "@/controllers/OnboardingController";
 
@@ -40,6 +41,7 @@ const whatsAppBotService = new WhatsAppBotService(
   onboardingRepository,
   inviteCodeService,
 );
+const waInteractiveService = new WaInteractiveService();
 
 // ─── Controllers ──────────────────────────────────────────────────────────────
 const authController = new AuthController(authService, userRepository);
@@ -57,6 +59,7 @@ export const container = {
   authService,
   onboardingService,
   whatsAppBotService,
+  waInteractiveService,
 
   // Controllers
   authController,
