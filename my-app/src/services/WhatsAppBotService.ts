@@ -33,52 +33,205 @@ const STEPS = {
 type Step = (typeof STEPS)[keyof typeof STEPS];
 
 // ─── Messages ─────────────────────────────────────────────────────────────────
+// WhatsApp formatting: *bold* _italic_  ~strikethrough~
+
+const DIVIDER = "─────────────────";
 
 const MSG = {
-  WELCOME: (name?: string) =>
-    name
-      ? `👋 Welcome back, ${name}! Your profile is all set.\nOpen the app to start matching 💙`
-      : `👋 Hi! I'm the bluedate bot.\nLet's set up your profile!\n\nWhat's your *first name*?`,
+  ASK_NAME: [
+    `💙 *bluedate*`,
+    ``,
+    `Hi there! 👋 I'm here to help you set up your dating profile.`,
+    ``,
+    `Let's start — what's your *first name*?`,
+  ].join("\n"),
+
   PROFILE_DOB: (name: string) =>
-    `Great name, ${name}! 🎉\n\nWhat's your *date of birth*?\nReply in DD/MM/YYYY format (e.g. 14/03/1998)`,
-  GENDER: `Which *gender* best describes you?\n\nReply:\n• *Man*\n• *Woman*\n• *Non-binary*\n• Or type your own`,
+    [
+      `Great name, *${name}!* 🎉`,
+      ``,
+      `What's your *date of birth*?`,
+      `Reply in *DD/MM/YYYY* format`,
+      `_e.g. 14/03/1998_`,
+      ``,
+      `_Reply *0* to go back_`,
+    ].join("\n"),
+
+  GENDER: [
+    `💙 *Gender Identity*`,
+    DIVIDER,
+    `Which best describes you?`,
+    ``,
+    `*1* — Woman`,
+    `*2* — Man`,
+    `*3* — Non-binary`,
+    `*4* — Type your own`,
+    ``,
+    `Reply with a number`,
+    `_Reply *0* to go back_`,
+  ].join("\n"),
+
   INVITE_CODE: (gender: string) => {
     const lower = gender.trim().toLowerCase();
-    const isWoman = lower === "woman" || lower === "women";
-    const isMan = lower === "man" || lower === "men";
-    const opposite = isWoman ? "a *man*" : isMan ? "a *woman*" : "a *man* or *woman*";
-    return `To continue, you need an invite code from ${opposite}.\n\nAsk them to message us *invite code* on WhatsApp. They'll get a code to share with you.\n\nReply with the *invite code* they give you:`;
+    const isWoman = lower === "woman";
+    const isMan = lower === "man";
+    const from = isWoman ? "a *man*" : isMan ? "a *woman*" : "a *man* or *woman*";
+    return [
+      `🔑 *Invite Code Required*`,
+      DIVIDER,
+      `To join bluedate, you need an invite code from ${from}.`,
+      ``,
+      `Ask them to send *invite code* on WhatsApp — they'll get a code to share with you.`,
+      ``,
+      `Enter your invite code:`,
+      `_Reply *0* to go back_`,
+    ].join("\n");
   },
-  DATING_MODE: `What are you looking for?\n\nReply:\n• *Date* — find a romantic partner\n• *BFF* — find a best friend`,
-  WHO_TO_MEET_DATE: `Who would you like to meet?\n\nReply:\n• *Man*\n• *Woman*\n• *Everyone*`,
-  WHO_TO_MEET_BFF: `Who would you like to meet?\n\nReply:\n• *Man*\n• *Woman*\n• *Everyone*`,
-  RELATIONSHIP_GOALS: `What are you looking for in a relationship?\n\nReply:\n• *Casual* — something fun and light\n• *Long-term* — a serious relationship\n• *Marriage* — looking to settle down`,
-  INTERESTS: `What are your *interests*? 🎯\n\nType up to 5, comma-separated:\n(e.g. Travel, Music, Cooking, Hiking, Movies)\n\nOr reply *skip* to continue`,
-  HABITS_DRINKING: `Do you *drink*? 🍷\n\nReply:\n• *Yes*\n• *Sometimes*\n• *No*`,
-  HABITS_SMOKING: `Do you *smoke*? 🚬\n\nReply:\n• *Yes*\n• *Sometimes*\n• *No*`,
-  PHOTOS: `Almost done! 📸\n\nPlease send at least *2 profile photos*.\nWhen you're done, reply *done*.`,
+
+  DATING_MODE: [
+    `💙 *What brings you here?*`,
+    DIVIDER,
+    `*1* — 💕 *Date*`,
+    `        Find a romantic partner`,
+    `*2* — 🤝 *BFF*`,
+    `        Make new friends`,
+    ``,
+    `Reply with a number`,
+    `_Reply *0* to go back_`,
+  ].join("\n"),
+
+  WHO_TO_MEET: [
+    `💙 *Who would you like to meet?*`,
+    DIVIDER,
+    `*1* — Men`,
+    `*2* — Women`,
+    `*3* — Everyone`,
+    ``,
+    `Reply with a number`,
+    `_Reply *0* to go back_`,
+  ].join("\n"),
+
+  RELATIONSHIP_GOALS: [
+    `💙 *Relationship Goals*`,
+    DIVIDER,
+    `What are you hoping to find?`,
+    ``,
+    `*1* — Fun, casual dates`,
+    `*2* — A long-term relationship`,
+    `*3* — Marriage`,
+    `*4* — Ethical non-monogamy`,
+    ``,
+    `Reply with a number`,
+    `_Reply *0* to go back_`,
+  ].join("\n"),
+
+  INTERESTS: [
+    `💙 *Your Interests* 🎯`,
+    DIVIDER,
+    `Type up to 5 interests, separated by commas:`,
+    `_e.g. Travel, Music, Gaming, Cooking, Hiking_`,
+    ``,
+    `Or reply *skip* to continue`,
+    `_Reply *0* to go back_`,
+  ].join("\n"),
+
+  HABITS_DRINKING: [
+    `💙 *Lifestyle* 🍷`,
+    DIVIDER,
+    `Do you drink?`,
+    ``,
+    `*1* — Yes, I drink`,
+    `*2* — Sometimes`,
+    `*3* — Rarely`,
+    `*4* — No, I don't drink`,
+    `*5* — I'm sober`,
+    ``,
+    `Reply with a number`,
+    `_Reply *0* to go back_`,
+  ].join("\n"),
+
+  HABITS_SMOKING: [
+    `💙 *Lifestyle* 🚬`,
+    DIVIDER,
+    `Do you smoke?`,
+    ``,
+    `*1* — Yes, I smoke`,
+    `*2* — Sometimes`,
+    `*3* — No, I don't smoke`,
+    ``,
+    `Reply with a number`,
+    `_Reply *0* to go back_`,
+  ].join("\n"),
+
+  PHOTOS: [
+    `📸 *Profile Photos*`,
+    DIVIDER,
+    `Almost done! Please send at least *2 photos* of yourself.`,
+    `You can send them one by one.`,
+    ``,
+    `When you're finished, reply *done*`,
+    `_Reply *0* to go back_`,
+  ].join("\n"),
+
   PHOTOS_MORE: (count: number) =>
-    `Got it! ${count} photo${count !== 1 ? "s" : ""} received so far.\nSend more or reply *done* when finished.`,
+    [
+      `✅ *${count} photo${count !== 1 ? "s" : ""} received!*`,
+      ``,
+      `Send more, or reply *done* when finished.`,
+    ].join("\n"),
+
   PHOTOS_NEED_MORE: (count: number) =>
-    `You've sent ${count} photo${count !== 1 ? "s" : ""} so far. Please send at least *2* photos before replying done.`,
-  COMPLETE: `🎉 You're all set!\n\nYour bluedate profile is ready. Open the app to start matching! 💙`,
-  ERROR_NAME: `Please enter a valid first name (letters only, at least 2 characters).`,
-  ERROR_DOB: `That doesn't look right. Please reply with your date of birth in *DD/MM/YYYY* format.`,
-  ERROR_DOB_AGE: `You must be at least 18 years old to join bluedate.`,
-  ERROR_GENDER: `Please reply with *Man*, *Woman*, *Non-binary* or type your own.`,
-  ERROR_INVITE_CODE: `That code isn't valid or has already been used. Men need a code from a woman; women need a code from a man. Ask for a new code.`,
-  ERROR_DATING_MODE: `Please reply *Date* or *BFF*.`,
-  ERROR_WHO_TO_MEET: `Please reply *Man*, *Woman*, or *Everyone*.`,
-  ERROR_RELATIONSHIP_GOALS: `Please reply *Casual*, *Long-term*, or *Marriage*.`,
-  ERROR_DRINKING: `Please reply *Yes*, *Sometimes*, or *No*.`,
-  ERROR_SMOKING: `Please reply *Yes*, *Sometimes*, or *No*.`,
-  ERROR_NO_PHOTO: `Please send a photo image, or reply *done* when you have uploaded at least 2.`,
+    [
+      `You've sent *${count} photo${count !== 1 ? "s" : ""}* so far.`,
+      `Please send at least *2* before replying done.`,
+    ].join("\n"),
+
+  WELCOME_BACK: (name: string) =>
+    [
+      `👋 Welcome back, *${name}!*`,
+      ``,
+      `Your bluedate profile is all set.`,
+      `Open the app to start matching 💙`,
+    ].join("\n"),
+
+  COMPLETE: [
+    `🎉 *You're all set!*`,
+    DIVIDER,
+    `Your bluedate profile is ready.`,
+    `Open the app to start matching! 💙`,
+  ].join("\n"),
+
+  // ── Errors ────────────────────────────────────────────────────────────────
+
+  ERROR_NAME: `Please enter a valid first name _(letters only, at least 2 characters)_.`,
+  ERROR_DOB: [
+    `That doesn't look right. Please reply with your date of birth in *DD/MM/YYYY* format.`,
+    `_e.g. 14/03/1998_`,
+  ].join("\n"),
+  ERROR_DOB_AGE: `You must be at least *18 years old* to join bluedate.`,
+  ERROR_GENDER: `Please reply with *1*, *2*, *3*, or type your own.`,
+  ERROR_INVITE_CODE: [
+    `❌ That code isn't valid or has already been used.`,
+    ``,
+    `Ask for a new code and try again, or reply *0* to go back.`,
+  ].join("\n"),
+  ERROR_DATING_MODE: `Please reply *1* for Date or *2* for BFF.`,
+  ERROR_WHO_TO_MEET: `Please reply *1* (Men), *2* (Women), or *3* (Everyone).`,
+  ERROR_RELATIONSHIP_GOALS: `Please reply *1*, *2*, *3*, or *4* to choose a goal.`,
+  ERROR_DRINKING: `Please reply *1*, *2*, *3*, *4*, or *5* to choose.`,
+  ERROR_SMOKING: `Please reply *1*, *2*, or *3* to choose.`,
+  ERROR_NO_PHOTO: `Please send a photo 📸, or reply *done* when you have at least 2.`,
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function normalise(text: string): string {
   return text.trim().toLowerCase();
+}
+
+function isBack(text: string): boolean {
+  const n = normalise(text);
+  return n === "0" || n === "back";
 }
 
 /** Parse DD/MM/YYYY → YYYY-MM-DD, returns null on failure */
@@ -104,12 +257,30 @@ function computeAge(dateOfBirth: string): number {
   return age;
 }
 
-function mapGenderPreference(raw: string): string[] {
-  const n = normalise(raw);
-  if (n === "man" || n === "men") return ["Man"];
-  if (n === "woman" || n === "women") return ["Woman"];
-  if (n === "everyone" || n === "both" || n === "all") return ["Man", "Woman", "Non-binary"];
-  return [raw.trim()];
+/** Parse numbered gender selection */
+function parseGenderChoice(text: string): string | null {
+  const n = normalise(text);
+  if (n === "1") return "Woman";
+  if (n === "2") return "Man";
+  if (n === "3") return "Non-binary";
+  if (n === "4") return null; // user will type on next message
+  // Free-text fallback — accept if at least 2 chars
+  if (text.trim().length >= 2) return text.trim();
+  return null;
+}
+
+function mapGenderPreference(choice: string): string[] {
+  switch (choice) {
+    case "1": return ["Man"];
+    case "2": return ["Woman"];
+    case "3": return ["Man", "Woman", "Non-binary"];
+    default: {
+      const n = normalise(choice);
+      if (n === "man" || n === "men") return ["Man"];
+      if (n === "woman" || n === "women") return ["Woman"];
+      return ["Man", "Woman", "Non-binary"];
+    }
+  }
 }
 
 // ─── Supabase photo upload ────────────────────────────────────────────────────
@@ -119,7 +290,6 @@ async function uploadBufferToSupabase(
   buffer: Buffer,
   contentType: string,
 ): Promise<string> {
-  // Strip parameters like "image/jpeg; name=photo.jpg" → "jpeg"
   const mimeBase = contentType.split(";")[0].trim();
   const ext = mimeBase.split("/")[1] ?? "jpg";
   const path = `${userId}/${Date.now()}.${ext}`;
@@ -142,14 +312,6 @@ export class WhatsAppBotService {
     private readonly inviteCodeService: InviteCodeService,
   ) {}
 
-  /**
-   * Main entry point called from the webhook route.
-   * @param from       Raw Twilio "From" field, e.g. "whatsapp:+919876543210"
-   * @param body       Text content of the message
-   * @param mediaUrl   First media URL if the message contains an image
-   * @param mediaContentType  MIME type of the media
-   * @returns          Plain text reply to send back via TwiML
-   */
   async handleMessage(
     from: string,
     body: string,
@@ -159,30 +321,25 @@ export class WhatsAppBotService {
     const phone = from.replace(/^whatsapp:/, "");
     const text = body?.trim() ?? "";
 
-    // Global intent: request invite code (any step)
-    const inviteCodeRequest = normalise(text).replace(/\s+/g, " ");
-    if (inviteCodeRequest === "invite code" || inviteCodeRequest === "invitecode") {
+    // Global: request invite code (any step)
+    const normalised = normalise(text).replace(/\s+/g, " ");
+    if (normalised === "invite code" || normalised === "invitecode") {
       try {
         return await this.inviteCodeService.requestCode(phone);
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        const stack = err instanceof Error ? err.stack : undefined;
-        log.error("Invite code request failed", { phone, message, stack });
+        log.error("Invite code request failed", { phone, err });
         return "Something went wrong. Please try again in a moment.";
       }
     }
 
-    // Load or initialise session
-    let session = await this.sessionRepo.findByPhone(phone);
+    const session = await this.sessionRepo.findByPhone(phone);
     const step: Step = (session?.step as Step) ?? STEPS.WELCOME;
     const tempData: Record<string, unknown> = session?.tempData ?? {};
 
     try {
       return await this.dispatch(phone, step, tempData, text, mediaUrl, mediaContentType);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      const stack = err instanceof Error ? err.stack : undefined;
-      log.error("WhatsApp bot error", { phone, step, message, stack });
+      log.error("WhatsApp bot error", { phone, step, err });
       return "Sorry, something went wrong. Please try again in a moment.";
     }
   }
@@ -197,6 +354,12 @@ export class WhatsAppBotService {
     mediaUrl?: string,
     mediaContentType?: string,
   ): Promise<string> {
+    // Global back command (except from terminal states)
+    const terminal = [STEPS.WELCOME, STEPS.COMPLETE, STEPS.REGISTERED];
+    if (isBack(text) && !terminal.includes(step as typeof terminal[number])) {
+      return this.handleBack(phone, step, tempData);
+    }
+
     switch (step) {
       case STEPS.WELCOME:
         return this.handleWelcome(phone, tempData);
@@ -221,13 +384,72 @@ export class WhatsAppBotService {
       case STEPS.PHOTOS:
         return this.handlePhotos(phone, tempData, text, mediaUrl, mediaContentType);
       case STEPS.COMPLETE:
-      case STEPS.REGISTERED:
-        return MSG.COMPLETE;
+      case STEPS.REGISTERED: {
+        const name = (tempData.fullName as string | undefined) ?? "";
+        return MSG.WELCOME_BACK(name || phone);
+      }
       default:
-        // Unknown step — reset
         await this.sessionRepo.upsert(phone, STEPS.WELCOME, {});
-        return MSG.WELCOME();
+        return MSG.ASK_NAME;
     }
+  }
+
+  // ─── Back navigation ────────────────────────────────────────────────────────
+
+  private async handleBack(
+    phone: string,
+    currentStep: Step,
+    tempData: Record<string, unknown>,
+  ): Promise<string> {
+    const isWoman = normalise((tempData.genderIdentity as string) ?? "") === "woman";
+    const datingMode = tempData.datingMode as string | undefined;
+
+    type BackEntry = { step: Step; prompt: string; clearKeys?: string[] };
+
+    const map: Partial<Record<Step, BackEntry>> = {
+      [STEPS.PROFILE_DOB]: tempData.fullName
+        // If name already captured, go back to ask name again
+        ? { step: STEPS.PROFILE_DOB, prompt: MSG.ASK_NAME, clearKeys: ["fullName"] }
+        // If still on name question, nowhere to go
+        : { step: STEPS.WELCOME, prompt: MSG.ASK_NAME },
+
+      [STEPS.GENDER]: {
+        step: STEPS.PROFILE_DOB,
+        prompt: MSG.PROFILE_DOB(tempData.fullName as string),
+      },
+
+      [STEPS.INVITE_CODE]: {
+        step: STEPS.GENDER,
+        prompt: MSG.GENDER,
+      },
+
+      [STEPS.DATING_MODE]: isWoman
+        ? { step: STEPS.GENDER, prompt: MSG.GENDER }
+        : { step: STEPS.INVITE_CODE, prompt: MSG.INVITE_CODE(tempData.genderIdentity as string) },
+
+      [STEPS.WHO_TO_MEET]: { step: STEPS.DATING_MODE, prompt: MSG.DATING_MODE },
+
+      [STEPS.RELATIONSHIP_GOALS]: { step: STEPS.WHO_TO_MEET, prompt: MSG.WHO_TO_MEET },
+
+      [STEPS.INTERESTS]: datingMode === "bff"
+        ? { step: STEPS.WHO_TO_MEET, prompt: MSG.WHO_TO_MEET }
+        : { step: STEPS.RELATIONSHIP_GOALS, prompt: MSG.RELATIONSHIP_GOALS },
+
+      [STEPS.HABITS_DRINKING]: { step: STEPS.INTERESTS, prompt: MSG.INTERESTS },
+
+      [STEPS.HABITS_SMOKING]: { step: STEPS.HABITS_DRINKING, prompt: MSG.HABITS_DRINKING },
+
+      [STEPS.PHOTOS]: { step: STEPS.HABITS_SMOKING, prompt: MSG.HABITS_SMOKING },
+    };
+
+    const entry = map[currentStep];
+    if (!entry) return MSG.ASK_NAME;
+
+    const newData = { ...tempData };
+    for (const k of entry.clearKeys ?? []) delete newData[k];
+
+    await this.sessionRepo.upsert(phone, entry.step, newData);
+    return entry.prompt;
   }
 
   // ─── Step handlers ───────────────────────────────────────────────────────────
@@ -237,26 +459,12 @@ export class WhatsAppBotService {
 
     if (user.onboardingCompleted) {
       await this.sessionRepo.upsert(phone, STEPS.REGISTERED, { userId: user.id });
-      const profile = await this.onboardingRepo.getOnboardingStatus(user.id);
-      return MSG.WELCOME(profile.fullName ?? user.phone);
+      const status = await this.onboardingRepo.getOnboardingStatus(user.id);
+      return MSG.WELCOME_BACK(status.fullName ?? phone);
     }
 
-    // Advance to name capture — reply asks for name
     await this.sessionRepo.upsert(phone, STEPS.PROFILE_DOB, { userId: user.id });
-    return MSG.WELCOME();
-  }
-
-  private async handleProfileName(
-    phone: string,
-    tempData: Record<string, unknown>,
-    text: string,
-  ): Promise<string> {
-    const name = text.trim();
-    if (!name || name.length < 2 || !/^[a-zA-Z\s'-]+$/.test(name)) {
-      return MSG.ERROR_NAME;
-    }
-    await this.sessionRepo.upsert(phone, STEPS.PROFILE_DOB, { ...tempData, fullName: name });
-    return MSG.PROFILE_DOB(name);
+    return MSG.ASK_NAME;
   }
 
   private async handleProfileDob(
@@ -264,11 +472,17 @@ export class WhatsAppBotService {
     tempData: Record<string, unknown>,
     text: string,
   ): Promise<string> {
-    // If no name captured yet (first real message after WELCOME prompt), capture name
+    // First sub-step: capture name
     if (!tempData.fullName) {
-      return this.handleProfileName(phone, tempData, text);
+      const name = text.trim();
+      if (!name || name.length < 2 || !/^[a-zA-Z\s'-]+$/.test(name)) {
+        return MSG.ERROR_NAME;
+      }
+      await this.sessionRepo.upsert(phone, STEPS.PROFILE_DOB, { ...tempData, fullName: name });
+      return MSG.PROFILE_DOB(name);
     }
 
+    // Second sub-step: capture DOB
     const dateOfBirth = parseDOB(text);
     if (!dateOfBirth) return MSG.ERROR_DOB;
     if (computeAge(dateOfBirth) < 18) return MSG.ERROR_DOB_AGE;
@@ -288,11 +502,18 @@ export class WhatsAppBotService {
     tempData: Record<string, unknown>,
     text: string,
   ): Promise<string> {
-    const value = text.trim();
-    if (!value || value.length < 1) return MSG.ERROR_GENDER;
+    const value = parseGenderChoice(text);
+    if (!value) return MSG.ERROR_GENDER;
 
     const userId = tempData.userId as string;
     await this.onboardingRepo.upsertGenderIdentity(userId, { genderIdentity: value });
+
+    const isWoman = normalise(value) === "woman";
+    if (isWoman) {
+      // Women skip invite code
+      await this.sessionRepo.upsert(phone, STEPS.DATING_MODE, { ...tempData, genderIdentity: value });
+      return MSG.DATING_MODE;
+    }
 
     await this.sessionRepo.upsert(phone, STEPS.INVITE_CODE, { ...tempData, genderIdentity: value });
     return MSG.INVITE_CODE(value);
@@ -324,13 +545,17 @@ export class WhatsAppBotService {
     text: string,
   ): Promise<string> {
     const n = normalise(text);
-    if (n !== "date" && n !== "bff") return MSG.ERROR_DATING_MODE;
+    const modeMap: Record<string, "date" | "bff"> = {
+      "1": "date", date: "date",
+      "2": "bff", bff: "bff",
+    };
+    const datingMode = modeMap[n];
+    if (!datingMode) return MSG.ERROR_DATING_MODE;
 
-    const datingMode = n as "date" | "bff";
     const userId = tempData.userId as string;
     await this.onboardingRepo.upsertDatingMode(userId, datingMode);
     await this.sessionRepo.upsert(phone, STEPS.WHO_TO_MEET, { ...tempData, datingMode });
-    return datingMode === "bff" ? MSG.WHO_TO_MEET_BFF : MSG.WHO_TO_MEET_DATE;
+    return MSG.WHO_TO_MEET;
   }
 
   private async handleWhoToMeet(
@@ -339,36 +564,26 @@ export class WhatsAppBotService {
     text: string,
   ): Promise<string> {
     const n = normalise(text);
-    const valid = ["man", "men", "woman", "women", "everyone", "both", "all"];
+    const valid = ["1", "2", "3", "man", "men", "woman", "women", "everyone", "both", "all"];
     if (!valid.includes(n)) return MSG.ERROR_WHO_TO_MEET;
 
     const genderPreference = mapGenderPreference(text);
     const userId = tempData.userId as string;
     const datingMode = tempData.datingMode as string;
 
-    if (datingMode === "bff") {
-      // Skip relationship goals — update who-to-meet only (relationshipIntent already "friendship" from dating-mode step)
-      await this.onboardingRepo.upsertPreferences(userId, {
-        genderIdentity: tempData.genderIdentity as string,
-        genderPreference,
-        ageRangeMin: 18,
-        ageRangeMax: 60,
-      });
-      await this.sessionRepo.upsert(phone, STEPS.INTERESTS, { ...tempData, genderPreference });
-      return MSG.INTERESTS;
-    }
-
-    // Date mode: save who-to-meet without overwriting relationshipIntent ("date")
     await this.onboardingRepo.upsertPreferences(userId, {
       genderIdentity: tempData.genderIdentity as string,
       genderPreference,
       ageRangeMin: 18,
       ageRangeMax: 60,
     });
-    await this.sessionRepo.upsert(phone, STEPS.RELATIONSHIP_GOALS, {
-      ...tempData,
-      genderPreference,
-    });
+
+    if (datingMode === "bff") {
+      await this.sessionRepo.upsert(phone, STEPS.INTERESTS, { ...tempData, genderPreference });
+      return MSG.INTERESTS;
+    }
+
+    await this.sessionRepo.upsert(phone, STEPS.RELATIONSHIP_GOALS, { ...tempData, genderPreference });
     return MSG.RELATIONSHIP_GOALS;
   }
 
@@ -377,14 +592,17 @@ export class WhatsAppBotService {
     tempData: Record<string, unknown>,
     text: string,
   ): Promise<string> {
-    const n = normalise(text);
-    const map: Record<string, string> = {
+    const intentMap: Record<string, string> = {
+      "1": "Fun, casual dates",
+      "2": "A long-term relationship",
+      "3": "Marriage",
+      "4": "Ethical non-monogamy",
       casual: "Fun, casual dates",
       "long-term": "A long-term relationship",
       "long term": "A long-term relationship",
       marriage: "Marriage",
     };
-    const intent = map[n];
+    const intent = intentMap[normalise(text)];
     if (!intent) return MSG.ERROR_RELATIONSHIP_GOALS;
 
     const userId = tempData.userId as string;
@@ -430,11 +648,18 @@ export class WhatsAppBotService {
     tempData: Record<string, unknown>,
     text: string,
   ): Promise<string> {
-    const n = normalise(text);
-    if (!["yes", "sometimes", "no"].includes(n)) return MSG.ERROR_DRINKING;
-
-    const drinkMap: Record<string, string> = { yes: "Yes, I drink", sometimes: "Sometimes", no: "Non-drinker" };
-    const drinking = drinkMap[n];
+    const drinkMap: Record<string, string> = {
+      "1": "Yes, I drink",
+      "2": "I drink sometimes",
+      "3": "I rarely drink",
+      "4": "No, I don't drink",
+      "5": "I'm sober",
+      yes: "Yes, I drink",
+      sometimes: "I drink sometimes",
+      no: "No, I don't drink",
+    };
+    const drinking = drinkMap[normalise(text)];
+    if (!drinking) return MSG.ERROR_DRINKING;
 
     await this.sessionRepo.upsert(phone, STEPS.HABITS_SMOKING, { ...tempData, drinking });
     return MSG.HABITS_SMOKING;
@@ -445,16 +670,20 @@ export class WhatsAppBotService {
     tempData: Record<string, unknown>,
     text: string,
   ): Promise<string> {
-    const n = normalise(text);
-    if (!["yes", "sometimes", "no"].includes(n)) return MSG.ERROR_SMOKING;
+    const smokeMap: Record<string, string> = {
+      "1": "Yes, I smoke",
+      "2": "I smoke sometimes",
+      "3": "No, I don't smoke",
+      yes: "Yes, I smoke",
+      sometimes: "I smoke sometimes",
+      no: "No, I don't smoke",
+    };
+    const smoking = smokeMap[normalise(text)];
+    if (!smoking) return MSG.ERROR_SMOKING;
 
-    const smokeMap: Record<string, string> = { yes: "Yes, I smoke", sometimes: "Sometimes", no: "Non-smoker" };
-    const smoking = smokeMap[n];
-    const drinking = tempData.drinking as string;
     const userId = tempData.userId as string;
-
     await this.onboardingRepo.upsertPersonality(userId, {
-      socialLevel: drinking,
+      socialLevel: tempData.drinking as string,
       conversationStyle: smoking,
     });
     await this.onboardingRepo.upsertAvailability(userId, {
@@ -477,7 +706,6 @@ export class WhatsAppBotService {
     let photoCount = (tempData.photoCount as number) ?? 0;
 
     if (mediaUrl) {
-      // Download from Twilio (requires Basic Auth)
       const creds = Buffer.from(
         `${config.twilio.accountSid}:${config.twilio.authToken}`,
       ).toString("base64");
@@ -502,15 +730,13 @@ export class WhatsAppBotService {
         await this.sessionRepo.upsert(phone, STEPS.PHOTOS, { ...tempData, photoCount });
         return MSG.PHOTOS_MORE(photoCount);
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        log.error("Photo upload failed", { userId, message });
+        log.error("Photo upload failed", { userId, err });
         return "Sorry, photo upload failed. Please try again.";
       }
     }
 
     if (normalise(text) === "done") {
       if (photoCount < 2) return MSG.PHOTOS_NEED_MORE(photoCount);
-
       await this.userRepo.completeOnboarding(userId);
       await this.sessionRepo.upsert(phone, STEPS.COMPLETE, tempData);
       return MSG.COMPLETE;
