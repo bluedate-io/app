@@ -255,7 +255,8 @@ function validateFirstName(value: string): string | null {
 function getInitialSubStep(status: OnboardingStatus): number {
   if (!status.hasProfile) return 0;
   if (!status.hasPreferences) return 1;
-  if (!status.hasUsedInviteCode) return 2;
+  // Women do not need an invite code; skip this gate for them.
+  if (!status.hasUsedInviteCode && status.genderIdentity !== "Woman") return 2;
   // Require an explicit Date/BFF choice before moving past step 3
   if (!status.hasDatingMode) return 3;
   const hasAgeRange = status.ageRangeMin != null && status.ageRangeMax != null;
@@ -1088,6 +1089,21 @@ function PromptsStep({
       >
         <div className="fixed top-0 left-0 right-0 h-0.5 z-50" style={{ backgroundColor: ACCENT }} />
         <div className="max-w-md mx-auto w-full flex flex-col flex-1">
+          <div className="flex justify-start mb-6">
+            <svg
+              className="w-12 h-12 text-gray-900"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M7.5 8.25h9m-9 3h5.25M6 20.25l3.182-3.182A4.5 4.5 0 0 1 12.369 15H18a2.25 2.25 0 0 0 2.25-2.25V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v6.75A2.25 2.25 0 0 0 6 15h.75"
+              />
+            </svg>
+          </div>
           <Heading>What makes you, you?</Heading>
           <p className="text-sm text-gray-500 mb-6">
             Add at least one prompt to give a sense of who you are, and what to message you about.
@@ -1638,11 +1654,18 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
 
       if (subStep === 1) {
         await apiPost("gender", { genderIdentity });
+        if (genderIdentity === "Woman") {
+          setSubStep(3);
+          setLoading(false);
+          return;
+        }
       }
 
       if (subStep === 2) {
         setInviteCodeError(null);
-        await apiPost("invite-code", { code: inviteCode.trim() });
+        if (genderIdentity !== "Woman") {
+          await apiPost("invite-code", { code: inviteCode.trim() });
+        }
       }
 
       if (subStep === 3 && datingMode === "bff") {
@@ -1741,7 +1764,10 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           && birthday.year.length === 4;
       }
       case 1: return genderIdentity !== "";
-      case 2: return inviteCode.trim().length > 0;
+      case 2: {
+        if (genderIdentity === "Woman") return true;
+        return inviteCode.trim().length > 0;
+      }
       case 3: return datingMode !== "";
       case 4: return openToAll || genderPreference.length > 0;
       case 5: {
@@ -1889,16 +1915,53 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                 </div>
                 <div>
                   <p className="text-xs text-gray-400 mb-1">Month</p>
-                  <MonthDropdown
+                  <input
+                    ref={monthButtonRef as React.RefObject<HTMLInputElement>}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={2}
                     value={birthday.month}
-                    onChange={(m) => {
-                      setBirthday((b) => ({ ...b, month: String(m) }));
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, "").slice(0, 2);
+                      if (raw === "") {
+                        setBirthday((b) => ({ ...b, month: "" }));
+                        setBirthdayError(null);
+                        return;
+                      }
+                      // Handle first digit only
+                      if (raw.length === 1) {
+                        const d = parseInt(raw, 10);
+                        if (Number.isNaN(d)) return;
+                        // Allow leading 0 so user can type 01–09 for Jan–Sep
+                        if (raw === "0") {
+                          setBirthday((b) => ({ ...b, month: "0" }));
+                          setBirthdayError(null);
+                          return;
+                        }
+                        // For 1, wait for second digit (10–12)
+                        if (d === 1) {
+                          setBirthday((b) => ({ ...b, month: "1" }));
+                          setBirthdayError(null);
+                          return;
+                        }
+                        // For 2–9, treat as full month and jump to year
+                        if (d >= 2 && d <= 9) {
+                          setBirthday((b) => ({ ...b, month: raw }));
+                          setBirthdayError(null);
+                          yearInputRef.current?.focus();
+                        }
+                        return;
+                      }
+                      // raw.length === 2 here
+                      const num = parseInt(raw, 10);
+                      if (Number.isNaN(num) || num < 1 || num > 12) return;
+                      setBirthday((b) => ({ ...b, month: raw }));
                       setBirthdayError(null);
+                      yearInputRef.current?.focus();
                     }}
-                    onOpenChange={setMonthDropdownOpen}
-                    open={monthDropdownOpen}
-                    buttonRef={monthButtonRef}
-                    onFocusYear={() => setTimeout(() => yearInputRef.current?.focus(), 0)}
+                    placeholder="MM"
+                    className={`${inputCls} text-center ${birthdayError ? "border-red-500" : ""}`}
+                    aria-label="Month"
                   />
                 </div>
                 <div>
@@ -1972,7 +2035,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
         )}
 
         {/* ── STEP 2: Invite code ──────────────────────────────────────────── */}
-        {subStep === 2 && (
+        {subStep === 2 && genderIdentity !== "Woman" && (
           <div className="flex flex-col flex-1">
             <div className="flex justify-start mb-6">
               <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1985,7 +2048,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                 genderIdentity === "Man"
                   ? "To join, you need an invite code from a woman. Ask her to message \"invite code\" on WhatsApp and share the code with you."
                   : genderIdentity === "Woman"
-                    ? "To join, you need an invite code from a man. Ask him to message \"invite code\" on WhatsApp and share the code with you."
+                    ? "As a woman, you can join without an invite code. If you have one, you can enter it below, but it's optional."
                     : "To join, ask a friend to message \"invite code\" on WhatsApp and share the code they receive with you."
               }
             </p>

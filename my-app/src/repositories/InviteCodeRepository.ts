@@ -49,7 +49,7 @@ export class InviteCodeRepository implements IInviteCodeRepository {
   constructor(private readonly db: PrismaClient) {}
 
   private get inviteCode(): PrismaClient["inviteCode"] {
-    const delegate = (this.db as Record<string, unknown>).inviteCode;
+    const delegate = (this.db as unknown as Record<string, unknown>).inviteCode;
     if (!delegate) {
       throw new Error(
         "Prisma client missing inviteCode delegate. Run: npx prisma generate && restart the dev server (or delete .next and run again).",
