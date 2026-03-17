@@ -320,19 +320,53 @@ function Fab({
         className="flex items-center justify-center rounded-full transition"
         style={{ width: 52, height: 52, backgroundColor: FAB_BG }}
       >
-        {loading ? (
-          <span className="w-5 h-5 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
-        ) : (
-          <svg
-            width="20" height="20" viewBox="0 0 20 20"
-            fill="none" stroke="#2d2d2d" strokeWidth="2.25"
-            strokeLinecap="round" strokeLinejoin="round"
-          >
-            <path d="M8 6l6 4-6 4" />
-          </svg>
-        )}
+        <svg
+          width="20" height="20" viewBox="0 0 20 20"
+          fill="none" stroke="#2d2d2d" strokeWidth="2.25"
+          strokeLinecap="round" strokeLinejoin="round"
+        >
+          <path d="M8 6l6 4-6 4" />
+        </svg>
       </span>
     </button>
+  );
+}
+
+/** Plain back arrow — no background, just a chevron < */
+function BackBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Go back"
+      className="focus:outline-none border-0 bg-transparent p-0 cursor-pointer text-gray-900"
+    >
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M15 18l-6-6 6-6" />
+      </svg>
+    </button>
+  );
+}
+
+/** Full-screen loader — centred spinner, slightly blurred background */
+function GlobalLoader() {
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center"
+      style={{ backdropFilter: "blur(3px)", backgroundColor: "rgba(251,248,246,0.65)" }}
+    >
+      <div className="flex flex-col items-center gap-3">
+        <span
+          className="block rounded-full border-[3px] animate-spin"
+          style={{
+            width: 40,
+            height: 40,
+            borderColor: "#D1D5DB",
+            borderTopColor: ACCENT,
+          }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -716,14 +750,19 @@ function PhotosStep({
   const [error, setError] = useState<string | null>(null);
 
   const fetchPhotos = async () => {
-    const res = await fetch("/api/onboarding/photos", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) {
-      const json = await res.json();
-      setPhotos((json.data ?? []) as PhotoItem[]);
+    try {
+      const res = await fetch("/api/onboarding/photos", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setPhotos((json.data ?? []) as PhotoItem[]);
+      }
+    } catch {
+      // network error — photos list won't update but won't crash
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -740,42 +779,43 @@ function PhotosStep({
     if (!files.length) return;
     setUploading(true);
     setError(null);
-    const toUpload = files.slice(0, 6 - count);
-    for (const file of toUpload) {
-      if (!isImage(file)) {
-        setError("Only image files are allowed (e.g. JPEG, PNG).");
-        setUploading(false);
-        e.target.value = "";
-        return;
+    try {
+      const toUpload = files.slice(0, 6 - count);
+      for (const file of toUpload) {
+        if (!isImage(file)) {
+          setError("Only image files are allowed (e.g. JPEG, PNG).");
+          return;
+        }
+        if (file.size > MAX_PHOTO_SIZE_BYTES) {
+          setError("The size is too big. Please upload an image of size below 5MB.");
+          return;
+        }
       }
-      if (file.size > MAX_PHOTO_SIZE_BYTES) {
-        setError("The size is too big. Please upload an image of size below 5MB.");
-        setUploading(false);
-        e.target.value = "";
-        return;
+      let nextOrder = count;
+      for (const file of toUpload) {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("order", String(nextOrder));
+        const res = await fetch("/api/onboarding/photos", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        });
+        if (res.ok) {
+          nextOrder += 1;
+          await fetchPhotos();
+        } else {
+          const j = await res.json().catch(() => ({}));
+          setError((j as { error?: { message?: string } }).error?.message ?? "Upload failed. Please try again.");
+          break;
+        }
       }
+    } catch (err) {
+      setError((err as Error).message ?? "Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
     }
-    let nextOrder = count;
-    for (const file of toUpload) {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("order", String(nextOrder));
-      const res = await fetch("/api/onboarding/photos", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
-      });
-      if (res.ok) {
-        nextOrder += 1;
-        await fetchPhotos();
-      } else {
-        const j = await res.json();
-        setError(j.error?.message ?? "Upload failed");
-        break;
-      }
-    }
-    setUploading(false);
-    e.target.value = "";
   };
 
   const complete = async () => {
@@ -825,10 +865,39 @@ function PhotosStep({
           Add at least 2 photos — you with your pet, eating your fave food, or in a place you love.
         </p>
 
+        {/* Photo upload overlay */}
+        {uploading && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center"
+            style={{ backdropFilter: "blur(3px)", backgroundColor: "rgba(251,248,246,0.70)" }}
+          >
+            <div className="bg-white rounded-2xl px-10 py-8 flex flex-col items-center gap-4 shadow-xl">
+              <div className="relative w-14 h-14">
+                {/* Outer ring */}
+                <span
+                  className="absolute inset-0 rounded-full border-[3px] animate-spin"
+                  style={{ borderColor: "#E0E0E0", borderTopColor: ACCENT }}
+                />
+                {/* Camera icon in centre */}
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <svg className="w-6 h-6" style={{ color: ACCENT }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 10.07 4h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 18.07 7H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" />
+                    <circle cx="12" cy="13" r="3" strokeWidth={1.5} />
+                  </svg>
+                </span>
+              </div>
+              <p className="text-sm font-medium text-gray-700">Uploading photo…</p>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-3 gap-3 mb-6">
           {loading ? (
             <div className="col-span-3 aspect-square max-w-[200px] rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
-              <span className="w-5 h-5 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
+              <span
+                className="block rounded-full border-[3px] animate-spin"
+                style={{ width: 28, height: 28, borderColor: "#D1D5DB", borderTopColor: ACCENT }}
+              />
             </div>
           ) : (
             Array.from({ length: 6 }).map((_, i) => {
@@ -1106,7 +1175,7 @@ function PromptsStep({
           </div>
           <Heading>What makes you, you?</Heading>
           <p className="text-sm text-gray-500 mb-6">
-            Add at least one prompt to give a sense of who you are, and what to message you about.
+            Optional — add prompts to give matches a better sense of who you are.
           </p>
 
           <div className="space-y-3 mb-4">
@@ -1199,10 +1268,23 @@ function PromptsStep({
           <div className="mt-auto pt-4">
             {error && <InlineError message={error} />}
 
-            <div className="mt-4 flex items-end justify-end">
+            <div className="mt-4 flex items-end justify-between">
+              <button
+                type="button"
+                onClick={onDone}
+                disabled={saving}
+                className="text-sm text-gray-500 hover:underline disabled:opacity-40"
+              >
+                Skip
+              </button>
               <Fab
                 onClick={async () => {
-                  if (saving || prompts.length === 0) return;
+                  if (saving) return;
+                  // No prompts → skip directly
+                  if (prompts.length === 0) {
+                    onDone();
+                    return;
+                  }
                   setSaving(true);
                   setError(null);
                   try {
@@ -1221,7 +1303,7 @@ function PromptsStep({
                     setSaving(false);
                   }
                 }}
-                disabled={saving || prompts.length === 0}
+                disabled={saving}
                 loading={saving}
               />
             </div>
@@ -1728,6 +1810,15 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
     }
   };
 
+  const handleBack = () => {
+    // Step 3 (dating mode): skip over the invite-code step for women / already-invited users
+    if (subStep === 3 && (genderIdentity === "Woman" || status.hasUsedInviteCode)) {
+      setSubStep(1);
+      return;
+    }
+    setSubStep((s) => Math.max(0, s - 1));
+  };
+
   const handleSkip = async () => {
     setLoading(true);
     setStepError(null);
@@ -1840,6 +1931,9 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col p-6" style={{ backgroundColor: BG }}>
+      {/* Global loading overlay */}
+      {loading && <GlobalLoader />}
+
       {/* Progress bar — fixed at top */}
       <div
         className="fixed top-0 left-0 right-0 h-1.5 z-50 bg-gray-200"
@@ -1860,6 +1954,12 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       </div>
 
       <div className="max-w-md mx-auto w-full flex flex-col flex-1">
+        {/* Back button — hidden on first step */}
+        {subStep > 0 && (
+          <div className="mb-2">
+            <BackBtn onClick={handleBack} />
+          </div>
+        )}
 
         {/* ── STEP 0: Intro ───────────────────────────────────────────────── */}
         {subStep === 0 && (
