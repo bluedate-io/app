@@ -451,7 +451,10 @@ export class OnboardingService {
     const missing: string[] = [];
     if (!status.hasProfile) missing.push("profile");
     if (!status.hasPreferences) missing.push("preferences");
-    if (!status.hasUsedInviteCode) missing.push("invite code");
+    // Women do not need an invite code to complete onboarding.
+    if (!status.hasUsedInviteCode && status.genderIdentity !== "Woman") {
+      missing.push("invite code");
+    }
     // For Date intent, require full preferences stack.
     if (
       status.relationshipIntent === "date" &&

@@ -12,6 +12,7 @@ import type {
   AiSignals,
   Photo,
   OpeningMove,
+  Prompt,
 } from "@/domains/User";
 import type {
   ProfileInput,
