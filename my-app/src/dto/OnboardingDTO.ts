@@ -7,6 +7,7 @@ import type {
   AiSignals,
   Photo,
   OpeningMove,
+  Prompt,
 } from "@/domains/User";
 
 // ─── Response DTOs ────────────────────────────────────────────────────────────
@@ -82,6 +83,16 @@ export interface PhotoResponseDTO {
   order: number;
 }
 
+export interface PromptResponseDTO {
+  id: string;
+  category: string;
+  questionKey: string;
+  questionText: string;
+  answer: string;
+  imageUrl?: string;
+  order: number;
+}
+
 // ─── Mappers ──────────────────────────────────────────────────────────────────
 
 export const toProfileDTO = (p: Profile): ProfileResponseDTO => ({
@@ -153,4 +164,14 @@ export const toOpeningMoveDTO = (o: OpeningMove): OpeningMoveResponseDTO => ({
   promptKey: o.promptKey,
   promptText: o.promptText,
   isCustom: o.isCustom,
+});
+
+export const toPromptDTO = (p: Prompt): PromptResponseDTO => ({
+  id: p.id,
+  category: p.category,
+  questionKey: p.questionKey,
+  questionText: p.questionText,
+  answer: p.answer,
+  imageUrl: p.imageUrl,
+  order: p.order,
 });

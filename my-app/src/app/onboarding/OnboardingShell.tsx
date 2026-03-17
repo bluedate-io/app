@@ -7,7 +7,7 @@ import type { OnboardingStatus } from "./page";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TOTAL_SUB_STEPS = 18;
+const TOTAL_SUB_STEPS = 19;
 
 const HEIGHT_CM_MIN = 91;
 const HEIGHT_CM_MAX = 220;
@@ -74,6 +74,62 @@ const RELATIONSHIP_GOALS = [
   "Marriage",
   "Ethical non-monogamy",
 ];
+
+type PromptCategoryId = "about_me" | "looking_for" | "bit_of_fun" | "real_talk";
+
+interface PromptQuestionDef {
+  key: string;
+  text: string;
+}
+
+const PROMPT_CATEGORIES: {
+  id: PromptCategoryId;
+  label: string;
+  questions: PromptQuestionDef[];
+}[] = [
+    {
+      id: "about_me",
+      label: "About me",
+      questions: [
+        { key: "happiest_when", text: "I'm happiest when" },
+        { key: "personal_hell", text: "My personal hell is" },
+        { key: "after_work", text: "After work you can find me" },
+        { key: "real_life_superpower", text: "My real-life superpower is" },
+        { key: "humble_brag", text: "My humble brag is" },
+        { key: "simple_pleasures", text: "My simple pleasures are" },
+        { key: "real_nerd_about", text: "I'm a real nerd about" },
+        { key: "need_to_know", text: "One thing you need to know about me is" },
+        { key: "known_for", text: "I'm known for" },
+      ],
+    },
+    {
+      id: "looking_for",
+      label: "Looking for",
+      questions: [
+        { key: "quickest_way_to_heart", text: "The quickest way to my heart is" },
+        { key: "looking_for_in_partner", text: "The most important thing I’m looking for is" },
+        { key: "perfect_first_date", text: "My idea of a perfect first date is" },
+      ],
+    },
+    {
+      id: "bit_of_fun",
+      label: "Bit of fun",
+      questions: [
+        { key: "two_truths_and_a_lie", text: "Two truths and a lie" },
+        { key: "shower_thought", text: "My best recent shower thought" },
+        { key: "unexpected_skill", text: "My most unexpected skill is" },
+      ],
+    },
+    {
+      id: "real_talk",
+      label: "Real talk",
+      questions: [
+        { key: "non_negotiable", text: "One non-negotiable for me is" },
+        { key: "green_flag", text: "My biggest green flag is" },
+        { key: "love_language", text: "My love language is" },
+      ],
+    },
+  ];
 
 const OPENING_MOVE_PRESET_PROMPTS: { key: string; label: string }[] = [
   { key: "custom", label: "Write your own Opening Move" },
@@ -216,9 +272,10 @@ function getInitialSubStep(status: OnboardingStatus): number {
     if (!status.hasPersonality || !status.hasAvailability) return 9;
     if (!status.hasFamilyPlans) return 10;
     if (!status.hasImportantLife) return 11;
-    if (!status.hasPhotosStepCompleted) return 12;
+    if (!status.hasPromptsCompleted) return 12;
+    if (!status.hasPhotosStepCompleted) return 13;
     if (!status.hasOpeningMove) return 16;
-    return 12;
+    return 13;
   }
   // BFF: photos (12) → life experiences (13) → BFF interests (14) → relationship status (15)
   if (status.relationshipIntent === "friendship") {
@@ -833,6 +890,574 @@ function PhotosStep({
   );
 }
 
+interface PromptItem {
+  id?: string;
+  category: string;
+  questionKey: string;
+  questionText: string;
+  answer: string;
+  imageUrl?: string;
+  order: number;
+}
+
+function PromptsStep({
+  token,
+  onDone,
+}: {
+  token: string;
+  onDone: () => void;
+}) {
+  const [prompts, setPrompts] = useState<PromptItem[]>([]);
+  const [uiStep, setUiStep] = useState<1 | 2 | 3>(1);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeCategoryId, setActiveCategoryId] = useState<PromptCategoryId>("about_me");
+  const [activeQuestionKey, setActiveQuestionKey] = useState<string | null>(null);
+  const [activeQuestionText, setActiveQuestionText] = useState<string>("");
+  const [answerDraft, setAnswerDraft] = useState("");
+  const [imageUrlDraft, setImageUrlDraft] = useState<string | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPrompts = async () => {
+      try {
+        const res = await fetch("/api/onboarding/prompts", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          setLoading(false);
+          return;
+        }
+        const json = await res.json();
+        const data = (json.data ?? []) as PromptItem[];
+        const sorted = [...data].sort((a, b) => a.order - b.order);
+        setPrompts(sorted);
+      } catch {
+        // ignore — user can still create prompts
+      } finally {
+        setLoading(false);
+      }
+    };
+    void fetchPrompts();
+  }, [token]);
+
+  const startPromptAtIndex = (index: number) => {
+    setActiveIndex(index);
+    const existing = prompts[index];
+    if (existing) {
+      const cat = PROMPT_CATEGORIES.find((c) => c.label === existing.category) ?? PROMPT_CATEGORIES[0];
+      setActiveCategoryId(cat.id);
+      setActiveQuestionKey(existing.questionKey);
+      setActiveQuestionText(existing.questionText);
+      setAnswerDraft(existing.answer);
+      setImageUrlDraft(existing.imageUrl);
+      setUiStep(3);
+    } else {
+      setActiveCategoryId("about_me");
+      const firstQ = PROMPT_CATEGORIES[0].questions[0];
+      setActiveQuestionKey(firstQ.key);
+      setActiveQuestionText(firstQ.text);
+      setAnswerDraft("");
+      setImageUrlDraft(undefined);
+      setUiStep(2);
+    }
+    setError(null);
+  };
+
+  const persistPrompts = async (next: PromptItem[]) => {
+    setSaving(true);
+    setError(null);
+    try {
+      const payload = {
+        prompts: next.map((p, idx) => ({
+          category: p.category,
+          questionKey: p.questionKey,
+          questionText: p.questionText,
+          answer: p.answer,
+          imageUrl: p.imageUrl,
+          order: idx,
+        })),
+      };
+      const res = await fetch("/api/onboarding/prompts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json.error?.message ?? "Could not save prompts");
+      }
+      const saved = (json.data ?? []) as PromptItem[];
+      const sorted = [...saved].sort((a, b) => a.order - b.order);
+      setPrompts(sorted);
+      setUiStep(1);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSavePrompt = async () => {
+    const text = answerDraft.trim();
+    if (text.length < 10 || text.length > 160) {
+      setError("Answer must be between 10 and 160 characters.");
+      return;
+    }
+    if (!activeQuestionKey || !activeQuestionText) {
+      setError("Please choose a question.");
+      return;
+    }
+    const categoryLabel =
+      PROMPT_CATEGORIES.find((c) => c.id === activeCategoryId)?.label ?? "About me";
+    const base: PromptItem = {
+      id: prompts[activeIndex]?.id,
+      category: categoryLabel,
+      questionKey: activeQuestionKey,
+      questionText: activeQuestionText,
+      answer: text,
+      imageUrl: imageUrlDraft,
+      order: activeIndex,
+    };
+    const next: PromptItem[] = [];
+    for (let i = 0; i < 3; i += 1) {
+      if (i === activeIndex) {
+        next[i] = base;
+      } else if (prompts[i]) {
+        next[i] = { ...prompts[i]!, order: i };
+      }
+    }
+    const compact = next.filter((p) => p) as PromptItem[];
+    await persistPrompts(compact.map((p, idx) => ({ ...p, order: idx })));
+  };
+
+  const handleDeletePrompt = async (index: number) => {
+    const remaining = prompts.filter((_, i) => i !== index).map((p, idx) => ({ ...p, order: idx }));
+    await persistPrompts(remaining);
+  };
+
+  const handleImageChange = async (file: File) => {
+    setUploading(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/onboarding/prompt-image", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json.error?.message ?? "Image upload failed");
+      }
+      setImageUrlDraft(json.data?.imageUrl as string);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div
+        className="min-h-screen flex flex-col p-6"
+        style={{ backgroundColor: BG }}
+      >
+        <div className="fixed top-0 left-0 right-0 h-0.5 z-50" style={{ backgroundColor: ACCENT }} />
+        <div className="max-w-md mx-auto w-full flex-1 flex items-center justify-center">
+          <span className="w-5 h-5 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  // Screen 1: overview
+  if (uiStep === 1) {
+    const labels = ["First prompt", "Second prompt", "Third prompt"];
+    return (
+      <div
+        className="min-h-screen flex flex-col p-6"
+        style={{ backgroundColor: BG }}
+      >
+        <div className="fixed top-0 left-0 right-0 h-0.5 z-50" style={{ backgroundColor: ACCENT }} />
+        <div className="max-w-md mx-auto w-full flex flex-col flex-1">
+          <Heading>What makes you, you?</Heading>
+          <p className="text-sm text-gray-500 mb-6">
+            Add at least one prompt to give a sense of who you are, and what to message you about.
+          </p>
+
+          <div className="space-y-3 mb-4">
+            {labels.map((label, index) => {
+              const prompt = prompts[index];
+              return (
+                <div
+                  key={label}
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 flex items-center gap-3"
+                >
+                  {prompt && prompt.imageUrl && (
+                    <img
+                      src={prompt.imageUrl}
+                      alt=""
+                      className="w-9 h-9 rounded-2xl object-cover shrink-0 border border-gray-200"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">
+                      {prompt ? prompt.questionText : label}
+                    </p>
+                    {prompt ? (
+                      <p className="text-xs text-gray-600 mt-1 truncate">
+                        {prompt.answer}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Add a prompt and answer
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => startPromptAtIndex(index)}
+                      className="w-8 h-8 flex items-center justify-center text-gray-700"
+                    >
+                      {prompt ? (
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={1.5}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={1.5}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7H5" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="rounded-2xl border border-dashed border-gray-300 px-4 py-4 mb-6 bg-white flex items-center gap-3">
+            <div className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 overflow-hidden shrink-0">
+              <svg
+                className="w-5 h-5 text-gray-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 18h6m-5 2h4M8 10a4 4 0 118 0c0 1.657-.895 2.751-1.746 3.54-.54.493-1.004.917-1.254 1.46H11c-.25-.543-.715-.967-1.254-1.46C8.895 12.751 8 11.657 8 10z"
+                />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">More prompts, more matches</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Adding more prompts could double your chances of matching.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-auto pt-4">
+            {error && <InlineError message={error} />}
+
+            <div className="mt-4 flex items-end justify-end">
+              <Fab
+                onClick={async () => {
+                  if (saving || prompts.length === 0) return;
+                  setSaving(true);
+                  setError(null);
+                  try {
+                    const res = await fetch("/api/onboarding/prompts-step-complete", {
+                      method: "POST",
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    const json = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                      throw new Error(json.error?.message ?? "Could not save prompts step");
+                    }
+                    onDone();
+                  } catch (e) {
+                    setError((e as Error).message);
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                disabled={saving || prompts.length === 0}
+                loading={saving}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Screen 2: category & question picker
+  if (uiStep === 2) {
+    const activeCategory =
+      PROMPT_CATEGORIES.find((c) => c.id === activeCategoryId) ?? PROMPT_CATEGORIES[0];
+    const usedKeys = prompts
+      .filter((p, idx) => idx !== activeIndex && p)
+      .map((p) => p.questionKey);
+    const availableQuestions = activeCategory.questions.filter(
+      (q) => !usedKeys.includes(q.key),
+    );
+    return (
+      <div
+        className="min-h-screen flex flex-col p-6"
+        style={{ backgroundColor: BG }}
+      >
+        <div className="fixed top-0 left-0 right-0 h-0.5 z-50" style={{ backgroundColor: ACCENT }} />
+        <div className="max-w-md mx-auto w-full flex flex-col flex-1">
+          <div className="mb-4 flex items-center justify-between">
+            <p className="text-sm font-semibold text-gray-900">Pick a prompt</p>
+            <button
+              type="button"
+              className="w-8 h-8 flex items-center justify-center text-gray-700"
+              onClick={() => setUiStep(1)}
+              aria-label="Back to prompts"
+            >
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="flex gap-3 border-b border-gray-200 mb-4 overflow-x-auto">
+            {PROMPT_CATEGORIES.map((cat) => {
+              const selected = cat.id === activeCategoryId;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setActiveCategoryId(cat.id)}
+                  className={`pb-2 text-sm whitespace-nowrap ${selected ? "text-gray-900 font-semibold border-b-2 border-gray-900" : "text-gray-500"
+                    }`}
+                >
+                  {cat.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {availableQuestions.map((q) => (
+              <button
+                key={q.key}
+                type="button"
+                className="w-full flex items-center justify-between py-3 border-b border-gray-200 text-left"
+                onClick={() => {
+                  setActiveQuestionKey(q.key);
+                  setActiveQuestionText(q.text);
+                  setUiStep(3);
+                  const existing = prompts[activeIndex];
+                  setAnswerDraft(existing?.answer ?? "");
+                  setImageUrlDraft(existing?.imageUrl);
+                  setError(null);
+                }}
+              >
+                <span className="text-base text-gray-900">{q.text}</span>
+                <svg
+                  className="w-4 h-4 text-gray-400 shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Screen 3: answer & photo
+  const inputId = "prompt-photo-input";
+  const activeQuestionLabel = activeQuestionText || "Your prompt";
+  return (
+    <div
+      className="min-h-screen flex flex-col p-6"
+      style={{ backgroundColor: BG }}
+    >
+      <div className="fixed top-0 left-0 right-0 h-0.5 z-50" style={{ backgroundColor: ACCENT }} />
+      <div className="max-w-md mx-auto w-full flex flex-col flex-1">
+        <div className="mb-4 items-center justify-between gap-3">
+          <p className="text-sm text-center my-2 font-semibold text-gray-900">Your answer</p>
+          <div className="flex-1 flex items-center justify-between">
+            <p className="text-base font-semibold text-gray-900 mt-1">
+              {activeQuestionLabel}
+            </p>
+            <button
+              type="button"
+              className="w-8 h-8 flex items-center justify-center text-gray-700"
+              onClick={() => setUiStep(2)}
+              aria-label="Change question"
+            >
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 flex">
+          <textarea
+            value={answerDraft}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v.length <= 160) {
+                setAnswerDraft(v);
+                setError(null);
+              }
+            }}
+            className="w-full flex-1 rounded-2xl border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-gray-400 resize-none"
+            placeholder="When I play with cats"
+          />
+        </div>
+
+        <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+          <span>Between 10 and 160 characters</span>
+          <span>{answerDraft.trim().length}/160</span>
+        </div>
+
+        <div className="mt-6">
+          <label
+            htmlFor={inputId}
+            className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 cursor-pointer"
+          >
+            {imageUrlDraft ? (
+              <>
+                <img
+                  src={imageUrlDraft}
+                  alt=""
+                  className="w-10 h-10 rounded-2xl object-cover border border-gray-200"
+                />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">You added a photo</p>
+                  <p className="text-xs text-gray-500">Tap to change or remove it</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="w-10 h-10 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center">
+                  <svg
+                    className="w-4 h-4 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">Add a photo</p>
+                  <p className="text-xs text-gray-500">Optional, but it helps people get you</p>
+                </div>
+              </>
+            )}
+            {imageUrlDraft && (
+              <button
+                type="button"
+                className="text-xs text-gray-400 hover:text-gray-600"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setImageUrlDraft(undefined);
+                }}
+              >
+                Remove
+              </button>
+            )}
+          </label>
+          <input
+            id={inputId}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              void handleImageChange(file);
+              e.target.value = "";
+            }}
+            disabled={uploading}
+          />
+          {uploading && (
+            <p className="text-xs text-gray-400 mt-2">Uploading image…</p>
+          )}
+        </div>
+
+        {error && <InlineError message={error} />}
+
+        <div className="mt-6 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setUiStep(1)}
+            className="text-sm font-medium text-gray-500"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => { void handleSavePrompt(); }}
+            className="px-5 py-2 rounded-full text-sm font-semibold text-white disabled:opacity-40 flex items-center justify-center gap-2"
+            style={{ backgroundColor: "#111111" }}
+            disabled={saving || uploading}
+          >
+            {saving ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white/60 border-t-white rounded-full animate-spin" />
+                <span>Saving…</span>
+              </>
+            ) : (
+              "Save"
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main shell ───────────────────────────────────────────────────────────────
 
 interface Props {
@@ -1146,25 +1771,41 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const isSkippable = subStep === 8 || subStep === 9 || subStep === 10 || subStep === 11;
   const progressPct = Math.round(((subStep + 1) / TOTAL_SUB_STEPS) * 100);
 
-  if (subStep === 12) {
-    const mode: "date" | "bff" =
-      datingMode || (status.relationshipIntent === "friendship" ? "bff" : "date");
-
+  if (subStep === 12 && (datingMode === "date" || status.relationshipIntent === "date")) {
     return (
-      <PhotosStep
+      <PromptsStep
         token={token}
-        status={status}
-        mode={mode}
         onDone={() => {
-          if (mode === "bff") {
-            setSubStep(13);
-          } else {
-            // Date mode: move into Opening Move flow (step 16).
-            setSubStep(16);
-          }
+          setSubStep(13);
         }}
       />
     );
+  }
+
+  if (subStep === 12 || subStep === 13) {
+    const mode: "date" | "bff" =
+      datingMode || (status.relationshipIntent === "friendship" ? "bff" : "date");
+
+    const shouldShowForThisSubStep =
+      (subStep === 12 && mode === "bff") || (subStep === 13 && mode === "date");
+
+    if (shouldShowForThisSubStep) {
+      return (
+        <PhotosStep
+          token={token}
+          status={status}
+          mode={mode}
+          onDone={() => {
+            if (mode === "bff") {
+              setSubStep(13);
+            } else {
+              // Date mode: move into Opening Move flow (step 16).
+              setSubStep(16);
+            }
+          }}
+        />
+      );
+    }
   }
 
   const filteredInterests = interestSearch.trim()
@@ -1597,8 +2238,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                         setHeightTouched(true);
                       }}
                       className={`w-full py-2.5 text-center text-base font-medium transition-colors rounded-lg border-2 ${selected
-                          ? "border-gray-900 text-gray-900"
-                          : "border-transparent text-gray-900 hover:bg-gray-50"
+                        ? "border-gray-900 text-gray-900"
+                        : "border-transparent text-gray-900 hover:bg-gray-50"
                         }`}
                     >
                       {cm} cm

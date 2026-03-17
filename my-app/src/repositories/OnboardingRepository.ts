@@ -30,6 +30,7 @@ import type {
   BffInterestsInput,
   RelationshipStatusInput,
   OpeningMoveInput,
+  PromptInput,
 } from "@/validations/onboarding.validation";
 
 // null → undefined helpers
@@ -68,6 +69,9 @@ export interface IOnboardingRepository {
   getPhotos(userId: string): Promise<Photo[]>;
   deletePhoto(photoId: string, userId: string): Promise<void>;
   markPhotosStepCompleted(userId: string): Promise<void>;
+  replacePrompts(userId: string, prompts: PromptInput[]): Promise<Prompt[]>;
+  getPrompts(userId: string): Promise<Prompt[]>;
+  markPromptsCompleted(userId: string): Promise<void>;
   getOnboardingStatus(userId: string): Promise<{
     hasProfile: boolean;
     hasPreferences: boolean;
@@ -92,6 +96,8 @@ export interface IOnboardingRepository {
     hasBffInterests: boolean;
     hasPhotosStepCompleted: boolean;
     hasOpeningMove: boolean;
+    hasPrompts: boolean;
+    hasPromptsCompleted: boolean;
   }>;
   getGenderIdentity(userId: string): Promise<string | null>;
 }
@@ -615,6 +621,75 @@ export class OnboardingRepository implements IOnboardingRepository {
     });
   }
 
+  async markPromptsCompleted(userId: string): Promise<void> {
+    await this.db.preferences.upsert({
+      where: { userId },
+      create: {
+        userId,
+        genderPreference: DEFAULT_GENDER_PREFERENCE,
+        ageRangeMin: 18,
+        ageRangeMax: 55,
+        relationshipGoals: [],
+        promptsCompleted: true,
+      },
+      update: { promptsCompleted: true },
+    });
+  }
+
+  async replacePrompts(userId: string, prompts: PromptInput[]): Promise<Prompt[]> {
+    const created = await this.db.$transaction(async (tx) => {
+      await tx.prompt.deleteMany({ where: { userId } });
+      if (!prompts.length) return [] as Prompt[];
+      const rows = await Promise.all(
+        prompts.map((p) =>
+          tx.prompt.create({
+            data: {
+              userId,
+              category: p.category,
+              questionKey: p.questionKey,
+              questionText: p.questionText,
+              answer: p.answer,
+              imageUrl: p.imageUrl ?? null,
+              order: p.order,
+            },
+          }),
+        ),
+      );
+      return rows.map((r) => ({
+        id: r.id,
+        userId: r.userId,
+        category: r.category,
+        questionKey: r.questionKey,
+        questionText: r.questionText,
+        answer: r.answer,
+        imageUrl: n(r.imageUrl),
+        order: r.order,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+      }));
+    });
+    return created;
+  }
+
+  async getPrompts(userId: string): Promise<Prompt[]> {
+    const rows = await this.db.prompt.findMany({
+      where: { userId },
+      orderBy: { order: "asc" },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      category: r.category,
+      questionKey: r.questionKey,
+      questionText: r.questionText,
+      answer: r.answer,
+      imageUrl: n(r.imageUrl),
+      order: r.order,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    }));
+  }
+
   async getOnboardingStatus(userId: string) {
     const [
       profile,
@@ -625,6 +700,7 @@ export class OnboardingRepository implements IOnboardingRepository {
       availability,
       photoCount,
       openingMove,
+      promptsCount,
     ] =
       await this.db.$transaction([
         this.db.profile.findUnique({ where: { userId }, select: { id: true, fullName: true } }),
@@ -642,6 +718,7 @@ export class OnboardingRepository implements IOnboardingRepository {
             heightCompleted: true,
             datingModeCompleted: true,
             photosStepCompleted: true,
+            promptsCompleted: true,
           },
         }),
         this.db.inviteCode.count({ where: { usedById: userId } }),
@@ -665,6 +742,7 @@ export class OnboardingRepository implements IOnboardingRepository {
           where: { userId },
           select: { id: true, completed: true },
         }),
+        this.db.prompt.count({ where: { userId } }),
       ]);
     const relationshipIntent = preferences?.relationshipIntent ?? undefined;
     const relationshipGoals = preferences?.relationshipGoals ?? [];
@@ -680,6 +758,8 @@ export class OnboardingRepository implements IOnboardingRepository {
     const hasBffInterests = !!(interests && interests.bffInterestsCompleted);
     const hasPhotosStepCompleted = !!(preferences && preferences.photosStepCompleted);
     const hasOpeningMove = !!(openingMove && openingMove.completed);
+    const hasPrompts = promptsCount > 0;
+    const hasPromptsCompleted = !!(preferences && preferences.promptsCompleted);
     return {
       hasProfile: !!profile,
       hasPreferences: !!preferences,
@@ -706,6 +786,8 @@ export class OnboardingRepository implements IOnboardingRepository {
       hasPhotosStepCompleted,
       hasRelationshipStatus,
       hasOpeningMove,
+      hasPrompts,
+      hasPromptsCompleted,
     };
   }
 
