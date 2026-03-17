@@ -67,6 +67,10 @@ export interface OnboardingStatus {
   hasRelationshipStatus: boolean;
   /** True when Date-mode opening move has been saved at least once */
   hasOpeningMove: boolean;
+  /** True when at least one \"What makes you, you?\" prompt has been saved */
+  hasPrompts: boolean;
+  /** True when the prompts step has been explicitly completed */
+  hasPromptsCompleted: boolean;
 }
 
 export default async function OnboardingPage() {

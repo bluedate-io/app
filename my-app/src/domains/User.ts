@@ -107,6 +107,19 @@ export interface Photo {
   createdAt: Date;
 }
 
+export interface Prompt {
+  id: string;
+  userId: string;
+  category: string;
+  questionKey: string;
+  questionText: string;
+  answer: string;
+  imageUrl?: string;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // ─── Domain helpers ───────────────────────────────────────────────────────────
 
 export function isOnboardingComplete(user: User): boolean {

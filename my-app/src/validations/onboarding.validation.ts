@@ -306,3 +306,24 @@ export type LifeExperiencesInput = z.infer<typeof lifeExperiencesSchema>;
 export type BffInterestsInput = z.infer<typeof bffInterestsSchema>;
 export type RelationshipStatusInput = z.infer<typeof relationshipStatusSchema>;
 export type OpeningMoveInput = z.infer<typeof openingMoveSchema>;
+// ─── Prompts (\"What makes you, you?\") ────────────────────────────────────────────
+
+export const promptInputSchema = z.object({
+  category: z.string().min(1).max(60).trim(),
+  questionKey: z.string().min(1).max(60).trim(),
+  questionText: z.string().min(1).max(160).trim(),
+  answer: z
+    .string()
+    .min(10, "Answer must be at least 10 characters.")
+    .max(160, "Answer must be 160 characters or less.")
+    .trim(),
+  imageUrl: z.string().url().max(500).optional(),
+  order: z.number().int().min(0).max(2),
+});
+
+export const promptsSaveSchema = z.object({
+  prompts: z.array(promptInputSchema).max(3),
+});
+
+export type PromptInput = z.infer<typeof promptInputSchema>;
+export type PromptsSaveInput = z.infer<typeof promptsSaveSchema>;
