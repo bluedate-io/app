@@ -23,7 +23,17 @@ function firstEnv(keys: string[], fallback: string): string {
 export const config = {
   env: optionalEnv("NODE_ENV", "development") as "development" | "production" | "test",
   isDev: optionalEnv("NODE_ENV", "development") === "development",
-  isProd: process.env.NODE_ENV === "production",
+  isProd: optionalEnv("NODE_ENV", "development") === "production",
+
+  /** Sentry runs only when enabled (production by default). Set SENTRY_ENABLED=true/false to override. */
+  sentry: {
+    enabled:
+      optionalEnv("SENTRY_ENABLED", "") === "true" ||
+      (optionalEnv("SENTRY_ENABLED", "") !== "false" &&
+        optionalEnv("NODE_ENV", "development") === "production"),
+    /** DSN from Sentry project settings. Use NEXT_PUBLIC_SENTRY_DSN for client; SENTRY_DSN for server/edge. */
+    dsn: firstEnv(["NEXT_PUBLIC_SENTRY_DSN", "SENTRY_DSN"], ""),
+  },
 
   app: {
     url: optionalEnv("NEXT_PUBLIC_APP_URL", "http://localhost:3000"),
