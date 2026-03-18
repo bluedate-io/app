@@ -244,7 +244,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
         {/* Profile details */}
         <MenuCard>
           <MenuRow
-            href="/onboarding"
+            href="/profile/edit/photos"
             icon={<Camera size={18} />}
             iconBg="#F5EAFF"
             label="My Photos"
@@ -252,7 +252,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
           />
           <MenuDivider />
           <MenuRow
-            href="/onboarding"
+            href="/profile/edit/interests"
             icon={<Sparkles size={18} />}
             iconBg="#F0F4FF"
             label="Interests"
@@ -260,7 +260,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
           />
           <MenuDivider />
           <MenuRow
-            href="/onboarding"
+            href="/profile/edit/looking-for"
             icon={<Heart size={18} />}
             iconBg="#FFF0F8"
             label="Looking for"
@@ -268,7 +268,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
           />
           <MenuDivider />
           <MenuRow
-            href="/onboarding"
+            href="/profile/edit/height"
             icon={<Ruler size={18} />}
             iconBg="#F0FFF5"
             label="Height"
@@ -279,7 +279,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
         {/* Lifestyle */}
         <MenuCard>
           <MenuRow
-            href="/onboarding"
+            href="/profile/edit/drinking"
             icon={<Wine size={18} />}
             iconBg="#FFF8EC"
             label="Drinking"
@@ -287,7 +287,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
           />
           <MenuDivider />
           <MenuRow
-            href="/onboarding"
+            href="/profile/edit/religion"
             icon={<BookOpen size={18} />}
             iconBg="#F5EAFF"
             label="Religion"
@@ -295,7 +295,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
           />
           <MenuDivider />
           <MenuRow
-            href="/onboarding"
+            href="/profile/edit/family"
             icon={<Baby size={18} />}
             iconBg="#FFF0F8"
             label="Family plans"
