@@ -1,32 +1,66 @@
-export default function ProfilePage() {
-  return (
-    <main
-      style={{
-        minHeight: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#FBF8F6",
-        padding: "24px",
-        gap: 12,
-      }}
-    >
-      <span style={{ fontSize: 48 }}>👤</span>
-      <h1
-        style={{
-          fontFamily: "var(--font-playfair), Georgia, serif",
-          fontSize: 28,
-          fontWeight: 700,
-          color: "#1a1a1a",
-          textAlign: "center",
-        }}
-      >
-        Profile
-      </h1>
-      <p style={{ color: "#777", fontSize: 15, textAlign: "center", maxWidth: 280 }}>
-        Your bluedate profile will appear here.
-      </p>
-    </main>
-  );
+// ─── Profile page — Server Component ─────────────────────────────────────────
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { jwtVerify } from "jose";
+import { config } from "@/config";
+import { ProfileView } from "./ProfileView";
+
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+async function getProfile(token: string) {
+  const secret = new TextEncoder().encode(config.auth.jwtSecret);
+  try {
+    await jwtVerify(token, secret);
+  } catch {
+    return null;
+  }
+  const res = await fetch(`${BASE}/api/profile`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  const json = await res.json();
+  return json.data as ProfileData;
+}
+
+export interface ProfileData {
+  profile: {
+    fullName?: string;
+    dateOfBirth?: string;
+    city?: string;
+    bio?: string;
+  } | null;
+  preferences: {
+    genderIdentity?: string;
+    genderPreference?: string[];
+    ageRangeMin?: number;
+    ageRangeMax?: number;
+    heightCm?: number;
+    relationshipIntent?: string;
+    relationshipGoals?: string[];
+  } | null;
+  interests: {
+    hobbies?: string[];
+    favouriteActivities?: string[];
+  } | null;
+  personality: {
+    socialLevel?: string;
+    conversationStyle?: string;
+    kidsStatus?: string;
+    kidsPreference?: string;
+    religion?: string[];
+    politics?: string[];
+  } | null;
+  photos: { url: string; order: number }[];
+}
+
+export default async function ProfilePage() {
+  const jar = await cookies();
+  const token = jar.get("access_token")?.value;
+  if (!token) redirect("/login");
+
+  const data = await getProfile(token);
+  if (!data) redirect("/login");
+
+  return <ProfileView data={data} />;
 }

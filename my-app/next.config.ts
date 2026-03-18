@@ -4,11 +4,16 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactCompiler: true,
   allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok.io"],
+   images: {
+    domains: ["fbffkxpinphvudcnewqz.supabase.co"],
+  },
 };
 
 export default withSentryConfig(nextConfig, {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
+
+  
 
   org: "bluedateio",
 
