@@ -20,14 +20,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: { message: "Unauthorized" } }, { status: 401 });
   }
 
-  const { userId1, userId2 } = await req.json();
+  const { userId1, userId2, blurb } = await req.json();
   if (!userId1 || !userId2) {
     return NextResponse.json({ error: { message: "userId1 and userId2 required" } }, { status: 400 });
   }
 
   try {
     const match = await db.match.create({
-      data: { userId1, userId2, matchedBy: adminId },
+      data: { userId1, userId2, matchedBy: adminId, blurb: blurb ?? null },
     });
     return NextResponse.json({ data: { matchId: match.id, matchedAt: match.matchedAt } });
   } catch (err: unknown) {

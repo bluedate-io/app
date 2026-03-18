@@ -63,6 +63,10 @@ export const config = {
     phone: optionalEnv("ADMIN_PHONE", "8309671828"),
   },
 
+  anthropic: {
+    apiKey: optionalEnv("ANTHROPIC_API_KEY", ""),
+  },
+
   supabase: {
     url: firstEnv(["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL"], ""),
     anonKey: firstEnv(
