@@ -3,16 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, AlertTriangle } from "lucide-react";
-import { config } from "@/config";
-
 function hasAdminToken(): boolean {
   if (typeof document === "undefined") return false;
   return document.cookie.includes("admin_token=");
 }
 
 type Step = "phone" | "otp";
-
-const ADMIN_PHONE = config.admin.phone;
 
 const FabIcon = ({ disabled }: { disabled?: boolean }) => (
   <span
@@ -34,7 +30,7 @@ const FabIcon = ({ disabled }: { disabled?: boolean }) => (
   </span>
 );
 
-export default function AdminLoginForm() {
+export default function AdminLoginForm({ phone: ADMIN_PHONE }: { phone: string }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("phone");
   const [otp, setOtp] = useState("");
