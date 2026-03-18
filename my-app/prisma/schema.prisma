@@ -30,6 +30,11 @@ enum InviteCodeStatus {
   used
 }
 
+enum MatchStatus {
+  active
+  unmatched
+}
+
 // ─── Core auth table — intentionally minimal ─────────────────────────────────
 
 model User {
@@ -53,6 +58,12 @@ model User {
   prompts       Prompt[]
   inviteCodesCreated InviteCode[] @relation("InviteCodeCreator")
   inviteCodesUsed    InviteCode[] @relation("InviteCodeUsed")
+  matchesAsUser1     Match[]      @relation("MatchUser1")
+  matchesAsUser2     Match[]      @relation("MatchUser2")
+  matchesAsAdmin     Match[]      @relation("MatchAdmin")
+  skipsAsUser1       AdminSkip[]  @relation("SkipUser1")
+  skipsAsUser2       AdminSkip[]  @relation("SkipUser2")
+  skipsAsAdmin       AdminSkip[]  @relation("SkipAdmin")
 
   @@index([phone])
   @@map("users")
@@ -231,6 +242,46 @@ model Photo {
 
   @@index([userId])
   @@map("photos")
+}
+
+// ─── Match — admin-curated user pairs ────────────────────────────────────────
+
+model Match {
+  id          String      @id @default(cuid())
+  userId1     String
+  userId2     String
+  matchedBy   String
+  status      MatchStatus @default(active)
+  matchedAt   DateTime    @default(now())
+  unmatchedAt DateTime?
+
+  user1 User @relation("MatchUser1", fields: [userId1], references: [id], onDelete: Cascade)
+  user2 User @relation("MatchUser2", fields: [userId2], references: [id], onDelete: Cascade)
+  admin User @relation("MatchAdmin",  fields: [matchedBy], references: [id], onDelete: Restrict)
+
+  @@unique([userId1, userId2])
+  @@index([userId1])
+  @@index([userId2])
+  @@map("matches")
+}
+
+// ─── AdminSkip — pairs the admin chose not to match ──────────────────────────
+
+model AdminSkip {
+  id        String   @id @default(cuid())
+  userId1   String
+  userId2   String
+  skippedBy String
+  skippedAt DateTime @default(now())
+
+  user1 User @relation("SkipUser1", fields: [userId1], references: [id], onDelete: Cascade)
+  user2 User @relation("SkipUser2", fields: [userId2], references: [id], onDelete: Cascade)
+  admin User @relation("SkipAdmin",  fields: [skippedBy], references: [id], onDelete: Restrict)
+
+  @@unique([userId1, userId2])
+  @@index([userId1])
+  @@index([userId2])
+  @@map("admin_skips")
 }
 
 // ─── Profile prompts — \"What makes you, you?\" (Date intent only) ───────────────

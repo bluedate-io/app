@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import jwt from "jsonwebtoken";
 import { config } from "@/config";
 import AdminShell from "../AdminShell";
+import MatchUsersView from "./MatchUsersView";
 
 export default async function MatchUsersPage() {
   const cookieStore = await cookies();
@@ -17,9 +18,19 @@ export default async function MatchUsersPage() {
 
   return (
     <AdminShell>
-      <div className="flex flex-col items-center justify-center min-h-full py-32" style={{ color: "#9B87B0" }}>
-        <p className="text-lg font-semibold mb-2" style={{ color: "#1A0A2E" }}>Match Users</p>
-        <p className="text-sm">Coming soon.</p>
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        <div className="mb-8">
+          <h1
+            className="text-2xl font-bold mb-0.5"
+            style={{ fontFamily: "var(--font-playfair), Georgia, serif", color: "#1A0A2E" }}
+          >
+            Match Users
+          </h1>
+          <p className="text-sm" style={{ color: "#9B87B0" }}>
+            Review a pair and decide to match or skip.
+          </p>
+        </div>
+        <MatchUsersView />
       </div>
     </AdminShell>
   );
