@@ -15,7 +15,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const path = usePathname();
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: "#F5F0FB" }}>
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: "#F5F0FB" }}>
       {/* Sidebar */}
       <aside
         className="flex flex-col w-60 shrink-0 border-r"
@@ -70,7 +70,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       </aside>
 
       {/* Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-y-auto">
         {children}
       </main>
     </div>

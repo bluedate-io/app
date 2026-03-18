@@ -252,6 +252,7 @@ model Match {
   userId2     String
   matchedBy   String
   status      MatchStatus @default(active)
+  blurb       String?
   matchedAt   DateTime    @default(now())
   unmatchedAt DateTime?
 
