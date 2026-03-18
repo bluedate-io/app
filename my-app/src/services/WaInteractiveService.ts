@@ -1,17 +1,11 @@
 // ─── WaInteractiveService ─────────────────────────────────────────────────────
 // Sends WhatsApp messages via Twilio REST API.
 // Supports plain text, quick-reply buttons (≤3), and list-picker (≤10).
-// Interactive templates are created lazily via Content API and SIDs are cached.
+//
+// KEY: WhatsApp Content API requires STATIC button/item labels — variables are
+// only allowed in the body text. Templates are cached by their label fingerprint.
 
 import twilio from "twilio";
-import {
-  ContentCreateRequest,
-  Types,
-  TwilioQuickReply,
-  TwilioListPicker,
-  QuickReplyAction,
-  ListItem,
-} from "twilio/lib/rest/content/v1/content";
 import { config } from "@/config";
 import { logger } from "@/utils/logger";
 
@@ -24,7 +18,7 @@ export type WaTextMsg = { type: "text"; body: string };
 export type WaButtonsMsg = {
   type: "buttons";
   body: string;
-  buttons: string[]; // 2–3 items
+  buttons: string[]; // 2–3 items, labels are sent as-is (static in template)
 };
 
 export type WaListMsg = {
@@ -41,7 +35,8 @@ export type WaMessage = WaTextMsg | WaButtonsMsg | WaListMsg;
 export class WaInteractiveService {
   private readonly client: ReturnType<typeof twilio>;
   private readonly from: string;
-  private readonly sidCache = new Map<string, string>(); // friendlyName → contentSid
+  /** friendlyName → contentSid */
+  private readonly sidCache = new Map<string, string>();
 
   constructor() {
     this.client = twilio(config.twilio.accountSid, config.twilio.authToken);
@@ -55,25 +50,24 @@ export class WaInteractiveService {
     }
 
     try {
-      const items = msg.type === "buttons" ? msg.buttons : msg.items;
       const sid =
         msg.type === "buttons"
-          ? await this.getButtonTemplate(items.length)
-          : await this.getListTemplate(items.length);
-
-      const vars: Record<string, string> = { "1": msg.body };
-      items.forEach((item, i) => {
-        vars[String(i + 2)] = item;
-      });
+          ? await this.ensureButtonTemplate(msg.buttons)
+          : await this.ensureListTemplate(msg.items, msg.buttonLabel);
 
       await this.client.messages.create({
         from: this.from,
         to,
         contentSid: sid,
-        contentVariables: JSON.stringify(vars),
+        // Only the body is a variable ({{1}}); labels are baked into the template
+        contentVariables: JSON.stringify({ "1": msg.body }),
       });
+
+      log.info("Interactive message sent", { to, type: msg.type });
     } catch (err) {
-      log.error("Interactive send failed, falling back to text", { err });
+      log.error("Interactive send failed, falling back to plain text", {
+        err: err instanceof Error ? err.message : String(err),
+      });
       await this.client.messages.create({
         from: this.from,
         to,
@@ -82,85 +76,150 @@ export class WaInteractiveService {
     }
   }
 
-  // ─── Helpers ────────────────────────────────────────────────────────────────
+  // ─── Plain-text fallback ─────────────────────────────────────────────────
 
   private toPlainText(msg: WaMessage): string {
     if (msg.type === "text") return msg.body;
     const items = msg.type === "buttons" ? msg.buttons : msg.items;
-    const opts = items.map((item, i) => `*${i + 1}* — ${item}`).join("\n");
-    return `${msg.body}\n\n${opts}\n\n_Reply *0* to go back_`;
+    const opts = items.map((item, i) => `${i + 1}. ${item}`).join("\n");
+    return `${msg.body}\n\n${opts}`;
   }
 
-  // ─── Template management ─────────────────────────────────────────────────────
+  // ─── Template key ────────────────────────────────────────────────────────
+  // Fingerprint based on the actual label strings (since labels must be static)
 
-  private async getButtonTemplate(count: number): Promise<string> {
-    const key = `bluedate_qr_${count}`;
-    const cached = this.sidCache.get(key);
+  private labelKey(labels: string[]): string {
+    return labels
+      .map((l) => l.toLowerCase().replace(/[^a-z0-9]/g, ""))
+      .join("_");
+  }
+
+  // ─── Quick-reply (≤3 buttons) ────────────────────────────────────────────
+
+  private async ensureButtonTemplate(buttons: string[]): Promise<string> {
+    const friendlyName = `bluedate_qr_${this.labelKey(buttons)}`;
+    const cached = this.sidCache.get(friendlyName);
     if (cached) return cached;
 
-    const existing = await this.findTemplate(key);
+    const existing = await this.findTemplate(friendlyName);
     if (existing) {
-      this.sidCache.set(key, existing);
+      this.sidCache.set(friendlyName, existing);
       return existing;
     }
 
-    const vars: Record<string, string> = { "1": "body" };
-    const actions: QuickReplyAction[] = [];
-    for (let i = 0; i < count; i++) {
-      vars[String(i + 2)] = `option${i + 1}`;
-      actions.push(new QuickReplyAction({ title: `{{${i + 2}}}`, id: `{{${i + 2}}}` }));
-    }
-
-    const request = new ContentCreateRequest({
-      friendlyName: key,
-      language: "en",
-      variables: vars,
-      types: new Types({ twilioQuickReply: new TwilioQuickReply({ body: "{{1}}", actions }) }),
+    // Build template via raw REST — avoids SDK class import issues across versions
+    const sid = await this.createTemplate(friendlyName, {
+      types: {
+        "twilio/quick-reply": {
+          body: "{{1}}",
+          actions: buttons.map((label) => ({ title: label, id: label })),
+        },
+      },
+      variables: { "1": "body" },
     });
 
-    const content = await this.client.content.v1.contents.create(request);
-    this.sidCache.set(key, content.sid);
-    log.info("Created quick-reply template", { key, sid: content.sid });
-    return content.sid;
+    this.sidCache.set(friendlyName, sid);
+    log.info("Created quick-reply template", { friendlyName, sid, buttons });
+    return sid;
   }
 
-  private async getListTemplate(count: number): Promise<string> {
-    const key = `bluedate_list_${count}`;
-    const cached = this.sidCache.get(key);
+  // ─── List-picker (≤10 items) ─────────────────────────────────────────────
+
+  private async ensureListTemplate(
+    items: string[],
+    buttonLabel = "Choose",
+  ): Promise<string> {
+    const friendlyName = `bluedate_list_${this.labelKey(items)}`;
+    const cached = this.sidCache.get(friendlyName);
     if (cached) return cached;
 
-    const existing = await this.findTemplate(key);
+    const existing = await this.findTemplate(friendlyName);
     if (existing) {
-      this.sidCache.set(key, existing);
+      this.sidCache.set(friendlyName, existing);
       return existing;
     }
 
-    const vars: Record<string, string> = { "1": "body" };
-    const items: ListItem[] = [];
-    for (let i = 0; i < count; i++) {
-      vars[String(i + 2)] = `item${i + 1}`;
-      items.push(new ListItem({ id: String(i + 1), item: `{{${i + 2}}}` }));
-    }
-
-    const request = new ContentCreateRequest({
-      friendlyName: key,
-      language: "en",
-      variables: vars,
-      types: new Types({
-        twilioListPicker: new TwilioListPicker({ body: "{{1}}", button: "Choose", items }),
-      }),
+    const sid = await this.createTemplate(friendlyName, {
+      types: {
+        "twilio/list-picker": {
+          body: "{{1}}",
+          button: buttonLabel,
+          items: items.map((label) => ({ item: label, id: label })),
+        },
+      },
+      variables: { "1": "body" },
     });
 
-    const content = await this.client.content.v1.contents.create(request);
-    this.sidCache.set(key, content.sid);
-    log.info("Created list-picker template", { key, sid: content.sid });
-    return content.sid;
+    this.sidCache.set(friendlyName, sid);
+    log.info("Created list-picker template", { friendlyName, sid, items });
+    return sid;
   }
+
+  // ─── Create template via raw Twilio REST ─────────────────────────────────
+  // Using raw fetch avoids SDK class version mismatches; the Content API
+  // endpoint is stable: POST /v1/Content
+
+  private async createTemplate(
+    friendlyName: string,
+    body: {
+      types: Record<string, unknown>;
+      variables: Record<string, string>;
+    },
+  ): Promise<string> {
+    const url = "https://content.twilio.com/v1/Content";
+    const payload = {
+      friendly_name: friendlyName,
+      language: "en",
+      variables: body.variables,
+      types: body.types,
+    };
+
+    const credentials = Buffer.from(
+      `${config.twilio.accountSid}:${config.twilio.authToken}`,
+    ).toString("base64");
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Content API ${res.status}: ${text}`);
+    }
+
+    const json = (await res.json()) as { sid: string };
+    return json.sid;
+  }
+
+  // ─── Find existing template by friendlyName ──────────────────────────────
 
   private async findTemplate(friendlyName: string): Promise<string | null> {
     try {
-      const contents = await this.client.content.v1.contents.list({ limit: 200 });
-      const found = contents.find((c) => c.friendlyName === friendlyName);
+      const credentials = Buffer.from(
+        `${config.twilio.accountSid}:${config.twilio.authToken}`,
+      ).toString("base64");
+
+      const res = await fetch(
+        `https://content.twilio.com/v1/Content?PageSize=200`,
+        {
+          headers: { Authorization: `Basic ${credentials}` },
+        },
+      );
+
+      if (!res.ok) return null;
+
+      const json = (await res.json()) as {
+        contents?: Array<{ sid: string; friendly_name: string }>;
+      };
+
+      const found = json.contents?.find(
+        (c) => c.friendly_name === friendlyName,
+      );
       return found?.sid ?? null;
     } catch {
       return null;

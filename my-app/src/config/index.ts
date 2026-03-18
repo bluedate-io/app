@@ -55,6 +55,8 @@ export const config = {
     authToken: optionalEnv("TWILIO_AUTH_TOKEN", ""),
     verifyServiceSid: optionalEnv("TWILIO_VERIFY_SERVICE_SID", ""),
     whatsappNumber: optionalEnv("TWILIO_WHATSAPP_NUMBER", "whatsapp:+14155238886"),
+    /** URL sent to users who choose to onboard via the web app instead of WhatsApp. */
+    webOnboardingUrl: optionalEnv("WHATSAPP_WEB_ONBOARDING_URL", ""),
   },
 
   admin: {
