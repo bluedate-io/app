@@ -12,6 +12,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
+    "@sentry/nextjs": "^10.44.0",
     "@supabase/supabase-js": "^2.99.1",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.1",
