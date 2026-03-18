@@ -1,32 +1,35 @@
-export default function DiscoverPage() {
-  return (
-    <main
-      style={{
-        minHeight: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#FBF8F6",
-        padding: "24px",
-        gap: 12,
-      }}
-    >
-      <span style={{ fontSize: 48 }}>💙</span>
-      <h1
-        style={{
-          fontFamily: "var(--font-playfair), Georgia, serif",
-          fontSize: 28,
-          fontWeight: 700,
-          color: "#1a1a1a",
-          textAlign: "center",
-        }}
-      >
-        Discover
-      </h1>
-      <p style={{ color: "#777", fontSize: 15, textAlign: "center", maxWidth: 280 }}>
-        Your matches will appear here soon.
-      </p>
-    </main>
-  );
+// Date page — Server Component
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { jwtVerify } from "jose";
+import { config } from "@/config";
+import { db } from "@/lib/db";
+import { DateView } from "./DateView";
+
+async function getWantDate(token: string): Promise<boolean> {
+  const secret = new TextEncoder().encode(config.auth.jwtSecret);
+  let payload: { sub?: string };
+  try {
+    const result = await jwtVerify(token, secret);
+    payload = result.payload as { sub?: string };
+  } catch {
+    return true;
+  }
+  const userId = payload.sub;
+  if (!userId) return true;
+
+  const prefs = await db.preferences.findUnique({
+    where: { userId },
+    select: { wantDate: true },
+  });
+  return prefs?.wantDate ?? true;
+}
+
+export default async function DatePage() {
+  const jar = await cookies();
+  const token = jar.get("access_token")?.value;
+  if (!token) redirect("/login");
+
+  const wantDate = await getWantDate(token);
+  return <DateView initialWantDate={wantDate} />;
 }
