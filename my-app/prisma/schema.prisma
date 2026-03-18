@@ -88,6 +88,7 @@ model Preferences {
   relationshipGoals   String[] @default([]) // all selected goals (1–2) from step 5
   heightCm            Int?     // user height in centimeters, collected during onboarding
   heightCompleted     Boolean  @default(false)
+  wantDate            Boolean  @default(true)  // user is actively looking for a date
   /// True once the user has explicitly chosen Date or BFF (step 3)
   datingModeCompleted Boolean  @default(false)
   photosStepCompleted Boolean  @default(false)
