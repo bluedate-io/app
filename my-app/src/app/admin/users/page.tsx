@@ -16,7 +16,7 @@ async function getUsers(filter: "all" | "completed" | "incomplete", page: number
         ? { onboardingCompleted: false }
         : undefined;
 
-  const [total, users] = await db.$transaction([
+  const [total, users] = await Promise.all([
     db.user.count({ where }),
     db.user.findMany({
       where,
