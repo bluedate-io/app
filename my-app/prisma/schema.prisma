@@ -64,6 +64,7 @@ model User {
   skipsAsUser1       AdminSkip[]  @relation("SkipUser1")
   skipsAsUser2       AdminSkip[]  @relation("SkipUser2")
   skipsAsAdmin       AdminSkip[]  @relation("SkipAdmin")
+  sentMessages       Message[]    @relation("MessageSender")
 
   @@index([phone])
   @@map("users")
@@ -256,9 +257,10 @@ model Match {
   matchedAt   DateTime    @default(now())
   unmatchedAt DateTime?
 
-  user1 User @relation("MatchUser1", fields: [userId1], references: [id], onDelete: Cascade)
-  user2 User @relation("MatchUser2", fields: [userId2], references: [id], onDelete: Cascade)
-  admin User @relation("MatchAdmin",  fields: [matchedBy], references: [id], onDelete: Restrict)
+  user1    User      @relation("MatchUser1", fields: [userId1], references: [id], onDelete: Cascade)
+  user2    User      @relation("MatchUser2", fields: [userId2], references: [id], onDelete: Cascade)
+  admin    User      @relation("MatchAdmin",  fields: [matchedBy], references: [id], onDelete: Restrict)
+  messages Message[]
 
   @@unique([userId1, userId2])
   @@index([userId1])
@@ -283,6 +285,23 @@ model AdminSkip {
   @@index([userId1])
   @@index([userId2])
   @@map("admin_skips")
+}
+
+// ─── Messages — in-app chat between matched users ────────────────────────────
+
+model Message {
+  id        String    @id @default(cuid())
+  matchId   String
+  senderId  String
+  content   String
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  match  Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  sender User  @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, createdAt])
+  @@map("messages")
 }
 
 // ─── Profile prompts — \"What makes you, you?\" (Date intent only) ───────────────
