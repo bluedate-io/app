@@ -160,10 +160,47 @@ export default function MatchesView() {
 
           {/* Blurb */}
           {m.blurb && (
-            <div className="px-5 pb-4">
-              <p className="text-xs leading-relaxed px-4 py-2.5 rounded-xl" style={{ backgroundColor: "#F5F0FB", color: "#6B5E7A" }}>
-                {m.blurb}
-              </p>
+            <div className="px-5 pb-5">
+              <div
+                className="relative rounded-2xl overflow-hidden"
+                style={{
+                  background: "linear-gradient(135deg, #F5F0FB 0%, #FDF3FF 50%, #F0EBFA 100%)",
+                  border: "1px solid #E8DEFF",
+                }}
+              >
+                {/* Top accent line */}
+                <div
+                  className="absolute top-0 left-0 right-0"
+                  style={{ height: 3, background: "linear-gradient(90deg, #8F3A8F, #C060C0, #E080A0)" }}
+                />
+
+                <div className="px-5 pt-5 pb-4">
+                  {/* Label */}
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <div
+                      className="w-4 h-4 rounded-full flex items-center justify-center"
+                      style={{ background: "linear-gradient(135deg,#8F3A8F,#C060C0)" }}
+                    >
+                      <span style={{ fontSize: 8, color: "#fff", lineHeight: 1 }}>✦</span>
+                    </div>
+                    <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#8F3A8F" }}>
+                      Match Note
+                    </span>
+                  </div>
+
+                  {/* Blurb text */}
+                  <p
+                    className="text-sm leading-relaxed"
+                    style={{
+                      color: "#3B2056",
+                      fontFamily: "var(--font-playfair), Georgia, serif",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    &ldquo;{m.blurb}&rdquo;
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
