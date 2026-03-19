@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(npx ts-node:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(ls -la \"/Users/tadikondasaimanikanta/bluedate.io/app/my-app/src/app/\\(main\\)/\")"
+    ],
+    "additionalDirectories": [
+      "/Users/tadikondasaimanikanta/bluedate.io/app/my-app/src/app/api/chat"
     ]
   }
 }
