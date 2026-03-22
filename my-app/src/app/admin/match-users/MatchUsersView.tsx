@@ -1,14 +1,25 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Heart, ChevronRight, User, Copy, Check } from "lucide-react";
+import { Heart, ChevronLeft, ChevronRight, User, Star } from "lucide-react";
 
-type ProfileCard = {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type OptedInUser = {
   userId: string;
   name: string;
   age: number | null;
   city: string | null;
   photoUrl: string | null;
+  collegeName: string | null;
+  genderIdentity: string | null;
+  genderPreference: string[];
+  mode: string;
+  description: string | null;
+};
+
+type Candidate = OptedInUser & {
+  bio: string | null;
   lookingFor: string | null;
   heightCm: number | null;
   ageRange: string | null;
@@ -20,216 +31,315 @@ type ProfileCard = {
   conversationStyle: string | null;
   hobbies: string[];
   activities: string[];
+  score: number;
+  scoreBreakdown: { label: string; pts: number }[];
+};
+
+type SelectedUser = OptedInUser & {
   bio: string | null;
+  lookingFor: string | null;
+  heightCm: number | null;
+  ageRange: string | null;
+  interestedIn: string[];
+  religion: string[];
+  kidsStatus: string | null;
+  kidsPreference: string | null;
+  socialLevel: string | null;
+  conversationStyle: string | null;
+  hobbies: string[];
+  activities: string[];
 };
 
 type ModalState =
   | { open: false }
-  | { open: true; woman: ProfileCard; man: ProfileCard; blurb: string; saving: boolean };
+  | { open: true; candidate: Candidate; blurb: string; saving: boolean };
 
-type LoadState =
-  | { status: "loading" }
-  | { status: "ready"; women: ProfileCard[]; men: ProfileCard[]; wi: number; mi: number }
-  | { status: "error" };
-
-function buildPrompt(a: ProfileCard, b: ProfileCard): string {
-  const v = (x: string | number | null | undefined) => x ?? "—";
-  return `Here are the two users you're introducing:
-
-User A:
-- Name: ${v(a.name)}
-- Age: ${v(a.age)}
-- City: ${v(a.city)}
-- About them: ${v(a.bio)}
-- What they're looking for: ${v(a.lookingFor)}
-- Hobbies: ${a.hobbies.length ? a.hobbies.join(", ") : "—"}
-- Religion: ${a.religion.length ? a.religion.join(", ") : "—"}
-
-User B:
-- Name: ${v(b.name)}
-- Age: ${v(b.age)}
-- City: ${v(b.city)}
-- About them: ${v(b.bio)}
-- What they're looking for: ${v(b.lookingFor)}
-- Hobbies: ${b.hobbies.length ? b.hobbies.join(", ") : "—"}
-- Religion: ${b.religion.length ? b.religion.join(", ") : "—"}
-
-Write the match blurb. Address it to both of them (e.g. "Hey ${a.name} and ${b.name}...").`;
-}
+// ─── Phase 1: Opted-in list ───────────────────────────────────────────────────
 
 export default function MatchUsersView() {
-  const [state, setState] = useState<LoadState>({ status: "loading" });
-  const [modal, setModal] = useState<ModalState>({ open: false });
-  const [copied, setCopied] = useState(false);
+  const [phase, setPhase] = useState<"list" | "match">("list");
+  const [selectedUser, setSelectedUser] = useState<SelectedUser | null>(null);
 
-  const load = useCallback(async () => {
-    setState({ status: "loading" });
+  function handleSelect(user: SelectedUser) {
+    setSelectedUser(user);
+    setPhase("match");
+  }
+
+  if (phase === "list" || !selectedUser) {
+    return <OptedInList onSelect={handleSelect} />;
+  }
+
+  return (
+    <MatchPhase
+      selectedUser={selectedUser}
+      onBack={() => { setPhase("list"); setSelectedUser(null); }}
+    />
+  );
+}
+
+// ─── Opted-in list ────────────────────────────────────────────────────────────
+
+function OptedInList({ onSelect }: { onSelect: (u: SelectedUser) => void }) {
+  const [users, setUsers] = useState<OptedInUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
+  const LIMIT = 20;
+
+  const load = useCallback(async (p: number) => {
+    setLoading(true);
     try {
-      const res = await fetch("/api/admin/match-users/candidates");
+      const res = await fetch(`/api/admin/match-users/opted-in?page=${p}&limit=${LIMIT}`);
       const { data } = await res.json();
-      setState({ status: "ready", women: data.women, men: data.men, wi: 0, mi: 0 });
-    } catch {
-      setState({ status: "error" });
+      setUsers(data.users);
+      setTotal(data.total);
+      setPages(data.pages);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
+  useEffect(() => { load(page); }, [load, page]);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-base font-bold" style={{ color: "#1A0A2E" }}>Opted-in this week</h2>
+          <p className="text-xs mt-0.5" style={{ color: "#9B87B0" }}>{total} users — select one to find their best matches</p>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
+        </div>
+      ) : users.length === 0 ? (
+        <EmptyState message="No users opted in this week yet." />
+      ) : (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+            {users.map((u) => (
+              <OptedInCard key={u.userId} user={u} onSelect={onSelect} />
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {pages > 1 && (
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm border disabled:opacity-30"
+                style={{ borderColor: "#EDE8F7", color: "#6B5E7A" }}
+              >
+                <ChevronLeft size={14} /> Prev
+              </button>
+              <span className="text-xs" style={{ color: "#9B87B0" }}>Page {page} of {pages}</span>
+              <button
+                onClick={() => setPage((p) => Math.min(pages, p + 1))}
+                disabled={page === pages}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm border disabled:opacity-30"
+                style={{ borderColor: "#EDE8F7", color: "#6B5E7A" }}
+              >
+                Next <ChevronRight size={14} />
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function OptedInCard({ user, onSelect }: { user: OptedInUser; onSelect: (u: SelectedUser) => void }) {
+  async function handleClick() {
+    // Fetch full profile for this user by calling suggestions (which returns selectedUser)
+    const res = await fetch(`/api/admin/match-users/suggestions?userId=${user.userId}`);
+    const { data } = await res.json();
+    if (data?.selectedUser) onSelect(data.selectedUser);
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      className="text-left rounded-2xl border overflow-hidden shadow-sm bg-white hover:shadow-md transition-shadow"
+      style={{ borderColor: "#EDE8F7" }}
+    >
+      <div className="relative" style={{ height: 160 }}>
+        {user.photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={user.photoUrl} alt={user.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: "#F5F0FB" }}>
+            <User size={32} strokeWidth={1} style={{ color: "#C060C0" }} />
+          </div>
+        )}
+        <span
+          className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-semibold"
+          style={{
+            background: user.mode === "bff" ? "#EDE8F7" : "linear-gradient(135deg,#8F3A8F,#C060C0)",
+            color: user.mode === "bff" ? "#6B5E7A" : "white",
+          }}
+        >
+          {user.mode === "bff" ? "BFF" : "Date"}
+        </span>
+      </div>
+      <div className="px-3 py-3">
+        <p className="text-sm font-semibold truncate" style={{ color: "#1A0A2E" }}>
+          {user.name}{user.age ? `, ${user.age}` : ""}
+        </p>
+        {user.collegeName && (
+          <p className="text-xs truncate mt-0.5" style={{ color: "#9B87B0" }}>{user.collegeName}</p>
+        )}
+        {user.genderIdentity && (
+          <p className="text-xs mt-1" style={{ color: "#6B5E7A" }}>{user.genderIdentity}</p>
+        )}
+        {user.description && (
+          <p className="text-xs mt-1 line-clamp-2 leading-relaxed" style={{ color: "#9B87B0" }}>{user.description}</p>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// ─── Match phase ──────────────────────────────────────────────────────────────
+
+function MatchPhase({ selectedUser, onBack }: { selectedUser: SelectedUser; onBack: () => void }) {
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [idx, setIdx] = useState(0);
+  const [modal, setModal] = useState<ModalState>({ open: false });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/match-users/suggestions?userId=${selectedUser.userId}`);
+      const { data } = await res.json();
+      setCandidates(data.candidates ?? []);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedUser.userId]);
+
   useEffect(() => { load(); }, [load]);
 
-  function openMatchModal() {
-    if (state.status !== "ready") return;
-    const woman = state.women[state.wi];
-    const man = state.men[state.mi];
-    if (!woman || !man) return;
-    setModal({ open: true, woman, man, blurb: "", saving: false });
+  async function skipCandidate() {
+    const candidate = candidates[idx];
+    if (!candidate) return;
+    await fetch("/api/admin/match-users/skip", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId1: selectedUser.userId, userId2: candidate.userId }),
+    });
+    setCandidates((prev) => prev.filter((_, i) => i !== idx));
+    setIdx((i) => Math.min(i, candidates.length - 2));
   }
 
   async function saveMatch() {
     if (!modal.open) return;
-    const { woman, man, blurb } = modal;
+    const { candidate, blurb } = modal;
     setModal((m) => m.open ? { ...m, saving: true } : m);
     await fetch("/api/admin/match-users/match", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId1: woman.userId, userId2: man.userId, blurb }),
+      body: JSON.stringify({ userId1: selectedUser.userId, userId2: candidate.userId, blurb }),
     });
     setModal({ open: false });
-    setState((s) => {
-      if (s.status !== "ready") return s;
-      const newWomen = s.women.filter((w) => w.userId !== woman.userId);
-      const newMen = s.men.filter((m) => m.userId !== man.userId);
-      return {
-        ...s,
-        women: newWomen,
-        men: newMen,
-        wi: Math.min(s.wi, Math.max(0, newWomen.length - 1)),
-        mi: Math.min(s.mi, Math.max(0, newMen.length - 1)),
-      };
-    });
-    setCopied(false);
+    onBack();
   }
 
-  function skipWoman() {
-    setState((s) => {
-      if (s.status !== "ready" || s.women.length === 0) return s;
-      return { ...s, wi: (s.wi + 1) % s.women.length };
-    });
-    setCopied(false);
-  }
-
-  function skipMan() {
-    setState((s) => {
-      if (s.status !== "ready" || s.men.length === 0) return s;
-      return { ...s, mi: (s.mi + 1) % s.men.length };
-    });
-    setCopied(false);
-  }
-
-  if (state.status === "loading") return <SkeletonPair />;
-
-  if (state.status === "error") {
-    return (
-      <div className="flex flex-col items-center py-32">
-        <p className="text-sm mb-4" style={{ color: "#DC2626" }}>Failed to load candidates.</p>
-        <button onClick={load} className="px-4 py-2 rounded-xl text-sm border" style={{ borderColor: "#EDE8F7", color: "#6B5E7A" }}>
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  const { women, men, wi, mi } = state;
-  const woman = women[wi] ?? null;
-  const man = men[mi] ?? null;
-  const canMatch = !!woman && !!man;
-  const prompt = woman && man ? buildPrompt(woman, man) : "";
-
-  if (!woman && !man) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border py-32" style={{ borderColor: "#EDE8F7", backgroundColor: "#fff" }}>
-        <Heart size={36} strokeWidth={1.5} style={{ color: "#C060C0" }} />
-        <p className="mt-4 text-base font-semibold" style={{ color: "#1A0A2E" }}>No more users to match</p>
-        <p className="mt-1 text-sm" style={{ color: "#9B87B0" }}>All eligible users have been matched.</p>
-      </div>
-    );
-  }
+  const candidate = candidates[idx] ?? null;
 
   return (
     <div>
-      {/* Progress */}
-      <div className="flex justify-between text-xs mb-4 px-1" style={{ color: "#9B87B0" }}>
-        <span>{women.length} women · viewing {wi + 1}</span>
-        <span>{men.length} men · viewing {mi + 1}</span>
-      </div>
-
-      {/* Cards */}
-      <div className="grid grid-cols-2 gap-5 mb-6">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-5">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border"
+          style={{ borderColor: "#EDE8F7", color: "#6B5E7A" }}
+        >
+          <ChevronLeft size={14} /> Back
+        </button>
         <div>
-          {woman ? <ProfileCardView card={woman} label="She" /> : <EmptySlot label="No more women" />}
-          <button
-            onClick={skipWoman}
-            disabled={!woman}
-            className="w-full mt-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium border transition disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
-            style={{ borderColor: "#EDE8F7", color: "#6B5E7A", backgroundColor: "#fff" }}
-          >
-            Skip <ChevronRight size={14} />
-          </button>
-        </div>
-        <div>
-          {man ? <ProfileCardView card={man} label="He" /> : <EmptySlot label="No more men" />}
-          <button
-            onClick={skipMan}
-            disabled={!man}
-            className="w-full mt-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium border transition disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
-            style={{ borderColor: "#EDE8F7", color: "#6B5E7A", backgroundColor: "#fff" }}
-          >
-            Skip <ChevronRight size={14} />
-          </button>
+          <h2 className="text-base font-bold" style={{ color: "#1A0A2E" }}>
+            Finding matches for {selectedUser.name}
+          </h2>
+          <p className="text-xs mt-0.5" style={{ color: "#9B87B0" }}>
+            {loading ? "Loading…" : `${candidates.length} candidates from ${selectedUser.collegeName ?? "their college"}`}
+          </p>
         </div>
       </div>
 
-      {/* Prompt textarea */}
-      {prompt && (
-        <div className="mb-6 rounded-2xl border overflow-hidden" style={{ borderColor: "#EDE8F7", backgroundColor: "#fff" }}>
-          <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "#F0EBFA" }}>
-            <p className="text-xs font-semibold" style={{ color: "#9B87B0" }}>Blurb prompt — paste into Claude</p>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(prompt);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition"
-              style={copied
-                ? { borderColor: "#6B5E7A", color: "#166534", backgroundColor: "#F0FDF4" }
-                : { borderColor: "#EDE8F7", color: "#6B5E7A", backgroundColor: "#FAF8FF" }
-              }
-            >
-              {copied ? <Check size={12} /> : <Copy size={12} />}
-              {copied ? "Copied" : "Copy"}
-            </button>
+      {loading ? (
+        <div className="grid grid-cols-2 gap-5">
+          <SkeletonCard tall />
+          <SkeletonCard tall />
+        </div>
+      ) : candidates.length === 0 ? (
+        <EmptyState message={`No eligible candidates found for ${selectedUser.name} this week.`} />
+      ) : (
+        <div className="grid grid-cols-2 gap-5">
+          {/* Selected user (fixed) */}
+          <div>
+            <p className="text-xs font-semibold mb-2 px-1" style={{ color: "#9B87B0" }}>SELECTED USER</p>
+            <FullProfileCard user={selectedUser} />
           </div>
-          <textarea
-            readOnly
-            value={prompt}
-            rows={18}
-            className="w-full px-4 py-3 text-xs font-mono resize-none focus:outline-none"
-            style={{ color: "#1A0A2E", backgroundColor: "#fff", lineHeight: 1.7 }}
-          />
+
+          {/* Candidate */}
+          <div>
+            <div className="flex items-center justify-between mb-2 px-1">
+              <p className="text-xs font-semibold" style={{ color: "#9B87B0" }}>
+                CANDIDATE {idx + 1} / {candidates.length}
+              </p>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setIdx((i) => Math.max(0, i - 1))}
+                  disabled={idx === 0}
+                  className="p-1 rounded-lg border disabled:opacity-30"
+                  style={{ borderColor: "#EDE8F7" }}
+                >
+                  <ChevronLeft size={13} />
+                </button>
+                <button
+                  onClick={() => setIdx((i) => Math.min(candidates.length - 1, i + 1))}
+                  disabled={idx === candidates.length - 1}
+                  className="p-1 rounded-lg border disabled:opacity-30"
+                  style={{ borderColor: "#EDE8F7" }}
+                >
+                  <ChevronRight size={13} />
+                </button>
+              </div>
+            </div>
+
+            {candidate && (
+              <>
+                <FullProfileCard user={candidate} score={candidate.score} breakdown={candidate.scoreBreakdown} />
+
+                {/* Actions */}
+                <div className="flex gap-3 mt-3">
+                  <button
+                    onClick={skipCandidate}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium border transition"
+                    style={{ borderColor: "#EDE8F7", color: "#6B5E7A", backgroundColor: "#fff" }}
+                  >
+                    Skip
+                  </button>
+                  <button
+                    onClick={() => setModal({ open: true, candidate, blurb: "", saving: false })}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white"
+                    style={{ background: "linear-gradient(135deg,#8F3A8F,#C060C0)" }}
+                  >
+                    <Heart size={14} /> Match
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
-
-      {/* Match button */}
-      <div className="flex justify-center">
-        <button
-          onClick={openMatchModal}
-          disabled={!canMatch}
-          className="flex items-center gap-2 px-10 py-3 rounded-xl text-sm font-semibold text-white transition disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
-          style={{ background: "linear-gradient(135deg,#8F3A8F,#C060C0)" }}
-        >
-          <Heart size={16} />
-          Match
-        </button>
-      </div>
 
       {/* Blurb modal */}
       {modal.open && (
@@ -238,18 +348,13 @@ export default function MatchUsersView() {
           style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
           onClick={(e) => { if (e.target === e.currentTarget) setModal({ open: false }); }}
         >
-          <div className="w-full max-w-lg rounded-2xl shadow-xl overflow-hidden" style={{ backgroundColor: "#fff" }}>
-            {/* Header */}
+          <div className="w-full max-w-lg rounded-2xl shadow-xl overflow-hidden bg-white">
             <div className="px-6 pt-6 pb-4 border-b" style={{ borderColor: "#F0EBFA" }}>
-              <p className="text-base font-bold" style={{ color: "#1A0A2E" }}>
-                Why do they match?
-              </p>
+              <p className="text-base font-bold" style={{ color: "#1A0A2E" }}>Why do they match?</p>
               <p className="text-xs mt-1" style={{ color: "#9B87B0" }}>
-                {modal.woman.name} &amp; {modal.man.name} — write a short blurb explaining why.
+                {selectedUser.name} &amp; {modal.candidate.name} — write a short blurb.
               </p>
             </div>
-
-            {/* Textarea */}
             <div className="px-6 py-4">
               <textarea
                 autoFocus
@@ -261,13 +366,11 @@ export default function MatchUsersView() {
                 style={{ borderColor: "#EDE8F7", color: "#1A0A2E", lineHeight: 1.7 }}
               />
             </div>
-
-            {/* Actions */}
             <div className="px-6 pb-6 flex gap-3 justify-end">
               <button
                 onClick={() => setModal({ open: false })}
                 disabled={modal.saving}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium border transition disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl text-sm font-medium border disabled:opacity-50"
                 style={{ borderColor: "#EDE8F7", color: "#6B5E7A" }}
               >
                 Cancel
@@ -275,7 +378,7 @@ export default function MatchUsersView() {
               <button
                 onClick={saveMatch}
                 disabled={modal.saving || !modal.blurb.trim()}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition disabled:opacity-40"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
                 style={{ background: "linear-gradient(135deg,#8F3A8F,#C060C0)" }}
               >
                 <Heart size={14} />
@@ -289,75 +392,113 @@ export default function MatchUsersView() {
   );
 }
 
-function ProfileCardView({ card, label }: { card: ProfileCard; label: string }) {
+// ─── Profile cards ────────────────────────────────────────────────────────────
+
+function FullProfileCard({
+  user,
+  score,
+  breakdown,
+}: {
+  user: SelectedUser | Candidate;
+  score?: number;
+  breakdown?: { label: string; pts: number }[];
+}) {
   return (
     <div className="rounded-2xl border overflow-hidden shadow-sm bg-white" style={{ borderColor: "#EDE8F7" }}>
-      <div className="relative w-full" style={{ height: 240 }}>
-        {card.photoUrl ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={card.photoUrl} alt={card.name} className="w-full h-full object-cover" />
+      {/* Photo */}
+      <div className="relative w-full" style={{ height: 220 }}>
+        {user.photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={user.photoUrl} alt={user.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: "#F5F0FB" }}>
             <User size={40} strokeWidth={1} style={{ color: "#C060C0" }} />
           </div>
         )}
-        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold text-white"
-          style={{ background: "linear-gradient(135deg,#8F3A8F,#C060C0)" }}>
-          {label}
+        <span
+          className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold"
+          style={{
+            background: user.mode === "bff" ? "#EDE8F7" : "linear-gradient(135deg,#8F3A8F,#C060C0)",
+            color: user.mode === "bff" ? "#6B5E7A" : "white",
+          }}
+        >
+          {user.mode === "bff" ? "BFF" : "Date"}
         </span>
+        {score !== undefined && (
+          <span
+            className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
+            style={{ backgroundColor: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA" }}
+          >
+            <Star size={10} fill="#C2410C" />
+            {score}
+          </span>
+        )}
       </div>
+
       <div className="px-4 py-4">
         <p className="text-base font-bold" style={{ color: "#1A0A2E" }}>
-          {card.name}
-          {card.age && <span className="font-normal text-sm" style={{ color: "#6B5E7A" }}>, {card.age}</span>}
+          {user.name}
+          {user.age && <span className="font-normal text-sm" style={{ color: "#6B5E7A" }}>, {user.age}</span>}
         </p>
-        {card.city && <p className="text-xs mt-0.5 mb-3" style={{ color: "#9B87B0" }}>{card.city}</p>}
-        <div className="flex flex-col gap-1.5 mb-3">
-          <InfoRow label="Looking for"   value={card.lookingFor} />
-          <InfoRow label="Interested in" value={card.interestedIn.length ? card.interestedIn.join(", ") : null} />
-          <InfoRow label="Age range"     value={card.ageRange} />
-          <InfoRow label="Height"        value={card.heightCm ? `${card.heightCm} cm` : null} />
-          <InfoRow label="Religion"      value={card.religion.length ? card.religion.join(", ") : null} />
-          <InfoRow label="Has kids"      value={card.kidsStatus} />
-          <InfoRow label="Wants kids"    value={card.kidsPreference} />
-          <InfoRow label="Social"        value={card.socialLevel} />
-          <InfoRow label="Conversation"  value={card.conversationStyle} />
+        {user.city && <p className="text-xs mt-0.5" style={{ color: "#9B87B0" }}>{user.city}</p>}
+        {user.collegeName && <p className="text-xs" style={{ color: "#9B87B0" }}>{user.collegeName}</p>}
+
+        {/* Opt-in description */}
+        {user.description && (
+          <p className="text-xs mt-2 italic leading-relaxed px-3 py-2 rounded-lg" style={{ backgroundColor: "#FAF8FF", color: "#6B5E7A" }}>
+            &ldquo;{user.description}&rdquo;
+          </p>
+        )}
+
+        <div className="flex flex-col gap-1 mt-3 mb-3">
+          <InfoRow label="Looking for"   value={"lookingFor" in user ? user.lookingFor : null} />
+          <InfoRow label="Interested in" value={user.interestedIn.length ? user.interestedIn.join(", ") : null} />
+          <InfoRow label="Age range"     value={"ageRange" in user ? user.ageRange : null} />
+          <InfoRow label="Height"        value={"heightCm" in user && user.heightCm ? `${user.heightCm} cm` : null} />
+          <InfoRow label="Religion"      value={user.religion.length ? user.religion.join(", ") : null} />
+          <InfoRow label="Has kids"      value={user.kidsStatus} />
+          <InfoRow label="Wants kids"    value={user.kidsPreference} />
+          <InfoRow label="Social"        value={user.socialLevel} />
+          <InfoRow label="Convo style"   value={user.conversationStyle} />
         </div>
-        {card.hobbies.length > 0 && (
+
+        {user.hobbies.length > 0 && (
           <div className="mb-2">
-            <p className="text-xs font-medium mb-1.5" style={{ color: "#9B87B0" }}>Hobbies</p>
+            <p className="text-xs font-medium mb-1" style={{ color: "#9B87B0" }}>Hobbies</p>
             <div className="flex flex-wrap gap-1">
-              {card.hobbies.map((h) => (
+              {user.hobbies.map((h) => (
                 <span key={h} className="px-2 py-0.5 rounded-full text-xs" style={{ backgroundColor: "#F0EBFA", color: "#6B5E7A" }}>{h}</span>
               ))}
             </div>
           </div>
         )}
-        {card.activities.length > 0 && (
-          <div className="mb-2">
-            <p className="text-xs font-medium mb-1.5" style={{ color: "#9B87B0" }}>Activities</p>
-            <div className="flex flex-wrap gap-1">
-              {card.activities.map((a) => (
-                <span key={a} className="px-2 py-0.5 rounded-full text-xs" style={{ backgroundColor: "#F0EBFA", color: "#6B5E7A" }}>{a}</span>
+
+        {"bio" in user && user.bio && (
+          <p className="mt-2 text-xs leading-relaxed" style={{ color: "#6B5E7A" }}>{user.bio}</p>
+        )}
+
+        {/* Score breakdown */}
+        {breakdown && breakdown.length > 0 && (
+          <div className="mt-3 pt-3 border-t" style={{ borderColor: "#F0EBFA" }}>
+            <p className="text-xs font-semibold mb-2" style={{ color: "#9B87B0" }}>Match reasons</p>
+            <div className="flex flex-col gap-1">
+              {breakdown.map((b, i) => (
+                <div key={i} className="flex items-center justify-between text-xs">
+                  <span style={{ color: "#6B5E7A" }}>{b.label}</span>
+                  <span className="font-semibold" style={{ color: "#8F3A8F" }}>+{b.pts}</span>
+                </div>
               ))}
             </div>
           </div>
         )}
-        {card.bio && <p className="mt-2 text-xs leading-relaxed" style={{ color: "#6B5E7A" }}>{card.bio}</p>}
       </div>
     </div>
   );
 }
 
-function EmptySlot({ label }: { label: string }) {
-  return (
-    <div className="rounded-2xl border flex items-center justify-center" style={{ height: 320, borderColor: "#EDE8F7", backgroundColor: "#FAF8FF" }}>
-      <p className="text-sm" style={{ color: "#9B87B0" }}>{label}</p>
-    </div>
-  );
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function InfoRow({ label, value }: { label: string; value: string | null }) {
+function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
   if (!value) return null;
   return (
     <div className="flex gap-1.5 text-xs">
@@ -367,21 +508,26 @@ function InfoRow({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-function SkeletonPair() {
+function EmptyState({ message }: { message: string }) {
   return (
-    <div className="grid grid-cols-2 gap-5">
-      {[0, 1].map((i) => (
-        <div key={i} className="rounded-2xl border overflow-hidden" style={{ borderColor: "#EDE8F7", backgroundColor: "#fff" }}>
-          <div className="animate-pulse" style={{ height: 240, backgroundColor: "#F0EBFA" }} />
-          <div className="px-4 py-4 space-y-2">
-            <div className="h-4 rounded animate-pulse" style={{ backgroundColor: "#F0EBFA", width: "60%" }} />
-            <div className="h-3 rounded animate-pulse" style={{ backgroundColor: "#F0EBFA", width: "40%" }} />
-            {[80, 70, 90, 65, 75].map((w, j) => (
-              <div key={j} className="h-3 rounded animate-pulse" style={{ backgroundColor: "#F0EBFA", width: `${w}%` }} />
-            ))}
-          </div>
-        </div>
-      ))}
+    <div className="flex flex-col items-center justify-center rounded-2xl border py-24" style={{ borderColor: "#EDE8F7", backgroundColor: "#fff" }}>
+      <Heart size={32} strokeWidth={1.5} style={{ color: "#C060C0" }} />
+      <p className="mt-3 text-sm font-semibold" style={{ color: "#1A0A2E" }}>{message}</p>
+    </div>
+  );
+}
+
+function SkeletonCard({ tall }: { tall?: boolean }) {
+  return (
+    <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "#EDE8F7", backgroundColor: "#fff" }}>
+      <div className="animate-pulse" style={{ height: tall ? 220 : 160, backgroundColor: "#F0EBFA" }} />
+      <div className="px-4 py-4 space-y-2">
+        <div className="h-4 rounded animate-pulse" style={{ backgroundColor: "#F0EBFA", width: "60%" }} />
+        <div className="h-3 rounded animate-pulse" style={{ backgroundColor: "#F0EBFA", width: "40%" }} />
+        {[80, 65, 75].map((w, i) => (
+          <div key={i} className="h-3 rounded animate-pulse" style={{ backgroundColor: "#F0EBFA", width: `${w}%` }} />
+        ))}
+      </div>
     </div>
   );
 }
