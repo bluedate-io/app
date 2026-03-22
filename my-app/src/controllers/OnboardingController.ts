@@ -5,7 +5,6 @@ import type { OnboardingService } from "@/services/OnboardingService";
 import {
   profileSchema,
   genderIdentitySchema,
-  inviteCodeSchema,
   datingModeSchema,
   genderPreferenceSchema,
   ageRangeSchema,
@@ -22,6 +21,7 @@ import {
   bffInterestsSchema,
   relationshipStatusSchema,
 } from "@/validations/onboarding.validation";
+
 import { successResponse, createdResponse, noContentResponse, handleError } from "@/utils/response";
 import type { RequestContext } from "@/types";
 
@@ -47,18 +47,6 @@ export class OnboardingController {
       const input = genderIdentitySchema.parse(body);
       const result = await this.onboardingService.saveGenderIdentity(ctx.userId, input);
       return createdResponse(result, "Gender saved");
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
-  // POST /api/onboarding/invite-code
-  async validateInviteCode(req: NextRequest, ctx: RequestContext) {
-    try {
-      const body = await req.json();
-      const input = inviteCodeSchema.parse(body);
-      await this.onboardingService.validateInviteCode(ctx.userId, input.code);
-      return successResponse(null, { message: "Invite code accepted" });
     } catch (error) {
       return handleError(error);
     }

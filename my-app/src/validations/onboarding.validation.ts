@@ -44,12 +44,6 @@ export const genderIdentitySchema = z.object({
   genderIdentity: z.string().min(1).max(60).trim(),
 });
 
-// ─── Invite code (step after gender) ──────────────────────────────────────────
-
-export const inviteCodeSchema = z.object({
-  code: z.string().min(1).max(20).trim(),
-});
-
 // ─── Dating mode only (step: Date vs BFF) — separate API ─────────────────────
 
 export const datingModeSchema = z.object({
@@ -273,7 +267,6 @@ export const aiSignalsSchema = z.object({
 
 export type ProfileInput = z.infer<typeof profileSchema>;
 export type GenderIdentityInput = z.infer<typeof genderIdentitySchema>;
-export type InviteCodeInput = z.infer<typeof inviteCodeSchema>;
 export type DatingModeInput = z.infer<typeof datingModeSchema>;
 export type GenderPreferenceInput = z.infer<typeof genderPreferenceSchema>;
 export type RelationshipGoalsInput = z.infer<typeof relationshipGoalsSchema>;

@@ -7,7 +7,7 @@ import type { OnboardingStatus } from "./page";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TOTAL_SUB_STEPS = 13;
+const TOTAL_SUB_STEPS = 12;
 
 const HEIGHT_CM_MIN = 91;
 const HEIGHT_CM_MAX = 220;
@@ -172,8 +172,6 @@ function validateFirstName(value: string): string | null {
 function getInitialSubStep(status: OnboardingStatus): number {
   if (!status.hasProfile) return 0;
   if (!status.hasPreferences) return 1;
-  // Women do not need an invite code; skip this gate for them.
-  if (!status.hasUsedInviteCode && status.genderIdentity !== "Woman") return 2;
   // Require an explicit Date/BFF choice before moving past step 3
   if (!status.hasDatingMode) return 3;
   const hasHeight = status.hasHeight;
@@ -896,8 +894,6 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const [birthdayError, setBirthdayError] = useState<string | null>(null);
   const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
   const [genderIdentity, setGenderIdentity] = useState(() => status.genderIdentity ?? "");
-  const [inviteCode, setInviteCode] = useState("");
-  const [inviteCodeError, setInviteCodeError] = useState<string | null>(null);
   const [datingMode, setDatingMode] = useState<"date" | "bff" | "">(() => {
     if (status.relationshipIntent === "friendship") return "bff";
     if (status.relationshipIntent === "undecided" || status.relationshipIntent === "date") return "date";
@@ -1009,18 +1005,9 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
 
       if (subStep === 1) {
         await apiPost("gender", { genderIdentity });
-        if (genderIdentity === "Woman") {
-          setSubStep(3);
-          setLoading(false);
-          return;
-        }
-      }
-
-      if (subStep === 2) {
-        setInviteCodeError(null);
-        if (genderIdentity !== "Woman") {
-          await apiPost("invite-code", { code: inviteCode.trim() });
-        }
+        setSubStep(3);
+        setLoading(false);
+        return;
       }
 
       if (subStep === 3 && datingMode === "bff") {
@@ -1070,11 +1057,9 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       }
 
       setSubStep((s) => s + 1);
-      setInviteCodeError(null);
     } catch (e) {
       const msg = (e as Error).message;
-      if (subStep === 2) setInviteCodeError(msg);
-      else if (subStep === 7) setHeightError(msg);
+      if (subStep === 7) setHeightError(msg);
       else setStepError(msg);
     } finally {
       setLoading(false);
@@ -1082,8 +1067,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   };
 
   const handleBack = () => {
-    // Step 3 (dating mode): skip over the invite-code step for women / already-invited users
-    if (subStep === 3 && (genderIdentity === "Woman" || status.hasUsedInviteCode)) {
+    // Step 3 (dating mode): step 2 removed, back always goes to 1
+    if (subStep === 3) {
       setSubStep(1);
       return;
     }
@@ -1136,10 +1121,6 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           && birthday.year.length === 4;
       }
       case 1: return genderIdentity !== "";
-      case 2: {
-        if (genderIdentity === "Woman") return true;
-        return inviteCode.trim().length > 0;
-      }
       case 3: return datingMode !== "";
       case 4: return openToAll || genderPreference.length > 0;
       case 7: return heightTouched && heightCm >= HEIGHT_CM_MIN && heightCm <= HEIGHT_CM_MAX;
@@ -1386,49 +1367,6 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
             <p className="text-sm text-gray-400 mt-4">You can always update this later.</p>
 
             {stepError && <InlineError message={stepError} />}
-
-            <div className="mt-auto pt-8 flex items-end justify-end">
-              <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 2: Invite code ──────────────────────────────────────────── */}
-        {subStep === 2 && genderIdentity !== "Woman" && (
-          <div className="flex flex-col flex-1">
-            <div className="flex justify-start mb-6">
-              <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-              </svg>
-            </div>
-            <Heading>Enter your invite code</Heading>
-            <p className="text-sm text-gray-500 mb-6">
-              {
-                genderIdentity === "Man"
-                  ? "To join, you need an invite code from a woman. Ask her to message \"invite code\" on WhatsApp and share the code with you."
-                  : genderIdentity === "Woman"
-                    ? "As a woman, you can join without an invite code. If you have one, you can enter it below, but it's optional."
-                    : "To join, ask a friend to message \"invite code\" on WhatsApp and share the code they receive with you."
-              }
-            </p>
-
-            <div className="mb-4">
-              <label className="block text-sm text-gray-500 mb-1">Invite code</label>
-              <input
-                type="text"
-                value={inviteCode}
-                onChange={(e) => {
-                  setInviteCode(e.target.value.toUpperCase().trim());
-                  if (inviteCodeError) setInviteCodeError(null);
-                }}
-                className={`${inputCls} ${inviteCodeError ? "border-red-500" : ""}`}
-                placeholder="e.g. ABC12XYZ"
-                autoComplete="off"
-                maxLength={20}
-              />
-              <InfoLine text="Codes are usually 4-8 characters long." />
-              {inviteCodeError && <InlineError message={inviteCodeError} />}
-            </div>
 
             <div className="mt-auto pt-8 flex items-end justify-end">
               <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />

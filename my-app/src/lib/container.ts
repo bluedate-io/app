@@ -37,7 +37,6 @@ const inviteCodeService = new InviteCodeService(
 const onboardingService = new OnboardingService(
   onboardingRepository,
   userRepository,
-  inviteCodeService,
 );
 const whatsAppBotService = new WhatsAppBotService(
   whatsAppSessionRepository,

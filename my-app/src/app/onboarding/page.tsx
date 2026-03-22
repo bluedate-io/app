@@ -29,7 +29,6 @@ export interface OnboardingStatus {
   hasPreferencesComplete: boolean;
   /** True once the user has explicitly chosen Date or BFF (step 3) */
   hasDatingMode: boolean;
-  hasUsedInviteCode: boolean;
   hasInterests: boolean;
   hasPersonality: boolean;
   hasAvailability: boolean;
@@ -82,15 +81,13 @@ export default async function OnboardingPage() {
     ? "profile"
     : !status.hasPreferences
       ? "preferences"
-      : !status.hasUsedInviteCode
-        ? "inviteCode"
-        : !status.hasDatingMode
-          ? "preferences"
-          : !status.hasInterests
-          ? "interests"
-          : !status.hasPersonality || !status.hasAvailability
-            ? "personality"
-            : "photos";
+      : !status.hasDatingMode
+        ? "preferences"
+        : !status.hasInterests
+        ? "interests"
+        : !status.hasPersonality || !status.hasAvailability
+          ? "personality"
+          : "photos";
 
   return (
     <main className="min-h-screen bg-white">
