@@ -1,26 +1,17 @@
 // ─── User Domain Entity ───────────────────────────────────────────────────────
-// Phone-first auth model. Profile, preferences, etc. live in their own domains.
+// Email-first auth model. Profile, preferences, etc. live in their own domains.
 
 import type { UserRole } from "@/types";
 
 export interface User {
   id: string;
-  phone: string;
+  phone?: string;
   email?: string;
+  collegeName?: string;
   role: UserRole;
   onboardingCompleted: boolean;
   createdAt: Date;
   updatedAt: Date;
-}
-
-export interface OtpVerification {
-  id: string;
-  phone: string;
-  code: string;
-  expiresAt: Date;
-  verified: boolean;
-  userId?: string;
-  createdAt: Date;
 }
 
 // ─── Sub-domain models (mirrors Prisma relations) ────────────────────────────

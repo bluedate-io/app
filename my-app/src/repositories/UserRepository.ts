@@ -1,5 +1,5 @@
 // ─── UserRepository ───────────────────────────────────────────────────────────
-// All database queries for the User model (phone-first auth schema).
+// All database queries for the User model (email-first auth schema).
 
 import type { PrismaClient, User as PrismaUser } from "@/generated/prisma/client";
 import type { User } from "@/domains/User";
@@ -9,8 +9,9 @@ import { buildPaginatedResult } from "@/utils/pagination";
 function toDomain(row: PrismaUser): User {
   return {
     id: row.id,
-    phone: row.phone,
+    phone: row.phone ?? undefined,
     email: row.email ?? undefined,
+    collegeName: row.collegeName ?? undefined,
     role: row.role as User["role"],
     onboardingCompleted: row.onboardingCompleted,
     createdAt: row.createdAt,
@@ -21,8 +22,10 @@ function toDomain(row: PrismaUser): User {
 export interface IUserRepository {
   findById(id: string): Promise<User | null>;
   findByPhone(phone: string): Promise<User | null>;
+  findByEmail(email: string): Promise<User | null>;
   findAll(params: PaginationParams): Promise<PaginatedResult<User>>;
   findOrCreate(phone: string): Promise<{ user: User; created: boolean }>;
+  findOrCreateByEmail(email: string, collegeName: string): Promise<{ user: User; created: boolean }>;
   updateEmail(id: string, email: string): Promise<User>;
   completeOnboarding(id: string): Promise<User>;
   exists(id: string): Promise<boolean>;
@@ -42,6 +45,11 @@ export class UserRepository implements IUserRepository {
     return row ? toDomain(row) : null;
   }
 
+  async findByEmail(email: string): Promise<User | null> {
+    const row = await this.db.user.findUnique({ where: { email } });
+    return row ? toDomain(row) : null;
+  }
+
   async findAll(params: PaginationParams): Promise<PaginatedResult<User>> {
     const { page, limit } = params;
     const skip = (page - 1) * limit;
@@ -52,11 +60,24 @@ export class UserRepository implements IUserRepository {
     return buildPaginatedResult(rows.map(toDomain), total, params);
   }
 
+  /** Legacy: find or create by phone (used by WhatsApp bot) */
   async findOrCreate(phone: string): Promise<{ user: User; created: boolean }> {
     const existing = await this.db.user.findUnique({ where: { phone } });
     if (existing) return { user: toDomain(existing), created: false };
 
     const row = await this.db.user.create({ data: { phone } });
+    return { user: toDomain(row), created: true };
+  }
+
+  /** Email OTP auth: find or create user by .edu email */
+  async findOrCreateByEmail(
+    email: string,
+    collegeName: string,
+  ): Promise<{ user: User; created: boolean }> {
+    const existing = await this.db.user.findUnique({ where: { email } });
+    if (existing) return { user: toDomain(existing), created: false };
+
+    const row = await this.db.user.create({ data: { email, collegeName } });
     return { user: toDomain(row), created: true };
   }
 

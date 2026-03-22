@@ -4,7 +4,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type User = {
   id: string;
-  phone: string;
+  phone: string | null;
+  email: string | null;
   name: string;
   city: string;
   gender: string;
@@ -61,7 +62,7 @@ export default function UsersTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b" style={{ borderColor: "#F0EBFA" }}>
-              {["Name", "Phone", "City", "Gender", "Step", "Joined"].map((h) => (
+              {["Name", "Email / Phone", "City", "Gender", "Step", "Joined"].map((h) => (
                 <th
                   key={h}
                   className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide"
@@ -84,7 +85,9 @@ export default function UsersTable({
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "")}
               >
                 <td className="px-4 py-3 font-medium" style={{ color: "#1A0A2E" }}>{u.name}</td>
-                <td className="px-4 py-3 font-mono text-xs" style={{ color: "#9B87B0" }}>{u.phone}</td>
+                <td className="px-4 py-3 font-mono text-xs" style={{ color: "#9B87B0" }}>
+                  {u.email ?? u.phone ?? "—"}
+                </td>
                 <td className="px-4 py-3" style={{ color: "#6B5E7A" }}>{u.city}</td>
                 <td className="px-4 py-3" style={{ color: "#6B5E7A" }}>{u.gender}</td>
                 <td className="px-4 py-3">

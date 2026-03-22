@@ -5,6 +5,7 @@ import { NextRequest } from "next/server";
 import { sendOtpSchema, verifyOtpSchema } from "@/validations/otp.validation";
 import type { AuthService } from "@/services/AuthService";
 import type { IUserRepository } from "@/repositories/UserRepository";
+import type { ICollegeDomainRepository } from "@/repositories/CollegeDomainRepository";
 import { successResponse, createdResponse, handleError } from "@/utils/response";
 import { toUserAuthDTO } from "@/dto/OtpDTO";
 import type { RequestContext } from "@/types";
@@ -14,6 +15,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly userRepository: IUserRepository,
+    private readonly collegeDomainRepository: ICollegeDomainRepository,
   ) {}
 
   // POST /api/auth/send-otp
@@ -46,6 +48,16 @@ export class AuthController {
       const user = await this.userRepository.findById(ctx.userId);
       if (!user) throw new NotFoundError("User", ctx.userId);
       return successResponse(toUserAuthDTO(user));
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  // GET /api/auth/colleges
+  async colleges(_req: NextRequest) {
+    try {
+      const colleges = await this.collegeDomainRepository.findAll();
+      return successResponse(colleges);
     } catch (error) {
       return handleError(error);
     }

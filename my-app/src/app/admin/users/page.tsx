@@ -38,6 +38,7 @@ async function getUsers(filter: "all" | "completed" | "incomplete", page: number
     .map((u) => ({
       id: u.id,
       phone: u.phone,
+      email: u.email,
       name: u.profile?.fullName ?? "—",
       city: u.profile?.city ?? "—",
       gender: u.preferences?.genderIdentity ?? "—",
