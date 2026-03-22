@@ -23,6 +23,7 @@ async function getOnboardingStatus(token: string) {
 }
 
 export interface OnboardingStatus {
+  hasPhone: boolean;
   hasProfile: boolean;
   hasPreferences: boolean;
   /** True after user has chosen Date/BFF and saved (relationshipIntent set) */
