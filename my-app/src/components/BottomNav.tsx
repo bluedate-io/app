@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Heart, User } from "lucide-react";
+import { Heart, User, Home } from "lucide-react";
 
 const DARK = "#2B1A07";
 const ACCENT = "#E8622A";
 const INACTIVE = "#7A6A54";
 
 const TABS = [
+  { href: "/home", label: "Home", Icon: Home },
   { href: "/matches", label: "Matches", Icon: Heart },
   { href: "/profile", label: "Profile", Icon: User },
 ];
@@ -43,7 +44,7 @@ export function BottomNav() {
           alignItems: "stretch",
           height: 60,
           width: "100%",
-          maxWidth: 280,
+          maxWidth: 360,
           overflow: "hidden",
         }}
       >

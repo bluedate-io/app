@@ -64,6 +64,7 @@ model User {
   skipsAsUser2       AdminSkip[]  @relation("SkipUser2")
   skipsAsAdmin       AdminSkip[]  @relation("SkipAdmin")
   sentMessages       Message[]    @relation("MessageSender")
+  weeklyOptIns       WeeklyOptIn[]
 
   @@index([email])
   @@map("users")
@@ -304,5 +305,23 @@ model Message {
 
   @@index([matchId, createdAt])
   @@map("messages")
+}
+
+// ─── Weekly opt-in — users signal they want a match this week ─────────────────
+
+model WeeklyOptIn {
+  id          String   @id @default(cuid())
+  userId      String
+  weekStart   DateTime // Monday 00:00 UTC of the opt-in week
+  mode        String   // "date" | "bff"
+  description String?  // "describe your type" free text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+  @@index([weekStart])
+  @@map("weekly_opt_ins")
 }
 
