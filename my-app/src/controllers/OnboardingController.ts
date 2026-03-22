@@ -21,8 +21,6 @@ import {
   lifeExperiencesSchema,
   bffInterestsSchema,
   relationshipStatusSchema,
-  openingMoveSchema,
-  promptsSaveSchema,
 } from "@/validations/onboarding.validation";
 import { successResponse, createdResponse, noContentResponse, handleError } from "@/utils/response";
 import type { RequestContext } from "@/types";
@@ -246,40 +244,6 @@ export class OnboardingController {
     }
   }
 
-  // POST /api/onboarding/opening-move
-  async saveOpeningMove(req: NextRequest, ctx: RequestContext) {
-    try {
-      const body = await req.json();
-      const input = openingMoveSchema.parse(body);
-      const result = await this.onboardingService.saveOpeningMove(ctx.userId, input);
-      return createdResponse(result, "Opening move saved");
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
-  // GET /api/onboarding/prompts
-  async getPrompts(_req: NextRequest, ctx: RequestContext) {
-    try {
-      const prompts = await this.onboardingService.getPrompts(ctx.userId);
-      return successResponse(prompts);
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
-  // POST /api/onboarding/prompts
-  async savePrompts(req: NextRequest, ctx: RequestContext) {
-    try {
-      const body = await req.json();
-      const input = promptsSaveSchema.parse(body);
-      const prompts = await this.onboardingService.savePrompts(ctx.userId, input.prompts);
-      return createdResponse(prompts, "Prompts saved");
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
   // GET /api/onboarding/photos
   async getPhotos(_req: NextRequest, ctx: RequestContext) {
     try {
@@ -313,16 +277,6 @@ export class OnboardingController {
     try {
       await this.onboardingService.markPhotosStepCompleted(ctx.userId);
       return successResponse(null, { message: "Photos step completed" });
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
-  // POST /api/onboarding/prompts-step-complete
-  async completePromptsStep(_req: NextRequest, ctx: RequestContext) {
-    try {
-      await this.onboardingService.markPromptsCompleted(ctx.userId);
-      return successResponse(null, { message: "Prompts step completed" });
     } catch (error) {
       return handleError(error);
     }

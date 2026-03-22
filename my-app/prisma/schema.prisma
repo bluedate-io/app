@@ -55,8 +55,6 @@ model User {
   availability  Availability?
   aiSignals     AiSignals?
   photos        Photo[]
-  openingMove   OpeningMove?
-  prompts       Prompt[]
   inviteCodesCreated InviteCode[] @relation("InviteCodeCreator")
   inviteCodesUsed    InviteCode[] @relation("InviteCodeUsed")
   matchesAsUser1     Match[]      @relation("MatchUser1")
@@ -130,8 +128,6 @@ model Preferences {
   /// True once the user has explicitly chosen Date or BFF (step 3)
   datingModeCompleted Boolean  @default(false)
   photosStepCompleted Boolean  @default(false)
-  promptsCompleted    Boolean  @default(false)
-
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("preferences")
@@ -203,26 +199,6 @@ model AiSignals {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("ai_signals")
-}
-
-// ─── Opening move — first message prompt (Date mode only) ───────────────────────
-
-model OpeningMove {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  // Stores a stable key for the chosen preset prompt (if any), e.g. "houseplants" or "dream_vacation".
-  // For custom prompts this will be null.
-  promptKey String?
-  // The actual text of the opening move question shown to matches.
-  promptText String
-  // True when the user wrote their own opening move instead of choosing a preset.
-  isCustom  Boolean  @default(false)
-  // True once the user has completed this onboarding step.
-  completed Boolean  @default(false)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("opening_moves")
 }
 
 // ─── Invite codes (profile creation gate: men ↔ women) ───────────────────────
@@ -330,22 +306,3 @@ model Message {
   @@map("messages")
 }
 
-// ─── Profile prompts — \"What makes you, you?\" (Date intent only) ───────────────
-
-model Prompt {
-  id           String   @id @default(cuid())
-  userId       String
-  category     String
-  questionKey  String
-  questionText String
-  answer       String
-  imageUrl     String?
-  order        Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("prompts")
-}
