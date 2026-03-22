@@ -9,6 +9,7 @@ const SANS = "var(--font-geist-sans, sans-serif)";
 export default function MatchesPage() {
   return (
     <div style={{ minHeight: "100%", background: BG, fontFamily: SANS }}>
+    <div style={{ maxWidth: 480, margin: "0 auto", minHeight: "100%" }}>
       {/* Header */}
       <div
         style={{
@@ -84,6 +85,7 @@ export default function MatchesPage() {
           Our Bluedate AI agent is hand-picking one curated match for you — no swiping, just quality.
         </p>
       </div>
+    </div>
     </div>
   );
 }

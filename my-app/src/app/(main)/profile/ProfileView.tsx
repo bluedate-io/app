@@ -293,6 +293,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
 
   return (
     <div style={{ minHeight: "100%", background: BG, fontFamily: SANS }}>
+    <div style={{ maxWidth: 480, margin: "0 auto", minHeight: "100%" }}>
       {/* Header */}
       <div
         style={{
@@ -482,6 +483,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
         </div>
 
       </div>
+    </div>
     </div>
   );
 }
