@@ -66,6 +66,7 @@ export interface IOnboardingRepository {
   deletePhoto(photoId: string, userId: string): Promise<void>;
   markPhotosStepCompleted(userId: string): Promise<void>;
   getOnboardingStatus(userId: string): Promise<{
+    hasPhone: boolean;
     hasProfile: boolean;
     hasPreferences: boolean;
     hasPreferencesComplete: boolean;
@@ -583,6 +584,7 @@ export class OnboardingRepository implements IOnboardingRepository {
 
   async getOnboardingStatus(userId: string) {
     const [
+      user,
       profile,
       preferences,
       interests,
@@ -591,6 +593,7 @@ export class OnboardingRepository implements IOnboardingRepository {
       photoCount,
     ] =
       await this.db.$transaction([
+        this.db.user.findUnique({ where: { id: userId }, select: { phone: true } }),
         this.db.profile.findUnique({ where: { userId }, select: { id: true, fullName: true } }),
         this.db.preferences.findUnique({
           where: { userId },
@@ -639,6 +642,7 @@ export class OnboardingRepository implements IOnboardingRepository {
     const hasBffInterests = !!(interests && interests.bffInterestsCompleted);
     const hasPhotosStepCompleted = !!(preferences && preferences.photosStepCompleted);
     return {
+      hasPhone: !!(user?.phone),
       hasProfile: !!profile,
       hasPreferences: !!preferences,
       hasPreferencesComplete,
