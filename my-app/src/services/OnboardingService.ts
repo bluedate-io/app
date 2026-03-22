@@ -376,12 +376,6 @@ export class OnboardingService {
       missing.push("invite code");
     }
     // For Date intent, require full preferences stack.
-    if (
-      status.relationshipIntent === "date" &&
-      (status.ageRangeMin == null || status.ageRangeMax == null)
-    ) {
-      missing.push("age range");
-    }
     if (status.relationshipIntent === "date" && status.heightCm == null) {
       missing.push("height");
     }
