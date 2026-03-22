@@ -5,20 +5,20 @@ import { config } from "@/config";
 import { db } from "@/lib/db";
 import { HomeView } from "./HomeView";
 
+const IST_MS = 5.5 * 60 * 60 * 1000;
+
 function getWeekStart(now = new Date()): Date {
-  const day = now.getUTCDay();
+  const ist = new Date(now.getTime() + IST_MS);
+  const day = ist.getUTCDay();
   const daysToMonday = day === 0 ? -6 : 1 - day;
-  const monday = new Date(now);
-  monday.setUTCDate(now.getUTCDate() + daysToMonday);
-  monday.setUTCHours(0, 0, 0, 0);
-  return monday;
+  const mondayIST = new Date(ist);
+  mondayIST.setUTCDate(ist.getUTCDate() + daysToMonday);
+  mondayIST.setUTCHours(0, 0, 0, 0);
+  return new Date(mondayIST.getTime() - IST_MS);
 }
 
 function getFridayMidnight(now = new Date()): Date {
-  const weekStart = getWeekStart(now);
-  const friday = new Date(weekStart);
-  friday.setUTCDate(weekStart.getUTCDate() + 4);
-  return friday;
+  return new Date(getWeekStart(now).getTime() + 4 * 24 * 60 * 60 * 1000);
 }
 
 export default async function HomePage() {

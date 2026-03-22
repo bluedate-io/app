@@ -123,7 +123,7 @@ export function HomeView({ initial }: HomeViewProps) {
           This Week
         </h1>
         <p style={{ color: MUTED, fontSize: 13, margin: "4px 0 0", fontWeight: 500 }}>
-          Opt in by Friday midnight UTC for a curated match
+          Opt in by Friday midnight IST for a curated match
         </p>
       </div>
 

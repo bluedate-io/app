@@ -8,24 +8,25 @@ import { db } from "@/lib/db";
 import { successResponse, handleError } from "@/utils/response";
 import type { RequestContext } from "@/types";
 
-// ─── Week helpers ──────────────────────────────────────────────────────────────
+// ─── Week helpers (IST = UTC+5:30) ────────────────────────────────────────────
 
-/** Returns Monday 00:00:00.000 UTC for the week containing `now`. */
+const IST_MS = 5.5 * 60 * 60 * 1000; // 19 800 000 ms
+
+/** Returns Monday 00:00:00.000 IST (as UTC Date) for the week containing `now`. */
 function getWeekStart(now = new Date()): Date {
-  const day = now.getUTCDay(); // 0=Sun … 6=Sat
+  const ist = new Date(now.getTime() + IST_MS);
+  const day = ist.getUTCDay(); // day-of-week in IST
   const daysToMonday = day === 0 ? -6 : 1 - day;
-  const monday = new Date(now);
-  monday.setUTCDate(now.getUTCDate() + daysToMonday);
-  monday.setUTCHours(0, 0, 0, 0);
-  return monday;
+  const mondayIST = new Date(ist);
+  mondayIST.setUTCDate(ist.getUTCDate() + daysToMonday);
+  mondayIST.setUTCHours(0, 0, 0, 0);
+  return new Date(mondayIST.getTime() - IST_MS);
 }
 
-/** Returns Friday 00:00:00.000 UTC for the week containing `now` (opt-in deadline). */
+/** Returns Friday 00:00:00.000 IST (as UTC Date) — opt-in deadline. */
 function getFridayMidnight(now = new Date()): Date {
   const weekStart = getWeekStart(now);
-  const friday = new Date(weekStart);
-  friday.setUTCDate(weekStart.getUTCDate() + 4); // Mon + 4 = Fri
-  return friday;
+  return new Date(weekStart.getTime() + 4 * 24 * 60 * 60 * 1000);
 }
 
 // ─── GET ──────────────────────────────────────────────────────────────────────
