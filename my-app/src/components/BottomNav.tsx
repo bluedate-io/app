@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Heart, User } from "lucide-react";
 
-const ACCENT = "#8F3A8F";
-const INACTIVE = "#9E9E9E";
+const DARK = "#2B1A07";
+const ACCENT = "#E8622A";
+const INACTIVE = "#7A6A54";
 
 const TABS = [
   { href: "/matches", label: "Matches", Icon: Heart },
@@ -16,7 +17,6 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    /* Outer wrapper: centres the pill on wide screens */
     <div
       style={{
         position: "fixed",
@@ -25,35 +25,30 @@ export function BottomNav() {
         right: 0,
         display: "flex",
         justifyContent: "center",
-        /* stay above the iPhone home indicator */
         paddingBottom: "max(16px, env(safe-area-inset-bottom))",
-        paddingLeft: 16,
-        paddingRight: 16,
-        pointerEvents: "none", // let clicks through to page underneath
+        paddingLeft: 20,
+        paddingRight: 20,
+        pointerEvents: "none",
         zIndex: 100,
       }}
     >
       <nav
         style={{
           pointerEvents: "all",
-          /* pill shape */
           borderRadius: 999,
-          background: "rgba(255,255,255,0.92)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          boxShadow:
-            "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(255,255,255,0.6)",
+          background: "#EDE8D5",
+          border: `2.5px solid ${DARK}`,
+          boxShadow: `4px 4px 0 ${DARK}`,
           display: "flex",
           alignItems: "stretch",
           height: 60,
-          /* max width caps it on large screens so it stays compact */
           width: "100%",
-          maxWidth: 360,
+          maxWidth: 280,
           overflow: "hidden",
         }}
       >
         {TABS.map(({ href, label, Icon }) => {
-          const active = pathname === href;
+          const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
               key={href}
@@ -68,33 +63,32 @@ export function BottomNav() {
                 textDecoration: "none",
                 color: active ? ACCENT : INACTIVE,
                 position: "relative",
-                transition: "color 0.18s ease",
+                transition: "color 0.15s ease",
               }}
             >
-              {/* active pill highlight behind icon */}
               {active && (
                 <span
                   style={{
                     position: "absolute",
-                    inset: "8px 6px",
+                    inset: "8px 10px",
                     borderRadius: 999,
-                    background: "rgba(143,58,143,0.08)",
+                    background: `${ACCENT}18`,
+                    border: `1.5px solid ${ACCENT}40`,
                   }}
                 />
               )}
-
               <Icon
                 size={22}
                 strokeWidth={active ? 2.4 : 1.7}
-                fill={active && label === "Matches" ? ACCENT : "none"}
+                fill={active && label === "Matches" ? `${ACCENT}30` : "none"}
                 style={{ position: "relative" }}
               />
               <span
                 style={{
                   fontSize: 10,
-                  fontWeight: active ? 700 : 400,
+                  fontWeight: active ? 700 : 500,
                   lineHeight: 1,
-                  letterSpacing: active ? 0.2 : 0,
+                  letterSpacing: active ? 0.3 : 0,
                   fontFamily: "var(--font-geist-sans, sans-serif)",
                   position: "relative",
                 }}

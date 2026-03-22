@@ -17,8 +17,16 @@ import {
 } from "lucide-react";
 import type { ProfileData } from "./page";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Design tokens ─────────────────────────────────────────────────────────────
+const BG = "#EDE8D5";
+const DARK = "#2B1A07";
+const ACCENT = "#E8622A";
+const MUTED = "#7A6A54";
+const CARD_BG = "#fff";
+const SERIF = "var(--font-playfair, Georgia, serif)";
+const SANS = "var(--font-geist-sans, sans-serif)";
 
+// ─── Helpers ───────────────────────────────────────────────────────────────────
 function calcAge(dob?: string): number | null {
   if (!dob) return null;
   const d = new Date(dob);
@@ -29,8 +37,44 @@ function calcAge(dob?: string): number | null {
   return age;
 }
 
-// ─── Menu row ─────────────────────────────────────────────────────────────────
+// ─── Card container ─────────────────────────────────────────────────────────────
+function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div
+      style={{
+        background: CARD_BG,
+        border: `2.5px solid ${DARK}`,
+        borderRadius: 18,
+        boxShadow: `4px 4px 0 ${DARK}`,
+        overflow: "hidden",
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
+// ─── Section label ──────────────────────────────────────────────────────────────
+function SectionLabel({ text }: { text: string }) {
+  return (
+    <p
+      style={{
+        fontSize: 10,
+        fontWeight: 700,
+        color: MUTED,
+        letterSpacing: 2,
+        textTransform: "uppercase",
+        fontFamily: SANS,
+        margin: "0 0 8px 2px",
+      }}
+    >
+      {text}
+    </p>
+  );
+}
+
+// ─── Menu row ──────────────────────────────────────────────────────────────────
 function MenuRow({
   icon,
   iconBg,
@@ -38,6 +82,7 @@ function MenuRow({
   hint,
   href,
   danger,
+  onClick,
 }: {
   icon: React.ReactNode;
   iconBg: string;
@@ -45,114 +90,172 @@ function MenuRow({
   hint?: string;
   href?: string;
   danger?: boolean;
+  onClick?: () => void;
 }) {
+  const textColor = danger ? "#C0392B" : DARK;
+
   const inner = (
     <div
-      className="flex items-center gap-3.5 px-4 py-3.5"
-      style={{ color: danger ? "#E53E3E" : "#1A0A2E" }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        padding: "14px 16px",
+        color: textColor,
+      }}
     >
       {/* Icon bubble */}
       <div
-        className="flex items-center justify-center rounded-xl shrink-0"
         style={{
           width: 40,
           height: 40,
-          background: danger ? "#FFF0F0" : iconBg,
+          borderRadius: 12,
+          background: danger ? "#FFF0EE" : iconBg,
+          border: `1.5px solid ${danger ? "#F5C6C2" : `${DARK}20`}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          color: danger ? "#C0392B" : ACCENT,
         }}
       >
-        <span style={{ color: danger ? "#E53E3E" : "#7A2D8E" }}>{icon}</span>
+        {icon}
       </div>
 
       {/* Text */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold leading-tight">{label}</p>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p
+          style={{
+            fontSize: 14,
+            fontWeight: 600,
+            color: textColor,
+            margin: 0,
+            lineHeight: 1.3,
+            fontFamily: SANS,
+          }}
+        >
+          {label}
+        </p>
         {hint && (
-          <p className="text-xs mt-0.5 truncate" style={{ color: "#9B87B0" }}>
+          <p
+            style={{
+              fontSize: 12,
+              color: MUTED,
+              margin: "2px 0 0",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
             {hint}
           </p>
         )}
       </div>
 
-      {/* Chevron */}
-      <ChevronRight size={16} style={{ color: "#C4B0D8", flexShrink: 0 }} />
+      <ChevronRight size={16} color={`${DARK}50`} style={{ flexShrink: 0 }} />
     </div>
   );
 
+  const sharedStyle: React.CSSProperties = {
+    display: "block",
+    textDecoration: "none",
+    width: "100%",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    textAlign: "left",
+    transition: "opacity 0.15s",
+  };
+
   if (href) {
     return (
-      <Link href={href} className="block active:opacity-70 transition-opacity">
+      <Link href={href} style={sharedStyle} className="active:opacity-70">
         {inner}
       </Link>
     );
   }
-  return <button className="w-full text-left active:opacity-70 transition-opacity">{inner}</button>;
-}
-
-function MenuDivider() {
-  return <div style={{ height: 1, background: "#F3EFF8", marginLeft: 68 }} />;
-}
-
-function MenuCard({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className="rounded-2xl overflow-hidden"
-      style={{ background: "#fff", boxShadow: "0 1px 3px rgba(90,42,106,0.06)" }}
-    >
-      {children}
-    </div>
+    <button style={sharedStyle} onClick={onClick} className="active:opacity-70">
+      {inner}
+    </button>
   );
 }
 
-// ─── Avatar ───────────────────────────────────────────────────────────────────
+function Divider() {
+  return (
+    <div
+      style={{
+        height: 1,
+        background: `${DARK}12`,
+        marginLeft: 70,
+      }}
+    />
+  );
+}
 
+// ─── Avatar ────────────────────────────────────────────────────────────────────
 function Avatar({ url, name }: { url?: string; name: string }) {
   const initials = name
     .split(" ")
-    .map(w => w[0])
+    .map((w) => w[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
 
   return (
-    <div className="relative" style={{ width: 96, height: 96 }}>
+    <div style={{ position: "relative", width: 100, height: 100 }}>
       {url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={url}
           alt={name}
           style={{
-            width: 96,
-            height: 96,
+            width: 100,
+            height: 100,
             borderRadius: "50%",
             objectFit: "cover",
-            border: "3px solid #fff",
-            boxShadow: "0 2px 16px rgba(143,58,143,0.18)",
+            border: `3px solid ${DARK}`,
+            boxShadow: `4px 4px 0 ${DARK}`,
           }}
         />
       ) : (
         <div
-          className="flex items-center justify-center rounded-full text-white text-2xl font-bold"
           style={{
-            width: 96,
-            height: 96,
-            background: "linear-gradient(135deg,#A33BB5,#6A2F8A)",
-            border: "3px solid #fff",
-            boxShadow: "0 2px 16px rgba(143,58,143,0.18)",
+            width: 100,
+            height: 100,
+            borderRadius: "50%",
+            background: `linear-gradient(135deg, ${ACCENT}, #C0392B)`,
+            border: `3px solid ${DARK}`,
+            boxShadow: `4px 4px 0 ${DARK}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 26,
+            fontWeight: 800,
+            color: "#fff",
+            fontFamily: SERIF,
           }}
         >
-          {initials || "😊"}
+          {initials || "?"}
         </div>
       )}
 
       {/* Camera badge */}
       <Link
         href="/onboarding"
-        className="absolute bottom-0 right-0 flex items-center justify-center rounded-full"
         style={{
-          width: 28,
-          height: 28,
-          background: "linear-gradient(135deg,#A33BB5,#6A2F8A)",
-          border: "2px solid #fff",
+          position: "absolute",
+          bottom: 0,
+          right: 0,
+          width: 30,
+          height: 30,
+          borderRadius: "50%",
+          background: ACCENT,
+          border: `2.5px solid ${DARK}`,
+          boxShadow: `2px 2px 0 ${DARK}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         <Camera size={13} color="#fff" />
@@ -161,8 +264,7 @@ function Avatar({ url, name }: { url?: string; name: string }) {
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
-
+// ─── Main ──────────────────────────────────────────────────────────────────────
 export function ProfileView({ data }: { data: ProfileData }) {
   const { profile, preferences, interests, personality, photos } = data;
 
@@ -170,7 +272,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
   const age = calcAge(profile?.dateOfBirth);
   const height = preferences?.heightCm;
   const goals = preferences?.relationshipGoals?.filter(Boolean) ?? [];
-  const hobbies = interests?.hobbies?.filter(h => h && h !== "Not specified") ?? [];
+  const hobbies = interests?.hobbies?.filter((h) => h && h !== "Not specified") ?? [];
   const drinking = personality?.socialLevel;
   const religion = personality?.religion?.[0];
   const kidsHave = personality?.kidsStatus;
@@ -178,157 +280,200 @@ export function ProfileView({ data }: { data: ProfileData }) {
   const photoCount = photos.length;
 
   const displayName = name || "Your name";
-  const subtitle = [
-    age ? `${age} years` : null,
-    preferences?.genderIdentity,
-    profile?.city,
-  ]
+  const subtitle = [age ? `${age} yrs` : null, preferences?.genderIdentity, profile?.city]
     .filter(Boolean)
     .join(" · ");
 
   return (
-    <div
-      className="min-h-full pb-8"
-      style={{ background: "#F5F0FB", fontFamily: "var(--font-geist-sans,sans-serif)" }}
-    >
-      {/* ── Header bar ── */}
+    <div style={{ minHeight: "100%", background: BG, fontFamily: SANS }}>
+      {/* Header */}
       <div
-        className="flex items-center justify-between px-4 pt-5 pb-2"
-        style={{ background: "#F5F0FB" }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "20px 20px 14px",
+          borderBottom: `2px solid ${DARK}`,
+          background: BG,
+        }}
       >
-        <h1 className="text-lg font-bold" style={{ color: "#1A0A2E" }}>
+        <h1 style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 800, color: DARK, margin: 0, letterSpacing: -0.5 }}>
           My Profile
         </h1>
         <Link
           href="/onboarding"
-          className="flex items-center justify-center rounded-xl"
-          style={{ width: 38, height: 38, background: "#fff", boxShadow: "0 1px 4px rgba(90,42,106,0.1)" }}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            background: CARD_BG,
+            border: `2px solid ${DARK}`,
+            boxShadow: `2px 2px 0 ${DARK}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: ACCENT,
+          }}
         >
-          <Settings size={18} style={{ color: "#7A2D8E" }} />
+          <Settings size={18} />
         </Link>
       </div>
 
-      {/* ── Profile hero ── */}
-      <div
-        className="mx-4 rounded-3xl flex flex-col items-center py-8 px-4 gap-4 mb-5"
-        style={{ background: "#fff", boxShadow: "0 1px 3px rgba(90,42,106,0.06)" }}
-      >
-        <Avatar url={firstPhoto} name={displayName} />
+      <div style={{ padding: "20px 16px", display: "flex", flexDirection: "column", gap: 20 }}>
 
-        <div className="text-center">
-          <h2
-            className="text-xl font-bold"
-            style={{ fontFamily: "var(--font-playfair,Georgia,serif)", color: "#1A0A2E" }}
+        {/* Hero card */}
+        <Card>
+          <div
+            style={{
+              padding: "28px 20px 24px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 16,
+              borderBottom: `1.5px solid ${DARK}20`,
+            }}
           >
-            {displayName}
-          </h2>
-          {subtitle && (
-            <p className="text-sm mt-0.5" style={{ color: "#9B87B0" }}>
-              {subtitle}
-            </p>
-          )}
-        </div>
+            <Avatar url={firstPhoto} name={displayName} />
+            <div style={{ textAlign: "center" }}>
+              <h2
+                style={{
+                  fontFamily: SERIF,
+                  fontSize: 22,
+                  fontWeight: 800,
+                  color: DARK,
+                  margin: "0 0 4px",
+                }}
+              >
+                {displayName}
+              </h2>
+              {subtitle && (
+                <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>{subtitle}</p>
+              )}
+            </div>
+          </div>
 
-        <Link
-          href="/onboarding"
-          className="px-8 py-2.5 rounded-2xl text-sm font-bold text-white"
-          style={{ background: "linear-gradient(135deg,#A33BB5,#6A2F8A)" }}
-        >
-          Edit Profile
-        </Link>
-      </div>
-
-      {/* ── Menu groups ── */}
-      <div className="flex flex-col gap-4 px-4">
+          {/* Edit profile button row */}
+          <Link
+            href="/onboarding"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              padding: "14px 20px",
+              textDecoration: "none",
+              color: ACCENT,
+              fontWeight: 700,
+              fontSize: 14,
+              fontFamily: SANS,
+            }}
+            className="active:opacity-70"
+          >
+            Edit Profile
+            <ChevronRight size={16} />
+          </Link>
+        </Card>
 
         {/* Profile details */}
-        <MenuCard>
-          <MenuRow
-            href="/profile/edit/photos"
-            icon={<Camera size={18} />}
-            iconBg="#F5EAFF"
-            label="My Photos"
-            hint={photoCount > 0 ? `${photoCount} photo${photoCount !== 1 ? "s" : ""}` : "No photos yet"}
-          />
-          <MenuDivider />
-          <MenuRow
-            href="/profile/edit/interests"
-            icon={<Sparkles size={18} />}
-            iconBg="#F0F4FF"
-            label="Interests"
-            hint={hobbies.length > 0 ? hobbies.slice(0, 2).join(", ") : "Not set"}
-          />
-          <MenuDivider />
-          <MenuRow
-            href="/profile/edit/looking-for"
-            icon={<Heart size={18} />}
-            iconBg="#FFF0F8"
-            label="Looking for"
-            hint={goals[0] ?? "Not set"}
-          />
-          <MenuDivider />
-          <MenuRow
-            href="/profile/edit/height"
-            icon={<Ruler size={18} />}
-            iconBg="#F0FFF5"
-            label="Height"
-            hint={height ? `${height} cm` : "Not set"}
-          />
-        </MenuCard>
+        <div>
+          <SectionLabel text="Profile" />
+          <Card>
+            <MenuRow
+              href="/profile/edit/photos"
+              icon={<Camera size={18} />}
+              iconBg="#FFF3EE"
+              label="My Photos"
+              hint={photoCount > 0 ? `${photoCount} photo${photoCount !== 1 ? "s" : ""}` : "No photos yet"}
+            />
+            <Divider />
+            <MenuRow
+              href="/profile/edit/interests"
+              icon={<Sparkles size={18} />}
+              iconBg="#FFF8EE"
+              label="Interests"
+              hint={hobbies.length > 0 ? hobbies.slice(0, 2).join(", ") : "Not set"}
+            />
+            <Divider />
+            <MenuRow
+              href="/profile/edit/looking-for"
+              icon={<Heart size={18} />}
+              iconBg="#FFF0EE"
+              label="Looking for"
+              hint={goals[0] ?? "Not set"}
+            />
+            <Divider />
+            <MenuRow
+              href="/profile/edit/height"
+              icon={<Ruler size={18} />}
+              iconBg="#F5F8EE"
+              label="Height"
+              hint={height ? `${height} cm` : "Not set"}
+            />
+          </Card>
+        </div>
 
         {/* Lifestyle */}
-        <MenuCard>
-          <MenuRow
-            href="/profile/edit/drinking"
-            icon={<Wine size={18} />}
-            iconBg="#FFF8EC"
-            label="Drinking"
-            hint={drinking ?? "Not set"}
-          />
-          <MenuDivider />
-          <MenuRow
-            href="/profile/edit/religion"
-            icon={<BookOpen size={18} />}
-            iconBg="#F5EAFF"
-            label="Religion"
-            hint={religion ?? "Not set"}
-          />
-          <MenuDivider />
-          <MenuRow
-            href="/profile/edit/family"
-            icon={<Baby size={18} />}
-            iconBg="#FFF0F8"
-            label="Family plans"
-            hint={kidsHave ?? "Not set"}
-          />
-        </MenuCard>
+        <div>
+          <SectionLabel text="Lifestyle" />
+          <Card>
+            <MenuRow
+              href="/profile/edit/drinking"
+              icon={<Wine size={18} />}
+              iconBg="#FFF8EE"
+              label="Drinking"
+              hint={drinking ?? "Not set"}
+            />
+            <Divider />
+            <MenuRow
+              href="/profile/edit/religion"
+              icon={<BookOpen size={18} />}
+              iconBg="#FFF3EE"
+              label="Religion"
+              hint={religion ?? "Not set"}
+            />
+            <Divider />
+            <MenuRow
+              href="/profile/edit/family"
+              icon={<Baby size={18} />}
+              iconBg="#FFF0EE"
+              label="Family plans"
+              hint={kidsHave ?? "Not set"}
+            />
+          </Card>
+        </div>
 
-        {/* App settings */}
-        <MenuCard>
-          <MenuRow
-            href="/"
-            icon={<Bell size={18} />}
-            iconBg="#F0F4FF"
-            label="Notifications"
-          />
-        </MenuCard>
+        {/* Settings */}
+        <div>
+          <SectionLabel text="App" />
+          <Card>
+            <MenuRow
+              href="/"
+              icon={<Bell size={18} />}
+              iconBg="#F5F8EE"
+              label="Notifications"
+            />
+          </Card>
+        </div>
 
         {/* Support + logout */}
-        <MenuCard>
-          <MenuRow
-            href="/"
-            icon={<HelpCircle size={18} />}
-            iconBg="#F5EAFF"
-            label="Help & Support"
-          />
-          <MenuDivider />
-          <MenuRow
-            icon={<LogOut size={18} />}
-            iconBg="#FFF0F0"
-            label="Log out"
-            danger
-          />
-        </MenuCard>
+        <div>
+          <SectionLabel text="Support" />
+          <Card>
+            <MenuRow
+              href="/"
+              icon={<HelpCircle size={18} />}
+              iconBg="#FFF3EE"
+              label="Help &amp; Support"
+            />
+            <Divider />
+            <MenuRow
+              icon={<LogOut size={18} />}
+              iconBg="#FFF0EE"
+              label="Log out"
+              danger
+            />
+          </Card>
+        </div>
 
       </div>
     </div>
