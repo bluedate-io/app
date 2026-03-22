@@ -269,22 +269,6 @@ export const aiSignalsSchema = z.object({
   idealDate: z.string().max(600).trim().optional(),
 });
 
-// ─── Opening move (Date mode only) ──────────────────────────────────────────────
-// Stores the final opening move question that will be used as the first message
-// for new matches. The UI can offer presets or a custom question; the API only
-// needs the resolved text and, optionally, a stable key for the preset.
-
-export const openingMoveSchema = z.object({
-  // Optional stable key for analytics / future changes (e.g. "houseplants").
-  promptKey: z.string().min(1).max(100).trim().optional(),
-  // The actual question shown to matches. Keep it short and friendly.
-  promptText: z
-    .string()
-    .min(10, "Opening move must be at least 10 characters.")
-    .max(160, "Opening move must be 160 characters or less.")
-    .trim(),
-});
-
 // ─── Inferred types ───────────────────────────────────────────────────────────
 
 export type ProfileInput = z.infer<typeof profileSchema>;
@@ -305,25 +289,3 @@ export type ImportantLifeInput = z.infer<typeof importantLifeSchema>;
 export type LifeExperiencesInput = z.infer<typeof lifeExperiencesSchema>;
 export type BffInterestsInput = z.infer<typeof bffInterestsSchema>;
 export type RelationshipStatusInput = z.infer<typeof relationshipStatusSchema>;
-export type OpeningMoveInput = z.infer<typeof openingMoveSchema>;
-// ─── Prompts (\"What makes you, you?\") ────────────────────────────────────────────
-
-export const promptInputSchema = z.object({
-  category: z.string().min(1).max(60).trim(),
-  questionKey: z.string().min(1).max(60).trim(),
-  questionText: z.string().min(1).max(160).trim(),
-  answer: z
-    .string()
-    .min(10, "Answer must be at least 10 characters.")
-    .max(160, "Answer must be 160 characters or less.")
-    .trim(),
-  imageUrl: z.string().url().max(500).optional(),
-  order: z.number().int().min(0).max(2),
-});
-
-export const promptsSaveSchema = z.object({
-  prompts: z.array(promptInputSchema).max(3),
-});
-
-export type PromptInput = z.infer<typeof promptInputSchema>;
-export type PromptsSaveInput = z.infer<typeof promptsSaveSchema>;

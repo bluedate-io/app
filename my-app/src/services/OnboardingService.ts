@@ -23,8 +23,6 @@ import type {
   LifeExperiencesInput,
   BffInterestsInput,
   RelationshipStatusInput,
-  OpeningMoveInput,
-  PromptInput,
 } from "@/validations/onboarding.validation";
 import type {
   ProfileResponseDTO,
@@ -35,8 +33,6 @@ import type {
   AvailabilityResponseDTO,
   AiSignalsResponseDTO,
   PhotoResponseDTO,
-  OpeningMoveResponseDTO,
-  PromptResponseDTO,
 } from "@/dto/OnboardingDTO";
 import {
   toProfileDTO,
@@ -47,8 +43,6 @@ import {
   toAvailabilityDTO,
   toAiSignalsDTO,
   toPhotoDTO,
-  toOpeningMoveDTO,
-  toPromptDTO,
 } from "@/dto/OnboardingDTO";
 import { NotFoundError, BadRequestError, UnauthorizedError } from "@/utils/errors";
 import { logger } from "@/utils/logger";
@@ -291,31 +285,6 @@ export class OnboardingService {
     return toAiSignalsDTO(signals);
   }
 
-  // ─── Opening move (Date mode only) ────────────────────────────────────────────
-
-  async saveOpeningMove(userId: string, data: OpeningMoveInput): Promise<OpeningMoveResponseDTO> {
-    const userExists = await this.userRepo.exists(userId);
-    if (!userExists) {
-      log.warn("Opening move save rejected: user not found", { userId });
-      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
-    }
-
-    const status = await this.onboardingRepo.getOnboardingStatus(userId);
-    if (status.relationshipIntent !== "date") {
-      log.warn("Opening move save rejected: relationship intent is not 'date'", {
-        userId,
-        relationshipIntent: status.relationshipIntent,
-      });
-      throw new BadRequestError(
-        "Opening moves are only available for people who selected Date as their intent.",
-      );
-    }
-
-    const openingMove = await this.onboardingRepo.upsertOpeningMove(userId, data);
-    log.info("Opening move saved", { userId, promptKey: openingMove.promptKey });
-    return toOpeningMoveDTO(openingMove);
-  }
-
   // ─── Photos (Supabase Storage) ───────────────────────────────────────────────
 
   private static readonly MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
@@ -378,55 +347,6 @@ export class OnboardingService {
     }
     await this.onboardingRepo.markPhotosStepCompleted(userId);
     log.info("Photos step marked completed", { userId });
-  }
-
-  async markPromptsCompleted(userId: string): Promise<void> {
-    const userExists = await this.userRepo.exists(userId);
-    if (!userExists) {
-      log.warn("Prompts complete rejected: user not found", { userId });
-      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
-    }
-    await this.onboardingRepo.markPromptsCompleted(userId);
-    log.info("Prompts step marked completed", { userId });
-  }
-
-  // ─── Prompts (\"What makes you, you?\") ─────────────────────────────────────────
-
-  async savePrompts(userId: string, prompts: PromptInput[]): Promise<PromptResponseDTO[]> {
-    const userExists = await this.userRepo.exists(userId);
-    if (!userExists) {
-      log.warn("Prompts save rejected: user not found", { userId });
-      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
-    }
-
-    const status = await this.onboardingRepo.getOnboardingStatus(userId);
-    if (status.relationshipIntent !== "date") {
-      log.warn("Prompts save rejected: relationship intent is not 'date'", {
-        userId,
-        relationshipIntent: status.relationshipIntent,
-      });
-      throw new BadRequestError(
-        "Prompts are only available for people who selected Date as their intent.",
-      );
-    }
-
-    if (prompts.length > 3) {
-      throw new BadRequestError("You can only have up to 3 prompts.");
-    }
-
-    const saved = await this.onboardingRepo.replacePrompts(userId, prompts);
-    log.info("Prompts saved", { userId, count: saved.length });
-    return saved.map(toPromptDTO);
-  }
-
-  async getPrompts(userId: string): Promise<PromptResponseDTO[]> {
-    const userExists = await this.userRepo.exists(userId);
-    if (!userExists) {
-      log.warn("Get prompts rejected: user not found", { userId });
-      throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
-    }
-    const prompts = await this.onboardingRepo.getPrompts(userId);
-    return prompts.map(toPromptDTO);
   }
 
   // ─── Invite code ─────────────────────────────────────────────────────────────

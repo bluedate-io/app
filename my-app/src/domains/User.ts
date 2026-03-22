@@ -81,34 +81,12 @@ export interface AiSignals {
   idealDate?: string;
 }
 
-export interface OpeningMove {
-  id: string;
-  userId: string;
-  promptKey?: string;
-  promptText: string;
-  isCustom: boolean;
-  completed: boolean;
-}
-
 export interface Photo {
   id: string;
   userId: string;
   url: string;
   order: number;
   createdAt: Date;
-}
-
-export interface Prompt {
-  id: string;
-  userId: string;
-  category: string;
-  questionKey: string;
-  questionText: string;
-  answer: string;
-  imageUrl?: string;
-  order: number;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 // ─── Domain helpers ───────────────────────────────────────────────────────────
