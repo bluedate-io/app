@@ -35,12 +35,13 @@ enum MatchStatus {
   unmatched
 }
 
-// ─── Core auth table — intentionally minimal ─────────────────────────────────
+// ─── Core auth table — email-first auth ──────────────────────────────────────
 
 model User {
   id                  String   @id @default(cuid())
-  phone               String   @unique
+  phone               String?  @unique
   email               String?  @unique
+  collegeName         String?
   role                UserRole @default(user)
   onboardingCompleted Boolean  @default(false)
   createdAt           DateTime @default(now())
@@ -66,8 +67,33 @@ model User {
   skipsAsAdmin       AdminSkip[]  @relation("SkipAdmin")
   sentMessages       Message[]    @relation("MessageSender")
 
-  @@index([phone])
+  @@index([email])
   @@map("users")
+}
+
+// ─── College domain mapping ───────────────────────────────────────────────────
+
+model CollegeDomain {
+  id          String   @id @default(cuid())
+  collegeName String   @unique
+  domain      String   @unique
+  createdAt   DateTime @default(now())
+
+  @@map("college_domains")
+}
+
+// ─── Email OTP — stores codes server-side ────────────────────────────────────
+
+model EmailOtp {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@map("email_otps")
 }
 
 // ─── Profile — identity & bio ─────────────────────────────────────────────────

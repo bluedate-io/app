@@ -26,7 +26,7 @@ export function authenticate(req: NextRequest): RequestContext {
     role: payload.role,
     onboardingCompleted: payload.onboardingCompleted,
     requestId: uuidv4(),
-  };
+  } satisfies RequestContext;
 }
 
 export function requireRole(...roles: UserRole[]) {

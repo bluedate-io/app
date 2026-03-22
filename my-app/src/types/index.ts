@@ -53,7 +53,7 @@ export type UserRole = "user" | "admin" | "moderator";
 
 export interface JwtPayload {
   sub: string;               // userId
-  phone: string;
+  phone?: string;
   email?: string;
   role: UserRole;
   onboardingCompleted: boolean;
@@ -65,7 +65,7 @@ export interface JwtPayload {
 
 export interface RequestContext {
   userId: string;
-  phone: string;
+  phone?: string;
   email?: string;
   role: UserRole;
   onboardingCompleted: boolean;

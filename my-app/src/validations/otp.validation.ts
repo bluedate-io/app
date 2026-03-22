@@ -1,17 +1,12 @@
 import { z } from "zod";
 
 export const sendOtpSchema = z.object({
-  phone: z
-    .string()
-    .trim()
-    .regex(/^\+[1-9]\d{7,14}$/, "Phone must be in E.164 format e.g. +14155552671"),
+  email: z.string().trim().email("Must be a valid email address"),
+  collegeName: z.string().trim().min(1, "College name is required"),
 });
 
 export const verifyOtpSchema = z.object({
-  phone: z
-    .string()
-    .trim()
-    .regex(/^\+[1-9]\d{7,14}$/, "Phone must be in E.164 format"),
+  email: z.string().trim().email("Must be a valid email address"),
   code: z.string().length(6, "OTP must be exactly 6 digits").regex(/^\d+$/, "OTP must be numeric"),
 });
 

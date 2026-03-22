@@ -1,54 +1,61 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Phone, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Mail, ShieldCheck, AlertTriangle, ChevronDown } from "lucide-react";
 
-type Step = "phone" | "otp";
+type Step = "email" | "otp";
 
-const COUNTRY_CODES = [
-  { code: "+91", flag: "🇮🇳", country: "India" },
-  { code: "+1", flag: "🇺🇸", country: "US" },
-  { code: "+44", flag: "🇬🇧", country: "UK" },
-  { code: "+61", flag: "🇦🇺", country: "Australia" },
-  { code: "+81", flag: "🇯🇵", country: "Japan" },
-  { code: "+49", flag: "🇩🇪", country: "Germany" },
-  { code: "+33", flag: "🇫🇷", country: "France" },
-  { code: "+55", flag: "🇧🇷", country: "Brazil" },
-] as const;
+interface College {
+  id: string;
+  collegeName: string;
+  domain: string;
+}
 
 export default function LoginForm() {
-  const [step, setStep] = useState<Step>("phone");
-  const [countryCode, setCountryCode] = useState<(typeof COUNTRY_CODES)[number]>(COUNTRY_CODES[0]);
-  const [showCountryPicker, setShowCountryPicker] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [step, setStep] = useState<Step>("email");
+  const [colleges, setColleges] = useState<College[]>([]);
+  const [selectedCollege, setSelectedCollege] = useState<College | null>(null);
+  const [showCollegePicker, setShowCollegePicker] = useState(false);
+  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const countryButtonRef = useRef<HTMLButtonElement>(null);
-  const [pickerStyle, setPickerStyle] = useState<{ top: number; left: number } | null>(null);
+  const collegeButtonRef = useRef<HTMLButtonElement>(null);
+  const [pickerStyle, setPickerStyle] = useState<{ top: number; left: number; width: number } | null>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const fullPhone = `${countryCode.code}${phoneNumber.replace(/\D/g, "")}`;
-  const formattedPhone = `${countryCode.code} ${phoneNumber.replace(/\D/g, "")}`;
+  // Load colleges on mount
+  useEffect(() => {
+    fetch("/api/auth/colleges")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json?.data) setColleges(json.data);
+      })
+      .catch(() => {/* silently ignore */});
+  }, []);
 
   useEffect(() => {
-    if (showCountryPicker && countryButtonRef.current) {
-      const rect = countryButtonRef.current.getBoundingClientRect();
-      setPickerStyle({ top: rect.bottom + 4, left: rect.left });
+    if (showCollegePicker && collegeButtonRef.current) {
+      const rect = collegeButtonRef.current.getBoundingClientRect();
+      setPickerStyle({ top: rect.bottom + 4, left: rect.left, width: rect.width });
     } else {
       setPickerStyle(null);
     }
-  }, [showCountryPicker]);
+  }, [showCollegePicker]);
 
   const sendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedCollege) {
+      setError("Please select your college first.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: fullPhone }),
+        body: JSON.stringify({ email, collegeName: selectedCollege.collegeName }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message ?? "Failed to send OTP");
@@ -68,7 +75,7 @@ export default function LoginForm() {
       const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: fullPhone, code: otp }),
+        body: JSON.stringify({ email, code: otp }),
       });
       const json = (await res.json()) as {
         success?: boolean;
@@ -98,7 +105,6 @@ export default function LoginForm() {
 
       const maxAge = 7 * 24 * 60 * 60;
       document.cookie = `access_token=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
-      // Force full page navigation so cookie is sent on next request
       window.location.assign(redirectTo.startsWith("/") ? redirectTo : `/onboarding`);
     } catch (err) {
       setError((err as Error).message);
@@ -107,18 +113,31 @@ export default function LoginForm() {
     }
   };
 
+  const resendOtp = async () => {
+    if (!selectedCollege) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, collegeName: selectedCollege.collegeName }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error?.message ?? "Failed to send OTP");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Circular FAB — light grey bg, dark right-pointing chevron ">" (matches reference)
   const FabIcon = ({ disabled }: { disabled?: boolean }) => (
     <span
       className={`flex items-center justify-center shrink-0 rounded-full transition ${
         disabled ? "opacity-50" : ""
       }`}
-      style={{
-        width: 52,
-        height: 52,
-        backgroundColor: "#E0E0E0",
-      }}
+      style={{ width: 52, height: 52, backgroundColor: "#E0E0E0" }}
     >
       <svg
         width="20"
@@ -130,7 +149,6 @@ export default function LoginForm() {
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        {/* Right-pointing chevron ">" */}
         <path d="M8 6l6 4-6 4" />
       </svg>
     </span>
@@ -159,133 +177,129 @@ export default function LoginForm() {
     otpInputRefs.current[focusIdx]?.focus();
   };
 
-  const resendOtp = async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await fetch("/api/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: fullPhone }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error?.message ?? "Failed to send OTP");
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="flex flex-col flex-1 max-w-md mx-auto w-full">
       <div className="flex justify-start mb-6">
-        {step === "phone" ? (
-          <Phone size={48} strokeWidth={1.5} className="text-gray-900 shrink-0" />
+        {step === "email" ? (
+          <Mail size={48} strokeWidth={1.5} className="text-gray-900 shrink-0" />
         ) : (
           <div className="w-14 h-14 rounded-full border-2 border-gray-900 flex items-center justify-center shrink-0">
             <ShieldCheck size={28} strokeWidth={1.5} className="text-gray-900" />
           </div>
         )}
       </div>
-      {step === "phone" ? (
+
+      {step === "email" ? (
         <form onSubmit={sendOtp} className="flex flex-col flex-1">
           <h1
             className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 leading-tight"
             style={{ fontFamily: "var(--font-playfair), Georgia, serif" }}
           >
-            What&apos;s your phone number?
+            What&apos;s your college email?
           </h1>
 
-          <div className="flex gap-3 mb-2">
-            {/* Country code selector */}
+          {/* College selector */}
+          <div className="mb-5">
+            <label className="text-xs text-gray-500 uppercase tracking-wide mb-1 block">
+              Your college
+            </label>
             <div className="relative">
               <button
-                ref={countryButtonRef}
+                ref={collegeButtonRef}
                 type="button"
-                onClick={() => setShowCountryPicker(!showCountryPicker)}
-                className="flex items-center gap-1 pb-2 border-b-2 border-gray-800 min-w-[72px]"
+                onClick={() => setShowCollegePicker(!showCollegePicker)}
+                className="w-full flex items-center justify-between pb-2 border-b-2 border-gray-800 bg-transparent text-left"
               >
-                <span className="text-lg">{countryCode.flag}</span>
-                <span className="text-gray-900 font-medium">{countryCode.code}</span>
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className={`text-gray-600 transition ${showCountryPicker ? "rotate-180" : ""}`}
-                >
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
+                <span className={selectedCollege ? "text-gray-900" : "text-gray-400"}>
+                  {selectedCollege ? selectedCollege.collegeName : "Select your college"}
+                </span>
+                <ChevronDown
+                  size={16}
+                  className={`text-gray-600 transition-transform ${showCollegePicker ? "rotate-180" : ""}`}
+                />
               </button>
-              {showCountryPicker && pickerStyle && (
+
+              {showCollegePicker && pickerStyle && (
                 <div
-                  className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-60 max-h-48 overflow-y-auto"
+                  className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-60 max-h-56 overflow-y-auto"
                   style={{
-                    minWidth: "140px",
                     top: pickerStyle.top,
                     left: pickerStyle.left,
+                    width: pickerStyle.width,
+                    minWidth: 260,
                   }}
                 >
-                  {COUNTRY_CODES.map((c) => (
-                    <button
-                      key={c.code}
-                      type="button"
-                      onClick={() => {
-                        setCountryCode(c);
-                        setShowCountryPicker(false);
-                      }}
-                      className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
-                    >
-                      <span>{c.flag}</span>
-                      <span className="text-gray-900">{c.code}</span>
-                    </button>
-                  ))}
+                  {colleges.length === 0 ? (
+                    <p className="px-4 py-3 text-sm text-gray-400">No colleges found</p>
+                  ) : (
+                    colleges.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCollege(c);
+                          setShowCollegePicker(false);
+                          setEmail("");
+                        }}
+                        className="w-full px-4 py-2.5 text-left hover:bg-gray-50 text-sm"
+                      >
+                        <span className="text-gray-900 font-medium">{c.collegeName}</span>
+                        <span className="text-gray-400 text-xs ml-2">@{c.domain}</span>
+                      </button>
+                    ))
+                  )}
                 </div>
               )}
             </div>
+          </div>
 
-            {/* Phone number input */}
+          {/* Email input */}
+          <div className="mb-2">
+            <label className="text-xs text-gray-500 uppercase tracking-wide mb-1 block">
+              College email
+            </label>
             <input
-              type="tel"
+              type="email"
               required
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder=""
-              className="flex-1 pb-2 border-b-2 border-gray-800 bg-transparent text-gray-900 text-base focus:outline-none focus:border-gray-900 placeholder:text-gray-400"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={
+                selectedCollege ? `you@${selectedCollege.domain}` : "Select college first"
+              }
+              disabled={!selectedCollege}
+              className="w-full pb-2 border-b-2 border-gray-800 bg-transparent text-gray-900 text-base focus:outline-none focus:border-gray-900 placeholder:text-gray-400 disabled:opacity-50"
             />
           </div>
 
-          <p className="text-sm text-gray-500 mb-8 mt-1">
-            bluedate will send you a text with a verification code.
-            <br />
-            Message and data rates may apply.
+          {selectedCollege && (
+            <p className="text-xs text-gray-400 mt-1 mb-6">
+              Must end in <span className="font-medium text-gray-600">@{selectedCollege.domain}</span>
+            </p>
+          )}
+
+          {!selectedCollege && <div className="mb-6" />}
+
+          <p className="text-sm text-gray-500 mb-4">
+            We&apos;ll send a verification code to your college email.
           </p>
 
           {error && (
-            <p className="mt-2 flex items-start gap-1.5 text-sm text-red-600" role="alert">
+            <p className="flex items-start gap-1.5 text-sm text-red-600 mb-2" role="alert">
               <AlertTriangle size={18} className="shrink-0 mt-0.5 text-red-500" />
               {error}
             </p>
           )}
 
           <div className="mt-auto pt-8 flex items-end justify-between">
-            <a
-              href="#"
-              className="text-sm hover:underline"
-              style={{ color: "#8F3A8F" }}
-              onClick={(e) => e.preventDefault()}
-            >
-              What if my number changes?
-            </a>
+            <span className="text-sm text-gray-400">
+              Use your college-issued email
+            </span>
             <button
               type="submit"
-              disabled={loading}
-              className="focus:outline-none rounded-full p-0 border-0 cursor-pointer"
+              disabled={loading || !selectedCollege || !email}
+              className="focus:outline-none rounded-full p-0 border-0 cursor-pointer disabled:opacity-50"
             >
-              <FabIcon disabled={loading} />
+              <FabIcon disabled={loading || !selectedCollege || !email} />
             </button>
           </div>
         </form>
@@ -298,11 +312,11 @@ export default function LoginForm() {
             Enter your verification code
           </h1>
           <p className="text-sm text-gray-500 mb-6">
-            Sent to {formattedPhone}.{" "}
+            Sent to {email}.{" "}
             <button
               type="button"
               onClick={() => {
-                setStep("phone");
+                setStep("email");
                 setOtp("");
                 setError(null);
               }}
@@ -313,10 +327,7 @@ export default function LoginForm() {
             </button>
           </p>
 
-          <div
-            className="flex gap-3 justify-center mb-6"
-            onPaste={handleOtpPaste}
-          >
+          <div className="flex gap-3 justify-center mb-6" onPaste={handleOtpPaste}>
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <input
                 key={i}
@@ -360,12 +371,12 @@ export default function LoginForm() {
         </form>
       )}
 
-      {/* Overlay to close country picker when clicking outside */}
-      {showCountryPicker && (
+      {/* Overlay to close college picker when clicking outside */}
+      {showCollegePicker && (
         <div
           className="fixed inset-0 z-50"
           aria-hidden
-          onClick={() => setShowCountryPicker(false)}
+          onClick={() => setShowCollegePicker(false)}
         />
       )}
     </div>

@@ -67,7 +67,7 @@ export default function MatchUsersView() {
     try {
       const res = await fetch("/api/admin/match-users/candidates");
       const { data } = await res.json();
-      setState({ status: "ready", women: data.women, men: data.men, wi: 0, mi: 0, matching: false });
+      setState({ status: "ready", women: data.women, men: data.men, wi: 0, mi: 0 });
     } catch {
       setState({ status: "error" });
     }

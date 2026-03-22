@@ -20,8 +20,9 @@ export interface VerifyOtpResponseDTO {
 
 export interface UserAuthDTO {
   id: string;
-  phone: string;
+  phone?: string;
   email?: string;
+  collegeName?: string;
   role: string;
   onboardingCompleted: boolean;
 }
@@ -31,6 +32,7 @@ export function toUserAuthDTO(user: User): UserAuthDTO {
     id: user.id,
     phone: user.phone,
     email: user.email,
+    collegeName: user.collegeName,
     role: user.role,
     onboardingCompleted: user.onboardingCompleted,
   };

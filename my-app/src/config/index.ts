@@ -63,6 +63,14 @@ export const config = {
     phone: optionalEnv("ADMIN_PHONE", "8309671828"),
   },
 
+  email: {
+    smtpHost: optionalEnv("SMTP_HOST", ""),
+    smtpPort: parseInt(optionalEnv("SMTP_PORT", "587"), 10),
+    smtpUser: optionalEnv("SMTP_USER", ""),
+    smtpPass: optionalEnv("SMTP_PASS", ""),
+    fromAddress: optionalEnv("EMAIL_FROM", "noreply@bluedate.io"),
+  },
+
   anthropic: {
     apiKey: optionalEnv("ANTHROPIC_API_KEY", ""),
   },

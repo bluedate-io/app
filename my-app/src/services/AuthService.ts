@@ -1,17 +1,17 @@
 // ─── AuthService ──────────────────────────────────────────────────────────────
-// Phone-first OTP authentication via Twilio Verify.
-// Flow: sendOtp → verifyOtp (issues JWT) → me (reads JWT)
-// Twilio Verify manages code generation, delivery, expiry, and rate-limiting.
+// Email-first OTP authentication.
+// Flow: sendOtp (validates .edu domain) → verifyOtp (issues JWT) → me (reads JWT)
 
 import jwt from "jsonwebtoken";
 import { config } from "@/config";
 import type { IUserRepository } from "@/repositories/UserRepository";
-import type { ITwilioService } from "@/services/TwilioService";
+import type { IEmailService } from "@/services/EmailService";
+import type { ICollegeDomainRepository } from "@/repositories/CollegeDomainRepository";
 import type { SendOtpInput, VerifyOtpInput } from "@/validations/otp.validation";
 import type { JwtPayload } from "@/types";
 import type { SendOtpResponseDTO, VerifyOtpResponseDTO } from "@/dto/OtpDTO";
 import { toUserAuthDTO } from "@/dto/OtpDTO";
-import { UnauthorizedError } from "@/utils/errors";
+import { UnauthorizedError, BadRequestError } from "@/utils/errors";
 import { logger } from "@/utils/logger";
 
 const log = logger.child("AuthService");
@@ -19,30 +19,52 @@ const log = logger.child("AuthService");
 export class AuthService {
   constructor(
     private readonly userRepository: IUserRepository,
-    private readonly twilioService: ITwilioService,
+    private readonly emailService: IEmailService,
+    private readonly collegeDomainRepository: ICollegeDomainRepository,
   ) {}
 
-  // ─── Step 1: Trigger Twilio Verify SMS ──────────────────────────────────────
+  // ─── Step 1: Validate .edu domain → send OTP email ──────────────────────────
 
   async sendOtp(input: SendOtpInput): Promise<SendOtpResponseDTO> {
-    await this.twilioService.sendVerification(input.phone);
-    log.info("Verification sent", { phone: input.phone });
+    const emailDomain = input.email.split("@")[1]?.toLowerCase();
+
+    // Fetch the expected domain for the selected college
+    const college = await this.collegeDomainRepository.findByCollegeName(input.collegeName);
+    if (!college) {
+      throw new BadRequestError(`College "${input.collegeName}" is not registered.`);
+    }
+
+    if (emailDomain !== college.domain.toLowerCase()) {
+      throw new BadRequestError(
+        `Email domain @${emailDomain} does not match ${input.collegeName}. Use your @${college.domain} email.`,
+      );
+    }
+
+    await this.emailService.sendOtp(input.email);
+    log.info("Email OTP sent", { email: input.email, college: input.collegeName });
+
     return {
-      message: "OTP sent successfully. Valid for 10 minutes.",
-      expiresInMinutes: 10,
+      message: "Verification code sent to your email. Valid for 10 minutes.",
+      expiresInMinutes: config.auth.otpTtlMinutes,
     };
   }
 
-  // ─── Step 2: Check code → find/create user → issue JWT ─────────────────────
+  // ─── Step 2: Verify OTP → find/create user → issue JWT ──────────────────────
 
   async verifyOtp(input: VerifyOtpInput): Promise<VerifyOtpResponseDTO> {
-    // Throws OtpInvalidError if code is wrong or expired
-    await this.twilioService.checkVerification(input.phone, input.code);
+    await this.emailService.verifyOtp(input.email, input.code);
 
-    const { user, created } = await this.userRepository.findOrCreate(input.phone);
+    // Determine college from existing user record (if any) or from the email domain
+    const existingUser = await this.userRepository.findByEmail(input.email);
+    const collegeName = existingUser?.collegeName ?? "";
 
-    if (created) log.info("New user created via OTP", { userId: user.id });
-    else log.info("Existing user authenticated via OTP", { userId: user.id });
+    const { user, created } = await this.userRepository.findOrCreateByEmail(
+      input.email,
+      collegeName,
+    );
+
+    if (created) log.info("New user created via email OTP", { userId: user.id });
+    else log.info("Existing user authenticated via email OTP", { userId: user.id });
 
     const token = this.issueToken(
       user.id,
@@ -74,7 +96,7 @@ export class AuthService {
 
   private issueToken(
     userId: string,
-    phone: string,
+    phone: string | undefined,
     email: string | undefined,
     role: string,
     onboardingCompleted: boolean,
