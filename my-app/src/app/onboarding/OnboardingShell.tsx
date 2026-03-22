@@ -16,8 +16,8 @@ const HEIGHT_OPTIONS = Array.from(
   (_, i) => HEIGHT_CM_MIN + i,
 );
 const ACCENT = "#E8622A";
-const BG = "#F5F0DC";
-const FAB_BG = "#1A0A00";
+const BG = "#EDE8D5";
+const FAB_BG = "#2B1A07";
 const FONT_SERIF = "var(--font-playfair), Georgia, serif";
 
 const SUGGESTED_INTERESTS = [
@@ -202,7 +202,7 @@ function getInitialSubStep(status: OnboardingStatus): number {
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 
-/** Circular FAB — grey bg, dark chevron ">" — same as login page */
+/** Bordered FAB — landing page "Join Now" style */
 function Fab({
   onClick,
   disabled,
@@ -219,12 +219,33 @@ function Fab({
       type={type}
       onClick={onClick}
       disabled={disabled || loading}
-      className="focus:outline-none rounded-full p-0 border-0 cursor-pointer disabled:opacity-50 shrink-0"
+      className="focus:outline-none cursor-pointer disabled:opacity-40 shrink-0 transition-all active:translate-y-[1px] active:shadow-none"
+      style={{
+        width: 56,
+        height: 56,
+        borderRadius: "50%",
+        border: `2.5px solid ${FAB_BG}`,
+        boxShadow: `3px 3px 0 ${FAB_BG}`,
+        backgroundColor: FAB_BG,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 0,
+      }}
     >
-      <span
-        className="flex items-center justify-center rounded-full transition"
-        style={{ width: 52, height: 52, backgroundColor: FAB_BG }}
-      >
+      {loading ? (
+        <span
+          style={{
+            display: "block",
+            width: 22,
+            height: 22,
+            borderRadius: "50%",
+            border: "2.5px solid rgba(255,255,255,0.3)",
+            borderTopColor: "#fff",
+            animation: "spin 0.7s linear infinite",
+          }}
+        />
+      ) : (
         <svg
           width="20" height="20" viewBox="0 0 20 20"
           fill="none" stroke="#ffffff" strokeWidth="2.25"
@@ -232,7 +253,7 @@ function Fab({
         >
           <path d="M8 6l6 4-6 4" />
         </svg>
-      </span>
+      )}
     </button>
   );
 }
@@ -291,15 +312,22 @@ function RadioRow({
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center justify-between py-4 border-b border-gray-200 text-left transition-opacity hover:opacity-75"
+      className="w-full flex items-center justify-between text-left transition-all mb-3"
+      style={{
+        padding: "14px 16px",
+        background: selected ? `${ACCENT}12` : "#fff",
+        border: `2px solid ${selected ? ACCENT : FAB_BG}`,
+        borderRadius: 14,
+        boxShadow: selected ? `2px 2px 0 ${ACCENT}` : `2px 2px 0 ${FAB_BG}`,
+      }}
     >
       <div>
-        <p className="text-base text-gray-900 font-medium">{label}</p>
-        {sublabel && <p className="text-sm text-gray-500 mt-0.5">{sublabel}</p>}
+        <p className="text-base font-semibold" style={{ color: FAB_BG }}>{label}</p>
+        {sublabel && <p className="text-sm mt-0.5" style={{ color: "#9B8B78" }}>{sublabel}</p>}
       </div>
       <span
         className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ml-4 transition-colors"
-        style={{ borderColor: selected ? ACCENT : "#D1D5DB" }}
+        style={{ borderColor: selected ? ACCENT : "#C0B0A0" }}
       >
         {selected && (
           <span
@@ -326,13 +354,20 @@ function CheckRow({
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center justify-between py-4 border-b border-gray-200 text-left transition-opacity hover:opacity-75"
+      className="w-full flex items-center justify-between text-left transition-all mb-3"
+      style={{
+        padding: "14px 16px",
+        background: selected ? `${ACCENT}12` : "#fff",
+        border: `2px solid ${selected ? ACCENT : FAB_BG}`,
+        borderRadius: 14,
+        boxShadow: selected ? `2px 2px 0 ${ACCENT}` : `2px 2px 0 ${FAB_BG}`,
+      }}
     >
-      <span className="text-base text-gray-900 font-medium">{label}</span>
+      <span className="text-base font-semibold" style={{ color: FAB_BG }}>{label}</span>
       <span
-        className="w-5 h-5 rounded flex items-center justify-center shrink-0 ml-4 transition-all border-2"
+        className="w-5 h-5 rounded-md flex items-center justify-center shrink-0 ml-4 transition-all border-2"
         style={{
-          borderColor: selected ? ACCENT : "#D1D5DB",
+          borderColor: selected ? ACCENT : "#C0B0A0",
           backgroundColor: selected ? ACCENT : "transparent",
         }}
       >
@@ -360,40 +395,45 @@ function Pill({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border text-sm transition-all"
+      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-all"
       style={{
-        borderColor: selected ? ACCENT : "#D1D5DB",
-        backgroundColor: selected ? `${ACCENT}18` : "transparent",
-        color: selected ? ACCENT : "#374151",
+        borderRadius: 999,
+        border: `2px solid ${selected ? ACCENT : FAB_BG}`,
+        boxShadow: `1.5px 1.5px 0 ${selected ? ACCENT : FAB_BG}`,
+        backgroundColor: selected ? `${ACCENT}15` : "#fff",
+        color: selected ? ACCENT : FAB_BG,
       }}
     >
       {label}
-      {!selected && <span className="text-gray-400 text-base leading-none">+</span>}
+      {!selected && <span style={{ color: "#9B8B78", fontSize: 15, lineHeight: 1 }}>+</span>}
     </button>
   );
 }
 
-/** Bottom-bordered text input — matches landing page style */
+/** Bordered card-style input — matches landing page aesthetic */
 const inputCls =
-  "w-full pb-2 border-b-2 bg-transparent text-base focus:outline-none placeholder:text-gray-400"
-  + " text-[#1A0A00] border-[#1A0A00]";
+  "w-full px-4 py-3 bg-white text-base focus:outline-none placeholder:text-[#9B8B78]"
+  + " text-[#1A0A00] rounded-xl"
+  + " border-[2px] border-[#1A0A00]"
+  + " shadow-[2px_2px_0_#1A0A00]"
+  + " transition-shadow";
 
-/** Serif heading — matches landing page style */
+/** Serif heading — landing page style */
 function Heading({ children }: { children: React.ReactNode }) {
   return (
     <h1
       className="text-3xl font-black leading-tight mb-2"
-      style={{ fontFamily: FONT_SERIF, color: "#1A0A00" }}
+      style={{ fontFamily: FONT_SERIF, color: FAB_BG }}
     >
       {children}
     </h1>
   );
 }
 
-/** Small grey info line with eye/info icon */
+/** Small muted info line */
 function InfoLine({ text }: { text: string }) {
   return (
-    <p className="text-sm text-gray-400 mt-5 flex items-start gap-1.5">
+    <p className="text-sm mt-5 flex items-start gap-1.5" style={{ color: "#9B8B78" }}>
       <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <circle cx="12" cy="12" r="9" strokeWidth={1.5} />
         <path strokeLinecap="round" d="M12 8v4m0 4h.01" strokeWidth={2} />
@@ -403,12 +443,17 @@ function InfoLine({ text }: { text: string }) {
   );
 }
 
-/** Inline error below field — red triangle icon + message, does not break layout */
+/** Inline error */
 function InlineError({ message }: { message: string }) {
   return (
-    <p className="mt-2 flex items-start gap-1.5 text-sm text-red-600" role="alert">
-      <svg className="w-4 h-4 shrink-0 mt-0.5 text-red-500" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
-        <path d="M12 2L2 22h20L12 2zm0 4l7 14H5L12 6z" />
+    <p
+      className="mt-3 flex items-start gap-2 text-sm rounded-xl px-3 py-2"
+      style={{ background: "#FFF0EE", border: "1.5px solid #E8622A30", color: "#C0392B" }}
+      role="alert"
+    >
+      <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <circle cx="12" cy="12" r="9" />
+        <path strokeLinecap="round" d="M12 8v4m0 4h.01" />
       </svg>
       {message}
     </p>
@@ -1169,14 +1214,14 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
     : SUGGESTED_INTERESTS;
 
   return (
-    <div className="min-h-screen flex flex-col p-6" style={{ backgroundColor: BG }}>
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: BG, padding: "0 16px 32px" }}>
       {/* Global loading overlay */}
       {loading && <GlobalLoader />}
 
       {/* Progress bar — fixed at top */}
       <div
-        className="fixed top-0 left-0 right-0 h-1.5 z-50"
-        style={{ backgroundColor: "#D6CDA4" }}
+        className="fixed top-0 left-0 right-0 z-50"
+        style={{ height: 4, backgroundColor: "#E8D5B0" }}
         role="progressbar"
         aria-valuenow={progressPct}
         aria-valuemin={0}
@@ -1193,10 +1238,10 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
         />
       </div>
 
-      <div className="max-w-md mx-auto w-full flex flex-col flex-1">
+      <div className="max-w-md mx-auto w-full flex flex-col flex-1" style={{ paddingTop: 20 }}>
         {/* Back button — hidden on first step */}
         {subStep > 0 && (
-          <div className="mb-2">
+          <div className="mb-4">
             <BackBtn onClick={handleBack} />
           </div>
         )}
@@ -1210,10 +1255,10 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
               </svg>
             </div>
             <Heading>Oh hey! Let's start with an intro.</Heading>
-            <p className="text-sm text-gray-500 mb-8">Tell us a little about yourself.</p>
+            <p className="text-sm mb-8" style={{ color: "#9B8B78" }}>Tell us a little about yourself.</p>
 
             <div className="mb-6">
-              <label className="block text-sm text-gray-500 mb-1">Your first name</label>
+              <label className="block text-sm font-semibold mb-2" style={{ color: FAB_BG }}>Your first name</label>
               <input
                 type="text"
                 value={firstName}
