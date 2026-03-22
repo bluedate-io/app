@@ -15,9 +15,9 @@ const HEIGHT_OPTIONS = Array.from(
   { length: HEIGHT_CM_MAX - HEIGHT_CM_MIN + 1 },
   (_, i) => HEIGHT_CM_MIN + i,
 );
-const ACCENT = "#8F3A8F";
-const BG = "#FBF8F6";
-const FAB_BG = "#E0E0E0";
+const ACCENT = "#E8622A";
+const BG = "#F5F0DC";
+const FAB_BG = "#1A0A00";
 const FONT_SERIF = "var(--font-playfair), Georgia, serif";
 
 const SUGGESTED_INTERESTS = [
@@ -322,7 +322,7 @@ function Fab({
       >
         <svg
           width="20" height="20" viewBox="0 0 20 20"
-          fill="none" stroke="#2d2d2d" strokeWidth="2.25"
+          fill="none" stroke="#ffffff" strokeWidth="2.25"
           strokeLinecap="round" strokeLinejoin="round"
         >
           <path d="M8 6l6 4-6 4" />
@@ -353,7 +353,7 @@ function GlobalLoader() {
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center"
-      style={{ backdropFilter: "blur(3px)", backgroundColor: "rgba(251,248,246,0.65)" }}
+      style={{ backdropFilter: "blur(3px)", backgroundColor: "rgba(245,240,220,0.75)" }}
     >
       <div className="flex flex-col items-center gap-3">
         <span
@@ -468,16 +468,17 @@ function Pill({
   );
 }
 
-/** Bottom-bordered text input — matches login style */
+/** Bottom-bordered text input — matches landing page style */
 const inputCls =
-  "w-full pb-2 border-b-2 border-gray-800 bg-transparent text-gray-900 text-base focus:outline-none placeholder:text-gray-400";
+  "w-full pb-2 border-b-2 bg-transparent text-base focus:outline-none placeholder:text-gray-400"
+  + " text-[#1A0A00] border-[#1A0A00]";
 
-/** Serif heading — matches login h1 */
+/** Serif heading — matches landing page style */
 function Heading({ children }: { children: React.ReactNode }) {
   return (
     <h1
-      className="text-2xl font-bold text-gray-900 mb-2 leading-tight"
-      style={{ fontFamily: FONT_SERIF }}
+      className="text-3xl font-black leading-tight mb-2"
+      style={{ fontFamily: FONT_SERIF, color: "#1A0A00" }}
     >
       {children}
     </h1>
@@ -707,7 +708,7 @@ function MonthDropdown({
                 type="button"
                 role="option"
                 aria-selected={selected}
-                className={`w-full px-4 py-2.5 text-left text-sm text-gray-900 focus:outline-none transition-colors hover:bg-[#8F3A8F]/10 focus:bg-[#8F3A8F]/10 ${selected ? "bg-[#8F3A8F]/10" : ""}`}
+                className={`w-full px-4 py-2.5 text-left text-sm text-gray-900 focus:outline-none transition-colors hover:bg-[#E8622A]/10 focus:bg-[#E8622A]/10 ${selected ? "bg-[#E8622A]/10" : ""}`}
                 onClick={() => {
                   onChange(i + 1);
                   onOpenChange(false);
@@ -869,7 +870,7 @@ function PhotosStep({
         {uploading && (
           <div
             className="fixed inset-0 z-[100] flex items-center justify-center"
-            style={{ backdropFilter: "blur(3px)", backgroundColor: "rgba(251,248,246,0.70)" }}
+            style={{ backdropFilter: "blur(3px)", backgroundColor: "rgba(245,240,220,0.80)" }}
           >
             <div className="bg-white rounded-2xl px-10 py-8 flex flex-col items-center gap-4 shadow-xl">
               <div className="relative w-14 h-14">
@@ -1538,7 +1539,7 @@ function PromptsStep({
             type="button"
             onClick={() => { void handleSavePrompt(); }}
             className="px-5 py-2 rounded-full text-sm font-semibold text-white disabled:opacity-40 flex items-center justify-center gap-2"
-            style={{ backgroundColor: "#111111" }}
+            style={{ backgroundColor: "#1A0A00" }}
             disabled={saving || uploading}
           >
             {saving ? (
@@ -1936,7 +1937,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
 
       {/* Progress bar — fixed at top */}
       <div
-        className="fixed top-0 left-0 right-0 h-1.5 z-50 bg-gray-200"
+        className="fixed top-0 left-0 right-0 h-1.5 z-50"
+        style={{ backgroundColor: "#D6CDA4" }}
         role="progressbar"
         aria-valuenow={progressPct}
         aria-valuemin={0}
