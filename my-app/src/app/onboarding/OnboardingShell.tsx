@@ -922,6 +922,25 @@ interface Props {
 export default function OnboardingShell({ step: _step, token, status }: Props) {
   const router = useRouter();
   const [subStep, setSubStep] = useState(() => getInitialSubStep(status));
+
+  /** Call after /api/onboarding/complete succeeds. Updates cookie with fresh JWT then hard-navigates. */
+  async function finishOnboarding() {
+    const res = await fetch("/api/onboarding/complete", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      throw new Error((j as { error?: { message?: string } }).error?.message ?? "Could not complete onboarding");
+    }
+    const j = await res.json() as { data?: { accessToken?: string; expiresIn?: number } };
+    const newToken = j.data?.accessToken;
+    if (newToken) {
+      const maxAge = j.data?.expiresIn ?? 7 * 24 * 60 * 60;
+      document.cookie = `access_token=${newToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
+    }
+    window.location.assign("/home");
+  }
   const [loading, setLoading] = useState(false);
   /** API error for the current step — shown inline below the step form, not in a top alert */
   const [stepError, setStepError] = useState<string | null>(null);
@@ -1194,15 +1213,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
             setSubStep(13);
           } else {
             // Date mode: photos done → complete onboarding
-            fetch("/api/onboarding/complete", {
-              method: "POST",
-              headers: { Authorization: `Bearer ${token}` },
-            })
-              .then((res) => {
-                if (res.ok) router.refresh();
-                else res.json().then((j) => setStepError(j?.error?.message ?? "Could not complete onboarding"));
-              })
-              .catch(() => setStepError("Could not complete onboarding"));
+            finishOnboarding().catch((e) => setStepError((e as Error).message));
           }
         }}
       />
@@ -2049,18 +2060,9 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                   setStepError(null);
                   try {
                     await apiPost("relationship-status", {});
-                    const res = await fetch("/api/onboarding/complete", {
-                      method: "POST",
-                      headers: { Authorization: `Bearer ${token}` },
-                    });
-                    if (!res.ok) {
-                      const j = await res.json();
-                      throw new Error(j.error?.message ?? "Could not complete onboarding");
-                    }
-                    router.refresh();
+                    await finishOnboarding();
                   } catch (e) {
                     setStepError((e as Error).message);
-                  } finally {
                     setLoading(false);
                   }
                 }}
@@ -2077,18 +2079,9 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
                   setStepError(null);
                   try {
                     await apiPost("relationship-status", { relationshipStatus });
-                    const res = await fetch("/api/onboarding/complete", {
-                      method: "POST",
-                      headers: { Authorization: `Bearer ${token}` },
-                    });
-                    if (!res.ok) {
-                      const j = await res.json();
-                      throw new Error(j.error?.message ?? "Could not complete onboarding");
-                    }
-                    router.refresh();
+                    await finishOnboarding();
                   } catch (e) {
                     setStepError((e as Error).message);
-                  } finally {
                     setLoading(false);
                   }
                 }}
