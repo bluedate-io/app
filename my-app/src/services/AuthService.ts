@@ -78,7 +78,7 @@ export class AuthService {
       user: toUserAuthDTO(user),
       token,
       onboardingCompleted: user.onboardingCompleted,
-      redirectTo: user.onboardingCompleted ? "/" : "/onboarding",
+      redirectTo: user.onboardingCompleted ? "/home" : "/onboarding",
     };
   }
 

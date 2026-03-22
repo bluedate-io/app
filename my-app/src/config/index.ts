@@ -94,4 +94,8 @@ if (config.isProd) {
   requireEnv("TWILIO_VERIFY_SERVICE_SID");
   requireEnv("SUPABASE_URL");
   requireEnv("SUPABASE_ANON_KEY");
+  requireEnv("SMTP_HOST");
+  requireEnv("SMTP_USER");
+  requireEnv("SMTP_PASS");
+  requireEnv("EMAIL_FROM");
 }

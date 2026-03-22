@@ -14,8 +14,8 @@ export interface VerifyOtpResponseDTO {
   user: UserAuthDTO;
   token: AuthTokenDTO;
   onboardingCompleted: boolean;
-  /** If false the client should redirect to /onboarding */
-  redirectTo: "/onboarding" | "/";
+  /** Client redirect destination after successful OTP verification */
+  redirectTo: "/onboarding" | "/home";
 }
 
 export interface UserAuthDTO {
