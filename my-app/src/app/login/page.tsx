@@ -4,7 +4,7 @@ export default function LoginPage() {
   return (
     <main
       className="min-h-screen flex flex-col p-6"
-      style={{ backgroundColor: "#FBF8F6" }}
+      style={{ backgroundColor: "#F5F0DC" }}
     >
       <LoginForm />
     </main>

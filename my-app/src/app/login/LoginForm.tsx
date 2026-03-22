@@ -137,14 +137,14 @@ export default function LoginForm() {
       className={`flex items-center justify-center shrink-0 rounded-full transition ${
         disabled ? "opacity-50" : ""
       }`}
-      style={{ width: 52, height: 52, backgroundColor: "#E0E0E0" }}
+      style={{ width: 52, height: 52, backgroundColor: "#1A0A00" }}
     >
       <svg
         width="20"
         height="20"
         viewBox="0 0 20 20"
         fill="none"
-        stroke="#2d2d2d"
+        stroke="#ffffff"
         strokeWidth="2.25"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -181,10 +181,10 @@ export default function LoginForm() {
     <div className="flex flex-col flex-1 max-w-md mx-auto w-full">
       <div className="flex justify-start mb-6">
         {step === "email" ? (
-          <Mail size={48} strokeWidth={1.5} className="text-gray-900 shrink-0" />
+          <Mail size={48} strokeWidth={1.5} style={{ color: "#1A0A00" }} className="shrink-0" />
         ) : (
-          <div className="w-14 h-14 rounded-full border-2 border-gray-900 flex items-center justify-center shrink-0">
-            <ShieldCheck size={28} strokeWidth={1.5} className="text-gray-900" />
+          <div className="w-14 h-14 rounded-full border-2 flex items-center justify-center shrink-0" style={{ borderColor: "#1A0A00" }}>
+            <ShieldCheck size={28} strokeWidth={1.5} style={{ color: "#1A0A00" }} />
           </div>
         )}
       </div>
@@ -192,8 +192,8 @@ export default function LoginForm() {
       {step === "email" ? (
         <form onSubmit={sendOtp} className="flex flex-col flex-1">
           <h1
-            className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 leading-tight"
-            style={{ fontFamily: "var(--font-playfair), Georgia, serif" }}
+            className="text-3xl md:text-4xl font-black mb-8 leading-tight"
+            style={{ fontFamily: "var(--font-playfair), Georgia, serif", color: "#1A0A00" }}
           >
             What&apos;s your college email?
           </h1>
@@ -208,7 +208,7 @@ export default function LoginForm() {
                 ref={collegeButtonRef}
                 type="button"
                 onClick={() => setShowCollegePicker(!showCollegePicker)}
-                className="w-full flex items-center justify-between pb-2 border-b-2 border-gray-800 bg-transparent text-left"
+                className="w-full flex items-center justify-between pb-2 border-b-2 bg-transparent text-left" style={{ borderColor: "#1A0A00" }}
               >
                 <span className={selectedCollege ? "text-gray-900" : "text-gray-400"}>
                   {selectedCollege ? selectedCollege.collegeName : "Select your college"}
@@ -267,7 +267,7 @@ export default function LoginForm() {
                 selectedCollege ? `you@${selectedCollege.domain}` : "Select college first"
               }
               disabled={!selectedCollege}
-              className="w-full pb-2 border-b-2 border-gray-800 bg-transparent text-gray-900 text-base focus:outline-none focus:border-gray-900 placeholder:text-gray-400 disabled:opacity-50"
+              className="w-full pb-2 border-b-2 bg-transparent text-base focus:outline-none placeholder:text-gray-400 disabled:opacity-50" style={{ borderColor: "#1A0A00", color: "#1A0A00" }}
             />
           </div>
 
@@ -321,7 +321,7 @@ export default function LoginForm() {
                 setError(null);
               }}
               className="font-medium hover:underline"
-              style={{ color: "#8F3A8F" }}
+              style={{ color: "#E8622A" }}
             >
               Edit
             </button>
@@ -338,7 +338,7 @@ export default function LoginForm() {
                 value={otp[i] ?? ""}
                 onChange={(e) => handleOtpChange(i, e.target.value)}
                 onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                className="w-10 h-12 text-center text-xl font-medium bg-transparent border-b-2 border-gray-800 text-gray-900 focus:outline-none focus:border-gray-900"
+                className="w-10 h-12 text-center text-xl font-medium bg-transparent border-b-2 focus:outline-none" style={{ borderColor: "#1A0A00", color: "#1A0A00" }}
               />
             ))}
           </div>
@@ -356,7 +356,7 @@ export default function LoginForm() {
               onClick={resendOtp}
               disabled={loading}
               className="text-sm hover:underline disabled:opacity-50"
-              style={{ color: "#8F3A8F" }}
+              style={{ color: "#E8622A" }}
             >
               Didn&apos;t get a code?
             </button>
