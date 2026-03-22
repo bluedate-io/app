@@ -9,11 +9,16 @@ import { UnauthorizedError, ForbiddenError } from "@/utils/errors";
 import { v4 as uuidv4 } from "uuid";
 
 function extractBearerToken(req: NextRequest): string {
+  // 1. Authorization: Bearer header (server-to-server / admin)
   const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    throw new UnauthorizedError("Missing or malformed Authorization header");
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.slice(7);
   }
-  return authHeader.slice(7);
+  // 2. access_token cookie (browser client-side fetches)
+  const cookieToken = req.cookies.get("access_token")?.value;
+  if (cookieToken) return cookieToken;
+
+  throw new UnauthorizedError("Missing or malformed Authorization header");
 }
 
 export function authenticate(req: NextRequest): RequestContext {

@@ -2,17 +2,26 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, Plus } from "lucide-react";
+import { ArrowLeft, Check, Plus, X } from "lucide-react";
 import type { EditField } from "./page";
 import type { ProfileData } from "../../page";
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const BG = "#EDE8D5";
+const DARK = "#2B1A07";
+const ACCENT = "#E8622A";
+const MUTED = "#7A6A54";
+const CARD = "#fff";
+const SERIF = "var(--font-playfair, Georgia, serif)";
+const SANS = "var(--font-geist-sans, sans-serif)";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const FIELD_TITLES: Record<EditField, string> = {
   photos: "My Photos",
-  interests: "My Interests",
+  interests: "Interests",
   "looking-for": "Looking For",
-  height: "My Height",
+  height: "Height",
   drinking: "Drinking",
   religion: "Religion",
   family: "Family Plans",
@@ -33,33 +42,18 @@ const DRINKING_OPTIONS = [
 ];
 
 const RELIGION_OPTIONS = [
-  "Agnostic",
-  "Atheist",
-  "Buddhist",
-  "Catholic",
-  "Christian",
-  "Hindu",
-  "Jain",
-  "Jewish",
-  "Mormon",
-  "Latter-day Saint",
-  "Muslim",
-  "Zoroastrian",
-  "Sikh",
-  "Spiritual",
-  "Other",
+  "Agnostic", "Atheist", "Buddhist", "Catholic", "Christian",
+  "Hindu", "Jain", "Jewish", "Mormon", "Muslim",
+  "Sikh", "Spiritual", "Zoroastrian", "Other",
 ];
 
 const KIDS_STATUS_OPTIONS = [
-  { value: "Don't have kids", label: "Don't have kids" },
+  { value: "Don't have kids", label: "No kids" },
   { value: "Have kids", label: "Have kids" },
 ];
 
 const KIDS_PLAN_OPTIONS = [
-  "Want kids",
-  "Open to kids",
-  "Don't want kids",
-  "Not sure",
+  "Want kids", "Open to kids", "Don't want kids", "Not sure",
 ];
 
 const HOBBY_OPTIONS = [
@@ -74,72 +68,104 @@ const HOBBY_OPTIONS = [
 function Header({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <div
-      className="flex items-center gap-3 px-4 pt-5 pb-4"
-      style={{ background: "#F5F0FB" }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "20px 20px 16px",
+        borderBottom: `2px solid ${DARK}`,
+        background: BG,
+      }}
     >
       <button
         onClick={onBack}
-        className="flex items-center justify-center rounded-xl"
-        style={{ width: 38, height: 38, background: "#fff", boxShadow: "0 1px 4px rgba(90,42,106,0.10)" }}
+        style={{
+          width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+          background: CARD, border: `2px solid ${DARK}`,
+          boxShadow: `2px 2px 0 ${DARK}`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "pointer",
+        }}
       >
-        <ArrowLeft size={18} style={{ color: "#7A2D8E" }} />
+        <ArrowLeft size={18} color={DARK} />
       </button>
-      <h1 className="text-lg font-bold flex-1" style={{ color: "#1A0A2E" }}>
+      <h1 style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 800, color: DARK, margin: 0 }}>
         {title}
       </h1>
     </div>
   );
 }
 
-function SaveButton({ loading, onClick }: { loading: boolean; onClick: () => void }) {
+function SaveBtn({ loading, onClick }: { loading: boolean; onClick: () => void }) {
   return (
-    <div className="px-4 pb-8 pt-4">
+    <div style={{ padding: "16px 20px 32px" }}>
       <button
         onClick={onClick}
         disabled={loading}
-        className="w-full py-3.5 rounded-2xl text-white text-base font-bold"
         style={{
-          background: loading ? "#C4B0D8" : "linear-gradient(135deg,#A33BB5,#6A2F8A)",
+          width: "100%", padding: "16px",
+          background: loading ? `${DARK}80` : DARK,
+          color: BG, fontFamily: SANS, fontSize: 15, fontWeight: 700,
+          border: `2.5px solid ${DARK}`, borderRadius: 14,
+          boxShadow: loading ? "none" : `4px 4px 0 ${ACCENT}`,
+          cursor: loading ? "not-allowed" : "pointer",
+          transition: "all 0.15s",
+          letterSpacing: 0.2,
         }}
       >
-        {loading ? "Saving…" : "Save"}
+        {loading ? "Saving…" : "Save changes"}
       </button>
     </div>
   );
 }
 
-function OptionCard({
-  selected,
-  onToggle,
-  children,
-  multi,
-}: {
-  selected: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-  multi?: boolean;
-}) {
+function Chip({
+  label, selected, onToggle,
+}: { label: string; selected: boolean; onToggle: () => void }) {
   return (
     <button
       onClick={onToggle}
-      className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl text-left transition-all"
       style={{
-        background: selected ? "#F5EAFF" : "#fff",
-        border: `2px solid ${selected ? "#A33BB5" : "#F3EFF8"}`,
-        boxShadow: "0 1px 3px rgba(90,42,106,0.06)",
+        padding: "8px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600,
+        fontFamily: SANS, cursor: "pointer", transition: "all 0.1s",
+        background: selected ? DARK : CARD,
+        color: selected ? BG : DARK,
+        border: `2px solid ${selected ? DARK : `${DARK}40`}`,
+        boxShadow: selected ? `2px 2px 0 ${ACCENT}` : "none",
       }}
     >
-      {children}
-      <div
-        className="flex items-center justify-center rounded-full shrink-0 ml-3"
-        style={{
-          width: 24,
-          height: 24,
-          background: selected ? "#A33BB5" : "#F3EFF8",
-          border: `2px solid ${selected ? "#A33BB5" : "#C4B0D8"}`,
-        }}
-      >
-        {selected && <Check size={13} color="#fff" strokeWidth={3} />}
+      {label}
+    </button>
+  );
+}
+
+function OptionRow({
+  label, desc, selected, onSelect,
+}: { label: string; desc?: string; selected: boolean; onSelect: () => void }) {
+  return (
+    <button
+      onClick={onSelect}
+      style={{
+        width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "14px 16px", borderRadius: 14, textAlign: "left", cursor: "pointer",
+        background: selected ? `${DARK}08` : CARD,
+        border: `2px solid ${selected ? DARK : `${DARK}20`}`,
+        boxShadow: selected ? `3px 3px 0 ${DARK}` : "none",
+        transition: "all 0.1s",
+        fontFamily: SANS,
+      }}
+    >
+      <div>
+        <p style={{ fontSize: 14, fontWeight: 600, color: DARK, margin: 0 }}>{label}</p>
+        {desc && <p style={{ fontSize: 12, color: MUTED, margin: "2px 0 0" }}>{desc}</p>}
+      </div>
+      <div style={{
+        width: 22, height: 22, borderRadius: "50%", flexShrink: 0, marginLeft: 12,
+        background: selected ? DARK : "transparent",
+        border: `2px solid ${selected ? DARK : `${DARK}40`}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        {selected && <Check size={12} color={BG} strokeWidth={3} />}
       </div>
     </button>
   );
@@ -147,263 +173,145 @@ function OptionCard({
 
 // ─── Field editors ────────────────────────────────────────────────────────────
 
-function InterestsEditor({
-  initial,
-  onSave,
-  loading,
-}: {
-  initial: string[];
-  onSave: (v: string[]) => void;
-  loading: boolean;
-}) {
+function InterestsEditor({ initial, onSave, loading }: { initial: string[]; onSave: (v: string[]) => void; loading: boolean }) {
   const [selected, setSelected] = useState<string[]>(initial);
-
   function toggle(h: string) {
-    setSelected(prev =>
-      prev.includes(h) ? prev.filter(x => x !== h) : prev.length < 10 ? [...prev, h] : prev,
-    );
+    setSelected(p => p.includes(h) ? p.filter(x => x !== h) : p.length < 10 ? [...p, h] : p);
   }
-
   return (
     <>
-      <div className="px-4 pb-2">
-        <p className="text-sm" style={{ color: "#9B87B0" }}>
-          Pick up to 10 interests that describe you
-        </p>
+      <div style={{ padding: "16px 20px 8px" }}>
+        <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>Select up to 10 interests</p>
       </div>
-      <div className="flex flex-wrap gap-2.5 px-4 pb-4">
-        {HOBBY_OPTIONS.map(h => {
-          const sel = selected.includes(h);
-          return (
-            <button
-              key={h}
-              onClick={() => toggle(h)}
-              className="px-4 py-2 rounded-full text-sm font-semibold transition-all"
-              style={{
-                background: sel ? "#A33BB5" : "#fff",
-                color: sel ? "#fff" : "#7A2D8E",
-                border: `2px solid ${sel ? "#A33BB5" : "#E8DFF5"}`,
-              }}
-            >
-              {h}
-            </button>
-          );
-        })}
-      </div>
-      <SaveButton loading={loading} onClick={() => onSave(selected)} />
-    </>
-  );
-}
-
-function LookingForEditor({
-  initial,
-  onSave,
-  loading,
-}: {
-  initial: string[];
-  onSave: (v: string[]) => void;
-  loading: boolean;
-}) {
-  const [selected, setSelected] = useState<string[]>(initial);
-
-  function toggle(v: string) {
-    setSelected(prev =>
-      prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v],
-    );
-  }
-
-  return (
-    <>
-      <div className="px-4 pb-3">
-        <p className="text-sm" style={{ color: "#9B87B0" }}>
-          Pick at least 2 that apply to you
-        </p>
-      </div>
-      <div className="flex flex-col gap-3 px-4">
-        {RELATIONSHIP_GOALS.map(g => (
-          <OptionCard key={g} selected={selected.includes(g)} onToggle={() => toggle(g)} multi>
-            <span className="text-sm font-semibold" style={{ color: "#1A0A2E" }}>{g}</span>
-          </OptionCard>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: "0 20px 8px" }}>
+        {HOBBY_OPTIONS.map(h => (
+          <Chip key={h} label={h} selected={selected.includes(h)} onToggle={() => toggle(h)} />
         ))}
       </div>
-      <SaveButton loading={loading} onClick={() => onSave(selected)} />
+      <SaveBtn loading={loading} onClick={() => onSave(selected)} />
     </>
   );
 }
 
-function HeightEditor({
-  initial,
-  onSave,
-  loading,
-}: {
-  initial?: number;
-  onSave: (v: number) => void;
-  loading: boolean;
-}) {
-  const [cm, setCm] = useState<string>(initial ? String(initial) : "");
-
+function LookingForEditor({ initial, onSave, loading }: { initial: string[]; onSave: (v: string[]) => void; loading: boolean }) {
+  const [selected, setSelected] = useState<string[]>(initial);
+  function toggle(v: string) {
+    setSelected(p => p.includes(v) ? p.filter(x => x !== v) : [...p, v]);
+  }
   return (
     <>
-      <div className="px-4 pb-4">
-        <p className="text-sm mb-4" style={{ color: "#9B87B0" }}>
-          Enter your height in centimetres
-        </p>
-        <div
-          className="flex items-center gap-2 px-4 py-3.5 rounded-2xl"
-          style={{ background: "#fff", border: "2px solid #E8DFF5" }}
-        >
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "16px 20px 8px" }}>
+        {RELATIONSHIP_GOALS.map(g => (
+          <OptionRow key={g} label={g} selected={selected.includes(g)} onSelect={() => toggle(g)} />
+        ))}
+      </div>
+      <SaveBtn loading={loading} onClick={() => onSave(selected)} />
+    </>
+  );
+}
+
+function HeightEditor({ initial, onSave, loading }: { initial?: number; onSave: (v: number) => void; loading: boolean }) {
+  const [cm, setCm] = useState(initial ? String(initial) : "");
+  return (
+    <>
+      <div style={{ padding: "16px 20px 8px" }}>
+        <p style={{ fontSize: 13, color: MUTED, margin: "0 0 12px" }}>Enter your height in centimetres</p>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8, padding: "14px 16px",
+          background: CARD, border: `2px solid ${DARK}`, borderRadius: 14,
+          boxShadow: `2px 2px 0 ${DARK}`,
+        }}>
           <input
-            type="number"
-            min={91}
-            max={220}
-            value={cm}
+            type="number" min={91} max={220} value={cm}
             onChange={e => setCm(e.target.value)}
             placeholder="e.g. 170"
-            className="flex-1 text-base font-semibold bg-transparent outline-none"
-            style={{ color: "#1A0A2E" }}
+            style={{ flex: 1, fontSize: 16, fontWeight: 600, background: "transparent", outline: "none", border: "none", color: DARK, fontFamily: SANS }}
           />
-          <span className="text-sm font-medium" style={{ color: "#9B87B0" }}>cm</span>
+          <span style={{ fontSize: 13, color: MUTED, fontFamily: SANS }}>cm</span>
         </div>
         {cm && (
-          <p className="text-xs mt-2" style={{ color: "#9B87B0" }}>
+          <p style={{ fontSize: 12, color: MUTED, margin: "6px 0 0", fontFamily: SANS }}>
             ≈ {Math.floor(Number(cm) / 30.48)}′{Math.round((Number(cm) % 30.48) / 2.54)}″
           </p>
         )}
       </div>
-      <SaveButton
-        loading={loading}
-        onClick={() => onSave(Number(cm))}
-      />
+      <SaveBtn loading={loading} onClick={() => onSave(Number(cm))} />
     </>
   );
 }
 
-function DrinkingEditor({
-  initial,
-  onSave,
-  loading,
-}: {
-  initial?: string;
-  onSave: (v: string) => void;
-  loading: boolean;
-}) {
+function DrinkingEditor({ initial, onSave, loading }: { initial?: string; onSave: (v: string) => void; loading: boolean }) {
   const [val, setVal] = useState(initial ?? "");
-
   return (
     <>
-      <div className="flex flex-col gap-3 px-4">
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "16px 20px 8px" }}>
         {DRINKING_OPTIONS.map(opt => (
-          <OptionCard key={opt.value} selected={val === opt.value} onToggle={() => setVal(opt.value)}>
-            <div>
-              <p className="text-sm font-semibold" style={{ color: "#1A0A2E" }}>{opt.label}</p>
-              <p className="text-xs mt-0.5" style={{ color: "#9B87B0" }}>{opt.desc}</p>
-            </div>
-          </OptionCard>
+          <OptionRow key={opt.value} label={opt.label} desc={opt.desc} selected={val === opt.value} onSelect={() => setVal(opt.value)} />
         ))}
       </div>
-      <SaveButton loading={loading} onClick={() => onSave(val)} />
+      <SaveBtn loading={loading} onClick={() => onSave(val)} />
     </>
   );
 }
 
-function ReligionEditor({
-  initial,
-  onSave,
-  loading,
-}: {
-  initial?: string;
-  onSave: (v: string) => void;
-  loading: boolean;
-}) {
+function ReligionEditor({ initial, onSave, loading }: { initial?: string; onSave: (v: string) => void; loading: boolean }) {
   const [val, setVal] = useState(initial ?? "");
-
   return (
     <>
-      <div className="flex flex-wrap gap-2.5 px-4 pb-4">
-        {RELIGION_OPTIONS.map(r => {
-          const sel = val === r;
-          return (
-            <button
-              key={r}
-              onClick={() => setVal(r)}
-              className="px-4 py-2 rounded-full text-sm font-semibold transition-all"
-              style={{
-                background: sel ? "#A33BB5" : "#fff",
-                color: sel ? "#fff" : "#7A2D8E",
-                border: `2px solid ${sel ? "#A33BB5" : "#E8DFF5"}`,
-              }}
-            >
-              {r}
-            </button>
-          );
-        })}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: "16px 20px 8px" }}>
+        {RELIGION_OPTIONS.map(r => (
+          <Chip key={r} label={r} selected={val === r} onToggle={() => setVal(r)} />
+        ))}
       </div>
-      <SaveButton loading={loading} onClick={() => onSave(val)} />
+      <SaveBtn loading={loading} onClick={() => onSave(val)} />
     </>
   );
 }
 
-function FamilyEditor({
-  initialStatus,
-  initialPref,
-  onSave,
-  loading,
-}: {
-  initialStatus?: string;
-  initialPref?: string;
-  onSave: (status: string, pref: string) => void;
-  loading: boolean;
-}) {
+function FamilyEditor({ initialStatus, initialPref, onSave, loading }: { initialStatus?: string; initialPref?: string; onSave: (s: string, p: string) => void; loading: boolean }) {
   const [status, setStatus] = useState(initialStatus ?? "");
   const [pref, setPref] = useState(initialPref ?? "");
-
   return (
     <>
-      <div className="px-4 pb-2">
-        <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "#9B87B0" }}>
+      <div style={{ padding: "16px 20px 8px" }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 10px", fontFamily: SANS }}>
           Do you have kids?
         </p>
-        <div className="flex gap-3">
-          {KIDS_STATUS_OPTIONS.map(opt => (
+        <div style={{ display: "flex", gap: 10 }}>
+          {KIDS_STATUS_OPTIONS.map(o => (
             <button
-              key={opt.value}
-              onClick={() => setStatus(opt.value)}
-              className="flex-1 py-3 rounded-2xl text-sm font-semibold transition-all"
+              key={o.value}
+              onClick={() => setStatus(o.value)}
               style={{
-                background: status === opt.value ? "#A33BB5" : "#fff",
-                color: status === opt.value ? "#fff" : "#7A2D8E",
-                border: `2px solid ${status === opt.value ? "#A33BB5" : "#E8DFF5"}`,
+                flex: 1, padding: "12px 8px", borderRadius: 14, fontSize: 13, fontWeight: 600,
+                fontFamily: SANS, cursor: "pointer",
+                background: status === o.value ? DARK : CARD,
+                color: status === o.value ? BG : DARK,
+                border: `2px solid ${status === o.value ? DARK : `${DARK}30`}`,
+                boxShadow: status === o.value ? `3px 3px 0 ${ACCENT}` : "none",
               }}
             >
-              {opt.label}
+              {o.label}
             </button>
           ))}
         </div>
       </div>
-
-      <div className="px-4 pt-4 pb-2">
-        <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "#9B87B0" }}>
+      <div style={{ padding: "16px 20px 8px" }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 10px", fontFamily: SANS }}>
           Future plans
         </p>
-        <div className="flex flex-col gap-3">
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {KIDS_PLAN_OPTIONS.map(p => (
-            <OptionCard key={p} selected={pref === p} onToggle={() => setPref(p)}>
-              <span className="text-sm font-semibold" style={{ color: "#1A0A2E" }}>{p}</span>
-            </OptionCard>
+            <OptionRow key={p} label={p} selected={pref === p} onSelect={() => setPref(p)} />
           ))}
         </div>
       </div>
-
-      <SaveButton loading={loading} onClick={() => onSave(status, pref)} />
+      <SaveBtn loading={loading} onClick={() => onSave(status, pref)} />
     </>
   );
 }
 
-function PhotosEditor({
-  initial,
-}: {
-  initial: { url: string; order: number }[];
-}) {
+function PhotosEditor({ initial }: { initial: { url: string; order: number }[] }) {
   const [photos, setPhotos] = useState(initial);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -413,16 +321,10 @@ function PhotosEditor({
     const fd = new FormData();
     fd.append("file", file);
     try {
-      const res = await fetch("/api/onboarding/photos", {
-        method: "POST",
-        body: fd,
-      });
+      const res = await fetch("/api/onboarding/photos", { method: "POST", body: fd });
       if (res.ok) {
         const json = await res.json();
-        setPhotos(prev => [
-          ...prev,
-          { url: json.data?.url ?? json.url, order: prev.length },
-        ]);
+        setPhotos(p => [...p, { url: json.data?.url ?? json.url, order: p.length }]);
       }
     } finally {
       setUploading(false);
@@ -430,61 +332,37 @@ function PhotosEditor({
   }
 
   return (
-    <div className="px-4 pb-8">
-      <p className="text-sm mb-4" style={{ color: "#9B87B0" }}>
-        Add at least 2 photos. Tap + to upload.
+    <div style={{ padding: "16px 20px 32px" }}>
+      <p style={{ fontSize: 13, color: MUTED, margin: "0 0 16px", fontFamily: SANS }}>
+        Add at least 2 photos
       </p>
-      <div className="grid grid-cols-3 gap-3">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
         {photos.map((p, i) => (
-          <div key={i} className="relative" style={{ aspectRatio: "3/4" }}>
+          <div key={i} style={{ aspectRatio: "3/4", borderRadius: 14, overflow: "hidden", border: `2px solid ${DARK}`, boxShadow: `2px 2px 0 ${DARK}` }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={p.url}
-              alt=""
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                borderRadius: 16,
-              }}
-            />
+            <img src={p.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
         ))}
-
-        {/* Add slot */}
         {photos.length < 9 && (
           <button
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="flex items-center justify-center rounded-2xl"
             style={{
-              aspectRatio: "3/4",
-              background: "#fff",
-              border: "2px dashed #C4B0D8",
+              aspectRatio: "3/4", borderRadius: 14, cursor: "pointer",
+              background: CARD, border: `2px dashed ${DARK}60`,
+              display: "flex", alignItems: "center", justifyContent: "center",
             }}
           >
             {uploading ? (
-              <div
-                className="rounded-full"
-                style={{ width: 24, height: 24, border: "3px solid #A33BB5", borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }}
-              />
+              <div style={{ width: 24, height: 24, borderRadius: "50%", border: `3px solid ${DARK}30`, borderTopColor: DARK, animation: "spin 0.8s linear infinite" }} />
             ) : (
-              <Plus size={28} style={{ color: "#C4B0D8" }} />
+              <Plus size={28} color={`${DARK}60`} />
             )}
           </button>
         )}
       </div>
-
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={e => {
-          const f = e.target.files?.[0];
-          if (f) upload(f);
-          e.target.value = "";
-        }}
+      <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }}
       />
     </div>
   );
@@ -500,13 +378,15 @@ export function EditFieldView({ field, data }: { field: EditField; data: Profile
   async function post(url: string, body: Record<string, unknown>) {
     setLoading(true);
     try {
-      await fetch(url, {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      setSaved(true);
-      setTimeout(() => router.push("/profile"), 600);
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => router.push("/profile"), 700);
+      }
     } finally {
       setLoading(false);
     }
@@ -515,93 +395,66 @@ export function EditFieldView({ field, data }: { field: EditField; data: Profile
   const { preferences, interests, personality, photos } = data;
 
   return (
-    <div
-      className="min-h-full pb-6"
-      style={{ background: "#F5F0FB", fontFamily: "var(--font-geist-sans,sans-serif)" }}
-    >
-      <Header title={FIELD_TITLES[field]} onBack={() => router.push("/profile")} />
+    <div style={{ minHeight: "100dvh", background: BG, fontFamily: SANS }}>
+      <div style={{ maxWidth: 480, margin: "0 auto", minHeight: "100dvh" }}>
+        <Header title={FIELD_TITLES[field]} onBack={() => router.push("/profile")} />
 
-      {saved && (
-        <div
-          className="mx-4 mb-4 px-4 py-3 rounded-2xl flex items-center gap-2"
-          style={{ background: "#E8F9F0", border: "1px solid #6FD8A0" }}
-        >
-          <Check size={16} style={{ color: "#22A06B" }} />
-          <span className="text-sm font-semibold" style={{ color: "#22A06B" }}>Saved!</span>
-        </div>
-      )}
+        {saved && (
+          <div style={{
+            margin: "12px 20px 0", padding: "12px 16px", borderRadius: 12,
+            background: "#E8F9F0", border: `1.5px solid #6FD8A0`,
+            display: "flex", alignItems: "center", gap: 8,
+          }}>
+            <Check size={15} color="#22A06B" />
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#22A06B", fontFamily: SANS }}>Saved!</span>
+          </div>
+        )}
 
-      {field === "interests" && (
-        <InterestsEditor
-          initial={interests?.hobbies?.filter(h => h && h !== "Not specified") ?? []}
-          onSave={hobbies =>
-            post("/api/onboarding/interests", {
-              hobbies,
-              favouriteActivities: interests?.favouriteActivities ?? [],
-            })
-          }
-          loading={loading}
-        />
-      )}
-
-      {field === "looking-for" && (
-        <LookingForEditor
-          initial={preferences?.relationshipGoals?.filter(Boolean) ?? []}
-          onSave={goals =>
-            post("/api/onboarding/relationship-goals", { relationshipGoals: goals })
-          }
-          loading={loading}
-        />
-      )}
-
-      {field === "height" && (
-        <HeightEditor
-          initial={preferences?.heightCm}
-          onSave={heightCm => post("/api/onboarding/height", { heightCm })}
-          loading={loading}
-        />
-      )}
-
-      {field === "drinking" && (
-        <DrinkingEditor
-          initial={personality?.socialLevel}
-          onSave={socialLevel =>
-            post("/api/onboarding/personality", {
-              socialLevel,
-              conversationStyle: personality?.conversationStyle ?? "Casual",
-            })
-          }
-          loading={loading}
-        />
-      )}
-
-      {field === "religion" && (
-        <ReligionEditor
-          initial={personality?.religion?.[0]}
-          onSave={religion =>
-            post("/api/onboarding/important-life", {
-              religion: [religion],
-              politics: [],
-            })
-          }
-          loading={loading}
-        />
-      )}
-
-      {field === "family" && (
-        <FamilyEditor
-          initialStatus={personality?.kidsStatus}
-          initialPref={personality?.kidsPreference}
-          onSave={(kidsStatus, kidsPreference) =>
-            post("/api/onboarding/family-plans", { kidsStatus, kidsPreference })
-          }
-          loading={loading}
-        />
-      )}
-
-      {field === "photos" && (
-        <PhotosEditor initial={photos} />
-      )}
+        {field === "interests" && (
+          <InterestsEditor
+            initial={interests?.hobbies?.filter(h => h && h !== "Not specified") ?? []}
+            onSave={hobbies => post("/api/onboarding/interests", { hobbies, favouriteActivities: interests?.favouriteActivities ?? [] })}
+            loading={loading}
+          />
+        )}
+        {field === "looking-for" && (
+          <LookingForEditor
+            initial={preferences?.relationshipGoals?.filter(Boolean) ?? []}
+            onSave={goals => post("/api/onboarding/relationship-goals", { relationshipGoals: goals })}
+            loading={loading}
+          />
+        )}
+        {field === "height" && (
+          <HeightEditor
+            initial={preferences?.heightCm ?? undefined}
+            onSave={heightCm => post("/api/onboarding/height", { heightCm })}
+            loading={loading}
+          />
+        )}
+        {field === "drinking" && (
+          <DrinkingEditor
+            initial={personality?.socialLevel ?? undefined}
+            onSave={socialLevel => post("/api/onboarding/personality", { socialLevel, conversationStyle: personality?.conversationStyle ?? "Casual" })}
+            loading={loading}
+          />
+        )}
+        {field === "religion" && (
+          <ReligionEditor
+            initial={personality?.religion?.[0] ?? undefined}
+            onSave={religion => post("/api/onboarding/important-life", { religion: [religion], politics: [] })}
+            loading={loading}
+          />
+        )}
+        {field === "family" && (
+          <FamilyEditor
+            initialStatus={personality?.kidsStatus ?? undefined}
+            initialPref={personality?.kidsPreference ?? undefined}
+            onSave={(kidsStatus, kidsPreference) => post("/api/onboarding/family-plans", { kidsStatus, kidsPreference })}
+            loading={loading}
+          />
+        )}
+        {field === "photos" && <PhotosEditor initial={photos} />}
+      </div>
     </div>
   );
 }
