@@ -94,7 +94,7 @@ export class AuthService {
 
   // ─── Private helpers ─────────────────────────────────────────────────────────
 
-  private issueToken(
+  issueToken(
     userId: string,
     phone: string | undefined,
     email: string | undefined,
