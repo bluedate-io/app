@@ -101,10 +101,12 @@ export default function LoginForm() {
   const [redirectTo, setRedirectTo] = useState("/onboarding");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const collegeButtonRef = useRef<HTMLButtonElement>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const otpFormRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     fetch("/api/auth/colleges")
@@ -126,6 +128,13 @@ export default function LoginForm() {
     return () => document.removeEventListener("mousedown", handler);
   }, [pickerOpen]);
 
+  // Countdown ticker for resend cooldown
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((v) => v - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
   const sendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCollege) { setError("Please select your college first."); return; }
@@ -139,6 +148,7 @@ export default function LoginForm() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message ?? "Failed to send OTP");
       setStep("otp");
+      setResendCooldown(60);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -219,7 +229,7 @@ export default function LoginForm() {
   };
 
   const resendOtp = async () => {
-    if (!selectedCollege) return;
+    if (!selectedCollege || resendCooldown > 0) return;
     setError(null); setLoading(true);
     try {
       const res = await fetch("/api/auth/send-otp", {
@@ -229,6 +239,7 @@ export default function LoginForm() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message ?? "Failed to send OTP");
+      setResendCooldown(60);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -242,7 +253,12 @@ export default function LoginForm() {
     next[index] = digit;
     const joined = next.join("").slice(0, 6);
     setOtp(joined);
-    if (digit && index < 5) otpInputRefs.current[index + 1]?.focus();
+    if (digit && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    } else if (digit && index === 5 && joined.length === 6) {
+      // Auto-submit when last digit is entered
+      setTimeout(() => otpFormRef.current?.requestSubmit(), 80);
+    }
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
@@ -375,7 +391,7 @@ export default function LoginForm() {
 
       {/* ── OTP step ── */}
       {step === "otp" && (
-        <form onSubmit={verifyOtp} className="flex flex-col flex-1">
+        <form ref={otpFormRef} onSubmit={verifyOtp} className="flex flex-col flex-1">
           <div className="flex justify-start mb-6">
             <div
               style={{
@@ -439,11 +455,11 @@ export default function LoginForm() {
             <button
               type="button"
               onClick={resendOtp}
-              disabled={loading}
+              disabled={loading || resendCooldown > 0}
               className="text-sm font-semibold hover:underline disabled:opacity-50"
-              style={{ color: ACCENT }}
+              style={{ color: resendCooldown > 0 ? MUTED : ACCENT }}
             >
-              Didn&apos;t get a code?
+              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Didn\u2019t get a code?"}
             </button>
             <Fab disabled={otp.length !== 6 || loading} loading={loading} />
           </div>

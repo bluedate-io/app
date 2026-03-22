@@ -17,7 +17,21 @@ export interface IEmailService {
 }
 
 export class EmailService implements IEmailService {
-  constructor(private readonly db: PrismaClient) {}
+  private transporter: nodemailer.Transporter | null = null;
+
+  constructor(private readonly db: PrismaClient) {
+    if (config.email.smtpHost) {
+      this.transporter = nodemailer.createTransport({
+        host: config.email.smtpHost,
+        port: config.email.smtpPort,
+        secure: config.email.smtpPort === 465,
+        auth: {
+          user: config.email.smtpUser,
+          pass: config.email.smtpPass,
+        },
+      });
+    }
+  }
 
   // ── Send 6-digit OTP to email ─────────────────────────────────────────────
 
@@ -33,43 +47,63 @@ export class EmailService implements IEmailService {
 
     await this.db.emailOtp.create({ data: { email, code, expiresAt } });
 
-    if (config.isDev && !config.email.smtpHost) {
+    if (!this.transporter) {
       log.info(`[DEV] Email OTP for ${email}: ${code} (expires ${expiresAt.toISOString()})`);
       console.log(`\n📧 [DEV] OTP for ${email} → ${code}\n`);
       return;
     }
 
     try {
-      const transporter = nodemailer.createTransport({
-        host: config.email.smtpHost,
-        port: config.email.smtpPort,
-        secure: config.email.smtpPort === 465,
-        auth: {
-          user: config.email.smtpUser,
-          pass: config.email.smtpPass,
-        },
-      });
-
-      await transporter.sendMail({
+      await this.transporter.sendMail({
         from: `"bluedate" <${config.email.fromAddress}>`,
         to: email,
         subject: "Your bluedate verification code",
         text: `Your verification code is ${code}. It expires in ${config.auth.otpTtlMinutes} minutes.`,
-        html: `
-          <div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;padding:32px;">
-            <h2 style="color:#8F3A8F;margin-bottom:8px;">bluedate</h2>
-            <p style="color:#333;font-size:16px;margin-bottom:24px;">
-              Your verification code is:
+        html: `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#EDE8D5;font-family:Georgia,serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#EDE8D5;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#fff;border:2.5px solid #2B1A07;border-radius:18px;box-shadow:5px 5px 0 #2B1A07;overflow:hidden;">
+        <!-- Header -->
+        <tr>
+          <td style="background:#2B1A07;padding:24px 32px;">
+            <p style="margin:0;font-family:Georgia,serif;font-size:22px;font-weight:800;color:#EDE8D5;letter-spacing:-0.5px;">bluedate</p>
+          </td>
+        </tr>
+        <!-- Body -->
+        <tr>
+          <td style="padding:32px;">
+            <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#2B1A07;font-family:Georgia,serif;">Verify your email</p>
+            <p style="margin:0 0 28px;font-size:14px;color:#7A6A54;line-height:1.6;">
+              Use the code below to complete your sign in. It expires in ${config.auth.otpTtlMinutes} minutes.
             </p>
-            <div style="background:#f5f0ff;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
-              <span style="font-size:36px;font-weight:bold;letter-spacing:12px;color:#2d2d2d;">${code}</span>
-            </div>
-            <p style="color:#666;font-size:14px;">
-              This code expires in ${config.auth.otpTtlMinutes} minutes.<br/>
-              If you didn&apos;t request this, you can safely ignore this email.
+            <!-- OTP box -->
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="background:#EDE8D5;border:2.5px solid #2B1A07;border-radius:14px;box-shadow:4px 4px 0 #2B1A07;padding:24px;text-align:center;">
+                  <span style="font-family:Georgia,serif;font-size:40px;font-weight:800;letter-spacing:14px;color:#2B1A07;">${code}</span>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:24px 0 0;font-size:13px;color:#7A6A54;line-height:1.6;">
+              If you didn't request this, you can safely ignore this email.<br/>
+              Never share this code with anyone.
             </p>
-          </div>
-        `,
+          </td>
+        </tr>
+        <!-- Footer -->
+        <tr>
+          <td style="border-top:1.5px solid #2B1A0715;padding:16px 32px;">
+            <p style="margin:0;font-size:12px;color:#9B8B78;">© bluedate · campus dating, thoughtfully done</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
       });
 
       log.info("OTP email sent", { email });

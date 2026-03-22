@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ChevronRight,
   Camera,
@@ -266,7 +267,13 @@ function Avatar({ url, name }: { url?: string; name: string }) {
 
 // ─── Main ──────────────────────────────────────────────────────────────────────
 export function ProfileView({ data }: { data: ProfileData }) {
+  const router = useRouter();
   const { profile, preferences, interests, personality, photos } = data;
+
+  function handleLogout() {
+    document.cookie = "access_token=; max-age=0; path=/";
+    router.push("/login");
+  }
 
   const name = profile?.fullName ?? "";
   const age = calcAge(profile?.dateOfBirth);
@@ -379,7 +386,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
           <SectionLabel text="Profile" />
           <Card>
             <MenuRow
-              href="/profile/edit/photos"
+              href="/onboarding"
               icon={<Camera size={18} />}
               iconBg="#FFF3EE"
               label="My Photos"
@@ -387,7 +394,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
             />
             <Divider />
             <MenuRow
-              href="/profile/edit/interests"
+              href="/onboarding"
               icon={<Sparkles size={18} />}
               iconBg="#FFF8EE"
               label="Interests"
@@ -395,7 +402,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
             />
             <Divider />
             <MenuRow
-              href="/profile/edit/looking-for"
+              href="/onboarding"
               icon={<Heart size={18} />}
               iconBg="#FFF0EE"
               label="Looking for"
@@ -403,7 +410,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
             />
             <Divider />
             <MenuRow
-              href="/profile/edit/height"
+              href="/onboarding"
               icon={<Ruler size={18} />}
               iconBg="#F5F8EE"
               label="Height"
@@ -417,7 +424,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
           <SectionLabel text="Lifestyle" />
           <Card>
             <MenuRow
-              href="/profile/edit/drinking"
+              href="/onboarding"
               icon={<Wine size={18} />}
               iconBg="#FFF8EE"
               label="Drinking"
@@ -425,7 +432,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
             />
             <Divider />
             <MenuRow
-              href="/profile/edit/religion"
+              href="/onboarding"
               icon={<BookOpen size={18} />}
               iconBg="#FFF3EE"
               label="Religion"
@@ -433,7 +440,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
             />
             <Divider />
             <MenuRow
-              href="/profile/edit/family"
+              href="/onboarding"
               icon={<Baby size={18} />}
               iconBg="#FFF0EE"
               label="Family plans"
@@ -447,7 +454,6 @@ export function ProfileView({ data }: { data: ProfileData }) {
           <SectionLabel text="App" />
           <Card>
             <MenuRow
-              href="/"
               icon={<Bell size={18} />}
               iconBg="#F5F8EE"
               label="Notifications"
@@ -460,7 +466,6 @@ export function ProfileView({ data }: { data: ProfileData }) {
           <SectionLabel text="Support" />
           <Card>
             <MenuRow
-              href="/"
               icon={<HelpCircle size={18} />}
               iconBg="#FFF3EE"
               label="Help &amp; Support"
@@ -471,6 +476,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
               iconBg="#FFF0EE"
               label="Log out"
               danger
+              onClick={handleLogout}
             />
           </Card>
         </div>
