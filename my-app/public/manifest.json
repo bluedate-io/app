@@ -1,0 +1,17 @@
+{
+  "name": "bluedate",
+  "short_name": "bluedate",
+  "description": "Exclusive weekly matches for college students.",
+  "start_url": "/login",
+  "display": "standalone",
+  "background_color": "#EDE8D5",
+  "theme_color": "#EDE8D5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}
