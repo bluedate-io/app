@@ -3,10 +3,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
 import { config } from "@/config";
+import { db } from "@/lib/db";
 import { EditFieldView } from "./EditFieldView";
 import type { ProfileData } from "../../page";
-
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 const VALID_FIELDS = [
   "photos",
@@ -20,37 +19,66 @@ const VALID_FIELDS = [
 
 export type EditField = (typeof VALID_FIELDS)[number];
 
-async function getProfile(token: string): Promise<ProfileData | null> {
-  const secret = new TextEncoder().encode(config.auth.jwtSecret);
-  try {
-    await jwtVerify(token, secret);
-  } catch {
-    return null;
-  }
-  const res = await fetch(`${BASE}/api/profile`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  if (!res.ok) return null;
-  const json = await res.json();
-  return json.data as ProfileData;
-}
-
 export default async function EditFieldPage({
   params,
 }: {
   params: Promise<{ field: string }>;
 }) {
   const { field } = await params;
-
   if (!VALID_FIELDS.includes(field as EditField)) redirect("/profile");
 
   const jar = await cookies();
   const token = jar.get("access_token")?.value;
   if (!token) redirect("/login");
 
-  const data = await getProfile(token);
-  if (!data) redirect("/login");
+  const secret = new TextEncoder().encode(config.auth.jwtSecret);
+  let userId: string;
+  try {
+    const { payload } = await jwtVerify(token, secret);
+    userId = payload.sub as string;
+  } catch {
+    redirect("/login");
+  }
 
+  const [profile, preferences, interests, personality, photos] = await db.$transaction([
+    db.profile.findUnique({
+      where: { userId },
+      select: { fullName: true, dateOfBirth: true, city: true, bio: true },
+    }),
+    db.preferences.findUnique({
+      where: { userId },
+      select: {
+        genderIdentity: true,
+        genderPreference: true,
+        ageRangeMin: true,
+        ageRangeMax: true,
+        heightCm: true,
+        relationshipIntent: true,
+        relationshipGoals: true,
+      },
+    }),
+    db.interests.findUnique({
+      where: { userId },
+      select: { hobbies: true, favouriteActivities: true },
+    }),
+    (db.personality as any).findUnique({
+      where: { userId },
+      select: {
+        socialLevel: true,
+        conversationStyle: true,
+        kidsStatus: true,
+        kidsPreference: true,
+        religion: true,
+        politics: true,
+      },
+    }),
+    db.photo.findMany({
+      where: { userId },
+      select: { url: true, order: true },
+      orderBy: { order: "asc" },
+    }),
+  ]);
+
+  const data: ProfileData = { profile, preferences, interests, personality, photos };
   return <EditFieldView field={field as EditField} data={data} />;
 }
