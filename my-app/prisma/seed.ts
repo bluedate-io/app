@@ -12,6 +12,8 @@ const db = new PrismaClient({ adapter } as any);
 // ─── College domain seed data ─────────────────────────────────────────────────
 
 const collegeDomains = [
+  { collegeName: "VIT AP", domain: "vitap.ac.in" },
+  { collegeName: "SRM AP", domain: "srmap.edu.in" },
   { collegeName: "KL University", domain: "kluniversity.in" },
 ];
 
