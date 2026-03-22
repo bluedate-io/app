@@ -7,7 +7,7 @@ import type { OnboardingStatus } from "./page";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TOTAL_SUB_STEPS = 13;
+const TOTAL_SUB_STEPS = 12;
 
 const HEIGHT_CM_MIN = 91;
 const HEIGHT_CM_MAX = 220;
@@ -172,7 +172,6 @@ function validateFirstName(value: string): string | null {
 function getInitialSubStep(status: OnboardingStatus): number {
   if (!status.hasProfile) return 0;
   if (!status.hasPreferences) return 1;
-  if (!status.hasPhone) return 2;
   // Require an explicit Date/BFF choice before moving past step 3
   if (!status.hasDatingMode) return 3;
   const hasHeight = status.hasHeight;
@@ -934,8 +933,6 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const heightListRef = useRef<HTMLDivElement>(null);
 
   // ── Form state ────────────────────────────────────────────────────────────
-  const [phone, setPhone] = useState("");
-  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [firstName, setFirstName] = useState("");
   const [firstNameError, setFirstNameError] = useState<string | null>(null);
   const [birthday, setBirthday] = useState({ day: "", month: "", year: "" });
@@ -1053,19 +1050,6 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
 
       if (subStep === 1) {
         await apiPost("gender", { genderIdentity });
-        setSubStep(2);
-        setLoading(false);
-        return;
-      }
-
-      if (subStep === 2) {
-        const digits = phone.replace(/\D/g, "");
-        if (digits.length !== 10) {
-          setPhoneError("Enter a valid 10-digit mobile number.");
-          setLoading(false);
-          return;
-        }
-        await apiPost("phone", { phone: `+91${digits}` });
         setSubStep(3);
         setLoading(false);
         return;
@@ -1128,9 +1112,9 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   };
 
   const handleBack = () => {
-    // Step 3 (dating mode): back goes to phone step (2)
+    // Step 3 (dating mode): back goes to gender step (1)
     if (subStep === 3) {
-      setSubStep(2);
+      setSubStep(1);
       return;
     }
     // Steps 5 and 6 removed — back from 7 goes to 4
@@ -1182,7 +1166,6 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           && birthday.year.length === 4;
       }
       case 1: return genderIdentity !== "";
-      case 2: return phone.replace(/\D/g, "").length === 10;
       case 3: return datingMode !== "";
       case 4: return openToAll || genderPreference.length > 0;
       case 7: return heightTouched && heightCm >= HEIGHT_CM_MIN && heightCm <= HEIGHT_CM_MAX;
@@ -1427,70 +1410,6 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
             </div>
 
             <p className="text-sm text-gray-400 mt-4">You can always update this later.</p>
-
-            {stepError && <InlineError message={stepError} />}
-
-            <div className="mt-auto pt-8 flex items-end justify-end">
-              <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 2: Phone number ────────────────────────────────────────── */}
-        {subStep === 2 && (
-          <div className="flex flex-col flex-1">
-            <div className="flex justify-start mb-6">
-              <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 8.25h3m-3 4.5h3" />
-              </svg>
-            </div>
-            <Heading>One last thing — your number</Heading>
-            <p className="text-sm mb-2" style={{ color: "#9B8B78" }}>
-              We&apos;ll send your weekly match and updates over WhatsApp. No spam, ever.
-            </p>
-
-            <label className="block text-sm font-semibold mb-2 mt-6" style={{ color: FAB_BG }}>
-              Mobile number
-            </label>
-
-            {/* Phone input with +91 prefix */}
-            <div
-              className="flex items-center gap-0 overflow-hidden"
-              style={{
-                border: `2px solid ${phoneError ? "#E8622A" : "#1A0A00"}`,
-                borderRadius: 12,
-                boxShadow: `2px 2px 0 #1A0A00`,
-                background: "white",
-              }}
-            >
-              <span
-                className="flex items-center px-3 text-base font-semibold shrink-0"
-                style={{ color: FAB_BG, borderRight: "1.5px solid #1A0A0030", height: 52 }}
-              >
-                🇮🇳 +91
-              </span>
-              <input
-                type="tel"
-                inputMode="numeric"
-                maxLength={10}
-                value={phone}
-                onChange={(e) => {
-                  const v = e.target.value.replace(/\D/g, "").slice(0, 10);
-                  setPhone(v);
-                  if (phoneError) setPhoneError(null);
-                }}
-                placeholder="9876543210"
-                autoFocus
-                className="flex-1 px-3 py-3 text-base focus:outline-none bg-white placeholder:text-[#9B8B78] text-[#1A0A00]"
-                style={{ minWidth: 0 }}
-              />
-            </div>
-
-            {phoneError && <InlineError message={phoneError} />}
-
-            <p className="text-xs mt-3" style={{ color: "#9B8B78" }}>
-              Your number is only used for match updates — never shared or sold.
-            </p>
 
             {stepError && <InlineError message={stepError} />}
 
