@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Heart, MessageCircle, User } from "lucide-react";
+import { Heart, User } from "lucide-react";
 
 const ACCENT = "#8F3A8F";
 const INACTIVE = "#9E9E9E";
 
 const TABS = [
   { href: "/matches", label: "Matches", Icon: Heart },
-  { href: "/chat", label: "Chat", Icon: MessageCircle },
   { href: "/profile", label: "Profile", Icon: User },
 ];
 
