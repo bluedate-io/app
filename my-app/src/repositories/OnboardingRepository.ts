@@ -69,7 +69,6 @@ export interface IOnboardingRepository {
     hasProfile: boolean;
     hasPreferences: boolean;
     hasPreferencesComplete: boolean;
-    hasUsedInviteCode: boolean;
     hasInterests: boolean;
     hasPersonality: boolean;
     hasAvailability: boolean;
@@ -586,7 +585,6 @@ export class OnboardingRepository implements IOnboardingRepository {
     const [
       profile,
       preferences,
-      inviteCodeUsed,
       interests,
       personality,
       availability,
@@ -610,7 +608,6 @@ export class OnboardingRepository implements IOnboardingRepository {
             photosStepCompleted: true,
           },
         }),
-        this.db.inviteCode.count({ where: { usedById: userId } }),
         this.db.interests.findUnique({
           where: { userId },
           select: { id: true, bffInterestsCompleted: true },
@@ -648,7 +645,6 @@ export class OnboardingRepository implements IOnboardingRepository {
       hasDatingMode,
       relationshipIntent: relationshipIntent ?? undefined,
       relationshipGoals: preferences?.relationshipGoals ?? undefined,
-      hasUsedInviteCode: inviteCodeUsed > 0,
       hasInterests: !!interests,
       hasPersonality: !!personality,
       hasAvailability: !!availability,
