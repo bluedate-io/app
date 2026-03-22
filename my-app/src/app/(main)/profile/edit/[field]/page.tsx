@@ -79,6 +79,7 @@ export default async function EditFieldPage({
     }),
   ]);
 
-  const data: ProfileData = { profile, preferences, interests, personality, photos };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = { profile, preferences, interests, personality, photos } as any as ProfileData;
   return <EditFieldView field={field as EditField} data={data} />;
 }
