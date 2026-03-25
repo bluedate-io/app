@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -68,8 +75,20 @@ const STEP_COLORS: Record<string, string> = {
 
 const HEADER_BG = "#F3F4F6";
 const HEADER_TEXT = "#374151";
-/** Active filter indicator under header labels (reference: solid bar under filtered columns) */
-const FILTER_ACTIVE_BAR = "#2563eb";
+/** Active filter: underline + label (admin purple, matches Search / Reset) */
+const FILTER_ACTIVE_BAR = "#6B2F7A";
+/** Chip behind filtered column title */
+const HEADER_FILTER_ACTIVE_BG = "#EDE8F7";
+
+/** Visually emphasize column title when that column’s filter/sort is applied */
+function headerFilterLabelStyle(active: boolean): CSSProperties {
+  if (!active) return { color: HEADER_TEXT };
+  return {
+    color: FILTER_ACTIVE_BAR,
+    backgroundColor: HEADER_FILTER_ACTIVE_BG,
+    fontWeight: 700,
+  };
+}
 
 function parseAppliedCsv(csv: string): Set<string> {
   const s = new Set<string>();
@@ -651,7 +670,7 @@ export default function UsersTable({
               <th
                 ref={emailRootRef}
                 className={`${plainThClass} relative align-top pb-2.5`}
-                style={{ color: HEADER_TEXT }}
+                style={{ color: domainFilterActive ? FILTER_ACTIVE_BAR : HEADER_TEXT }}
                 title={
                   domainFilterActive
                     ? "College domain filter active — use Email / Phone ▼ or Reset to change"
@@ -660,8 +679,8 @@ export default function UsersTable({
               >
                 <button
                   type="button"
-                  className={filterBtnClass}
-                  style={{ color: HEADER_TEXT }}
+                  className={`${filterBtnClass}${domainFilterActive ? " rounded-md px-1.5 py-0.5" : ""}`}
+                  style={headerFilterLabelStyle(domainFilterActive)}
                   aria-expanded={openFilter === "email"}
                   onClick={() => toggleHeader("email")}
                 >
@@ -670,6 +689,7 @@ export default function UsersTable({
                     size={14}
                     className="shrink-0 opacity-70"
                     style={{
+                      color: domainFilterActive ? FILTER_ACTIVE_BAR : undefined,
                       transform: openFilter === "email" ? "rotate(180deg)" : undefined,
                       transition: "transform 0.15s",
                     }}
@@ -752,7 +772,7 @@ export default function UsersTable({
               <th
                 ref={genderRootRef}
                 className={`${plainThClass} relative align-top pb-2.5`}
-                style={{ color: HEADER_TEXT }}
+                style={{ color: genderFilterActive ? FILTER_ACTIVE_BAR : HEADER_TEXT }}
                 title={
                   genderFilterActive
                     ? "Gender filter active — use Gender ▼ or Reset to change"
@@ -761,8 +781,8 @@ export default function UsersTable({
               >
                 <button
                   type="button"
-                  className={filterBtnClass}
-                  style={{ color: HEADER_TEXT }}
+                  className={`${filterBtnClass}${genderFilterActive ? " rounded-md px-1.5 py-0.5" : ""}`}
+                  style={headerFilterLabelStyle(genderFilterActive)}
                   aria-expanded={openFilter === "gender"}
                   onClick={() => toggleHeader("gender")}
                 >
@@ -771,6 +791,7 @@ export default function UsersTable({
                     size={14}
                     className="shrink-0 opacity-70"
                     style={{
+                      color: genderFilterActive ? FILTER_ACTIVE_BAR : undefined,
                       transform: openFilter === "gender" ? "rotate(180deg)" : undefined,
                       transition: "transform 0.15s",
                     }}
@@ -838,7 +859,7 @@ export default function UsersTable({
               <th
                 ref={stepRootRef}
                 className={`${plainThClass} relative align-top pb-2.5`}
-                style={{ color: HEADER_TEXT }}
+                style={{ color: sortFilterActive ? FILTER_ACTIVE_BAR : HEADER_TEXT }}
                 title={
                   sortFilterActive
                     ? "Sort override active — use Step ▼ or Reset to restore default"
@@ -847,8 +868,8 @@ export default function UsersTable({
               >
                 <button
                   type="button"
-                  className={filterBtnClass}
-                  style={{ color: HEADER_TEXT }}
+                  className={`${filterBtnClass}${sortFilterActive ? " rounded-md px-1.5 py-0.5" : ""}`}
+                  style={headerFilterLabelStyle(sortFilterActive)}
                   aria-expanded={openFilter === "step"}
                   onClick={() => toggleHeader("step")}
                 >
@@ -857,6 +878,7 @@ export default function UsersTable({
                     size={14}
                     className="shrink-0 opacity-70"
                     style={{
+                      color: sortFilterActive ? FILTER_ACTIVE_BAR : undefined,
                       transform: openFilter === "step" ? "rotate(180deg)" : undefined,
                       transition: "transform 0.15s",
                     }}
