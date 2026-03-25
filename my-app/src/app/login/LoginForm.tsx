@@ -34,8 +34,8 @@ const inputCls =
 function InlineError({ message }: { message: string }) {
   return (
     <p
-      className="mt-3 flex items-start gap-2 text-sm rounded-xl px-3 py-2"
-      style={{ background: "#FFF0EE", border: "1.5px solid #E8622A30", color: "#C0392B" }}
+      className="mt-2 flex items-start gap-2 text-sm"
+      style={{ color: "#C0392B" }}
       role="alert"
     >
       <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -52,7 +52,7 @@ function Fab({ disabled, loading }: { disabled?: boolean; loading?: boolean }) {
     <button
       type="submit"
       disabled={disabled || loading}
-      className="focus:outline-none cursor-pointer disabled:opacity-40 shrink-0 transition-all active:translate-y-[1px] active:shadow-none"
+      className="focus:outline-none cursor-pointer disabled:opacity-40 shrink-0 transition-all active:translate-y-px active:shadow-none"
       style={{
         width: 56,
         height: 56,

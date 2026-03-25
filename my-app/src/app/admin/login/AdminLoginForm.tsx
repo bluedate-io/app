@@ -10,6 +10,19 @@ function hasAdminToken(): boolean {
 
 type Step = "phone" | "otp";
 
+function InlineWarning({ message }: { message: string }) {
+  return (
+    <div
+      className="flex items-start gap-2 text-sm mb-4"
+      style={{ color: "#C0392B" }}
+      role="alert"
+    >
+      <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+      <span>{message}</span>
+    </div>
+  );
+}
+
 const FabIcon = ({ disabled }: { disabled?: boolean }) => (
   <span
     className={`flex items-center justify-center shrink-0 rounded-full transition ${disabled ? "opacity-50" : ""}`}
@@ -125,11 +138,7 @@ export default function AdminLoginForm({ phone: ADMIN_PHONE }: { phone: string }
             Restricted to authorised numbers only.
           </p>
 
-          {error && (
-            <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
-              {error}
-            </div>
-          )}
+          {error && <InlineWarning message={error} />}
 
           <div className="flex items-center gap-3 pb-2 border-b-2 border-gray-800 mb-8">
             <span className="text-gray-500 text-base">+91</span>
@@ -182,12 +191,7 @@ export default function AdminLoginForm({ phone: ADMIN_PHONE }: { phone: string }
             ))}
           </div>
 
-          {error && (
-            <div className="flex items-start gap-2 mb-6 text-red-600 text-sm">
-              <AlertTriangle size={18} className="shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
+          {error && <InlineWarning message={error} />}
 
           <div className="mt-auto pt-8 flex items-end justify-between">
             <button
