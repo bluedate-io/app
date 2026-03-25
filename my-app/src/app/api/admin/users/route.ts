@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { config } from "@/config";
 import db from "@/lib/db";
+import { computeAdminUserStep } from "@/lib/adminUserStep";
 
 function verifyAdminToken(req: NextRequest): boolean {
   try {
@@ -14,23 +15,6 @@ function verifyAdminToken(req: NextRequest): boolean {
   }
 }
 
-function onboardingStep(user: {
-  onboardingCompleted: boolean;
-  profile: { fullName: string | null } | null;
-  preferences: { genderIdentity: string | null } | null;
-  interests: { id: string } | null;
-  personality: { id: string } | null;
-  _count: { photos: number };
-}): string {
-  if (user.onboardingCompleted) return "Complete";
-  if (user._count.photos >= 2) return "Photos";
-  if (user.personality) return "Habits";
-  if (user.interests) return "Interests";
-  if (user.preferences) return "Preferences";
-  if (user.profile) return "Profile";
-  return "New";
-}
-
 export async function GET(req: NextRequest) {
   if (!verifyAdminToken(req)) {
     return NextResponse.json({ error: { message: "Unauthorized" } }, { status: 401 });
@@ -38,13 +22,18 @@ export async function GET(req: NextRequest) {
 
   const completed = req.nextUrl.searchParams.get("completed");
 
+  const onboardingWhere =
+    completed === "true"
+      ? { onboardingCompleted: true }
+      : completed === "false"
+        ? { onboardingCompleted: false }
+        : {};
+
   const users = await db.user.findMany({
-    where:
-      completed === "true"
-        ? { onboardingCompleted: true }
-        : completed === "false"
-          ? { onboardingCompleted: false }
-          : undefined,
+    where: {
+      role: { not: "admin" },
+      ...onboardingWhere,
+    },
     include: {
       profile: { select: { fullName: true, city: true, dateOfBirth: true } },
       preferences: { select: { genderIdentity: true, id: true } },
@@ -55,15 +44,13 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" },
   });
 
-  const data = users
-    .filter((u) => u.role !== "admin")
-    .map((u) => ({
+  const data = users.map((u) => ({
       id: u.id,
       phone: u.phone,
       name: u.profile?.fullName ?? "—",
       city: u.profile?.city ?? "—",
       gender: u.preferences?.genderIdentity ?? "—",
-      step: onboardingStep(u),
+      step: computeAdminUserStep(u),
       completed: u.onboardingCompleted,
       joinedAt: u.createdAt.toISOString(),
     }));
