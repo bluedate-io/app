@@ -29,6 +29,7 @@ import type {
   BffInterestsInput,
   RelationshipStatusInput,
 } from "@/validations/onboarding.validation";
+import { BadRequestError } from "@/utils/errors";
 
 // null → undefined helpers
 const n = <T>(v: T | null): T | undefined => v ?? undefined;
@@ -124,21 +125,64 @@ export class OnboardingRepository implements IOnboardingRepository {
   }
 
   async upsertGenderIdentity(userId: string, data: GenderIdentityInput): Promise<Preferences> {
-    const r = await this.db.preferences.upsert({
-      where: { userId },
-      create: {
-        userId,
-        genderIdentity: data.genderIdentity,
-        genderPreference: [],
-        relationshipIntent: null,
-        relationshipGoals: [],
-      },
-      update: { genderIdentity: data.genderIdentity },
+    const normalizedGender = data.genderIdentity.trim();
+    const r = await this.db.$transaction(async (tx) => {
+      const existing = await tx.preferences.findUnique({
+        where: { userId },
+        select: {
+          id: true,
+          userId: true,
+          genderIdentity: true,
+          genderUpdateCount: true,
+          genderPreference: true,
+          ageRangeMin: true,
+          ageRangeMax: true,
+          relationshipIntent: true,
+          relationshipGoals: true,
+        },
+      });
+
+      if (!existing) {
+        return tx.preferences.create({
+          data: {
+            userId,
+            genderIdentity: normalizedGender,
+            genderUpdateCount: 0,
+            genderPreference: [],
+            relationshipIntent: null,
+            relationshipGoals: [],
+          },
+        });
+      }
+
+      const currentGender = (existing.genderIdentity ?? "").trim();
+
+      if (!currentGender || currentGender === normalizedGender) {
+        return tx.preferences.update({
+          where: { userId },
+          data: { genderIdentity: normalizedGender },
+        });
+      }
+
+      if ((existing.genderUpdateCount ?? 0) >= 2) {
+        throw new BadRequestError(
+          "You updated gender too many times, please contact admin to change the gender.",
+        );
+      }
+
+      return tx.preferences.update({
+        where: { userId },
+        data: {
+          genderIdentity: normalizedGender,
+          genderUpdateCount: { increment: 1 },
+        },
+      });
     });
     return {
       id: r.id,
       userId: r.userId,
       genderIdentity: n(r.genderIdentity),
+      genderUpdateCount: n(r.genderUpdateCount),
       genderPreference: r.genderPreference,
       ageRangeMin: n(r.ageRangeMin),
       ageRangeMax: n(r.ageRangeMax),
@@ -166,6 +210,7 @@ export class OnboardingRepository implements IOnboardingRepository {
       id: r.id,
       userId: r.userId,
       genderIdentity: n(r.genderIdentity),
+      genderUpdateCount: n(r.genderUpdateCount),
       genderPreference: r.genderPreference,
       ageRangeMin: n(r.ageRangeMin),
       ageRangeMax: n(r.ageRangeMax),
@@ -195,6 +240,7 @@ export class OnboardingRepository implements IOnboardingRepository {
       id: r.id,
       userId: r.userId,
       genderIdentity: n(r.genderIdentity),
+      genderUpdateCount: n(r.genderUpdateCount),
       genderPreference: r.genderPreference,
       ageRangeMin: n(r.ageRangeMin),
       ageRangeMax: n(r.ageRangeMax),
@@ -219,6 +265,7 @@ export class OnboardingRepository implements IOnboardingRepository {
       id: r.id,
       userId: r.userId,
       genderIdentity: n(r.genderIdentity),
+      genderUpdateCount: n(r.genderUpdateCount),
       genderPreference: r.genderPreference,
       ageRangeMin: n(r.ageRangeMin),
       ageRangeMax: n(r.ageRangeMax),
@@ -243,6 +290,7 @@ export class OnboardingRepository implements IOnboardingRepository {
       id: r.id,
       userId: r.userId,
       genderIdentity: n(r.genderIdentity),
+      genderUpdateCount: n(r.genderUpdateCount),
       genderPreference: r.genderPreference,
       ageRangeMin: n(r.ageRangeMin),
       ageRangeMax: n(r.ageRangeMax),
@@ -269,6 +317,7 @@ export class OnboardingRepository implements IOnboardingRepository {
       id: r.id,
       userId: r.userId,
       genderIdentity: n(r.genderIdentity),
+      genderUpdateCount: n(r.genderUpdateCount),
       genderPreference: r.genderPreference,
       ageRangeMin: n(r.ageRangeMin),
       ageRangeMax: n(r.ageRangeMax),
@@ -306,6 +355,7 @@ export class OnboardingRepository implements IOnboardingRepository {
     return {
       id: r.id, userId: r.userId,
       genderIdentity: n(r.genderIdentity),
+      genderUpdateCount: n(r.genderUpdateCount),
       genderPreference: r.genderPreference,
       ageRangeMin: n(r.ageRangeMin), ageRangeMax: n(r.ageRangeMax),
       relationshipIntent: n(r.relationshipIntent),

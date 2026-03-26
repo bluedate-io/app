@@ -1,7 +1,6 @@
 // GET /api/profile — return full profile data for the authenticated user
 import { type NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/middleware/withMiddleware";
-import { container } from "@/lib/container";
 import { db } from "@/lib/db";
 
 export const GET = withAuth(async (_req: NextRequest, ctx) => {
@@ -16,6 +15,7 @@ export const GET = withAuth(async (_req: NextRequest, ctx) => {
       where: { userId },
       select: {
         genderIdentity: true,
+        genderUpdateCount: true,
         genderPreference: true,
         ageRangeMin: true,
         ageRangeMax: true,
