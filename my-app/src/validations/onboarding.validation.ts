@@ -118,8 +118,8 @@ export const bffInterestsSchema = z.object({
 // ─── Step 4: Personality ─────────────────────────────────────────────────────
 
 export const personalitySchema = z.object({
-  socialLevel: z.string().min(1).max(100).trim(),
-  conversationStyle: z.string().min(1).max(100).trim(),
+  smokingHabit: z.string().min(1).max(100).trim(),
+  drinkingHabit: z.string().min(1).max(100).trim(),
   funFact: z.string().max(200).trim().optional(),
 });
 

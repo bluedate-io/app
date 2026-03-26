@@ -277,7 +277,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
   const height = preferences?.heightCm;
   const goals = preferences?.relationshipGoals?.filter(Boolean) ?? [];
   const hobbies = interests?.hobbies?.filter((h) => h && h !== "Not specified") ?? [];
-  const drinking = personality?.socialLevel;
+  const drinking = personality?.drinkingHabit;
   const religion = personality?.religion?.[0];
   const kidsHave = personality?.kidsStatus;
   const firstPhoto = photos[0]?.url;

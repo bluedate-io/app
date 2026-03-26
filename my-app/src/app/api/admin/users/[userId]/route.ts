@@ -71,8 +71,11 @@ export async function GET(
     interests: hobbies,
     lookingFor: goals.length ? goals.join(", ") : null,
     heightCm: user.preferences?.heightCm ?? null,
-    drinking: user.personality?.socialLevel ?? null,
-    smoking: user.personality?.conversationStyle ?? null,
+    smokingHabit: user.personality?.smokingHabit ?? null,
+    drinkingHabit: user.personality?.drinkingHabit ?? null,
+    // Backward compatibility for existing consumers
+    smoking: user.personality?.smokingHabit ?? null,
+    drinking: user.personality?.drinkingHabit ?? null,
     religion: religionList.length ? religionList.join(", ") : null,
     familyPlans: user.personality?.kidsStatus ?? null,
     kidsPreference: user.personality?.kidsPreference ?? null,

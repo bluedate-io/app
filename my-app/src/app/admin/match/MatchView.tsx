@@ -56,8 +56,8 @@ type MatchUser = {
   foodTaste?: string[];
   bffInterests?: string[];
   bffInterestsCompleted?: boolean;
-  socialLevel?: string | null;
-  conversationStyle?: string | null;
+  smokingHabit?: string | null;
+  drinkingHabit?: string | null;
   funFact?: string | null;
   kidsStatus?: string | null;
   kidsPreference?: string | null;
@@ -512,53 +512,26 @@ function buildPrompt(a: MatchUser, b: MatchUser): string {
       : "—";
 
   const userBlock = (label: string, u: MatchUser) => `${label}:
-- id: ${u.id}
 - name: ${value(u.name)}
-- nickname: ${value(u.nickname)}
 - age: ${value(u.age)}
 - dateOfBirth: ${fmtDate(u.dateOfBirth)}
 - city: ${value(u.city)}
 - college: ${value(u.college)}
 - genderIdentity: ${value(u.gender)}
 - genderPreference: ${list(u.genderPreference)}
-- profileBio: ${value(u.bio)}
-- selfDescription: ${value(u.selfDescription)}
-- idealPartner: ${value(u.idealPartner)}
-- idealDate: ${value(u.idealDate)}
-- onboardingCompleted: ${bool(u.onboardingCompleted)}
 - optInStatus: ${value(u.optInStatus)}
 - optedInAt: ${fmtDate(u.optedInAt)}
-- ageRangeMin: ${value(u.ageRangeMin)}
-- ageRangeMax: ${value(u.ageRangeMax)}
 - relationshipIntent: ${value(u.relationshipIntent)}
-- relationshipGoals: ${list(u.relationshipGoals)}
 - heightCm: ${value(u.heightCm)}
 - wantDate: ${bool(u.wantDate)}
 - hobbies: ${list(u.hobbies)}
-- favouriteActivities: ${list(u.favouriteActivities)}
-- musicTaste: ${list(u.musicTaste)}
-- foodTaste: ${list(u.foodTaste)}
 - bffInterests: ${list(u.bffInterests)}
-- socialLevel: ${value(u.socialLevel)}
-- conversationStyle: ${value(u.conversationStyle)}
-- funFact: ${value(u.funFact)}
-- kidsStatus: ${value(u.kidsStatus)}
-- kidsPreference: ${value(u.kidsPreference)}
+- smokingHabit: ${value(u.smokingHabit)}
+- drinkingHabit: ${value(u.drinkingHabit)}
 - religion: ${list(u.religion)}
 - politics: ${list(u.politics)}
-- lifeExperiences: ${list(u.lifeExperiences)}
-- relationshipStatus: ${value(u.relationshipStatus)}
 - availabilityDays: ${list(u.availabilityDays)}
 - availabilityTimes: ${list(u.availabilityTimes)}
-- completionFlags:
-  - heightCompleted: ${bool(u.heightCompleted)}
-  - datingModeCompleted: ${bool(u.datingModeCompleted)}
-  - photosStepCompleted: ${bool(u.photosStepCompleted)}
-  - bffInterestsCompleted: ${bool(u.bffInterestsCompleted)}
-  - importantLifeCompleted: ${bool(u.importantLifeCompleted)}
-  - familyPlansCompleted: ${bool(u.familyPlansCompleted)}
-  - lifeExperiencesCompleted: ${bool(u.lifeExperiencesCompleted)}
-  - relationshipStatusCompleted: ${bool(u.relationshipStatusCompleted)}
 - weeklyOptIns:
 ${weekly(u)}`;
 

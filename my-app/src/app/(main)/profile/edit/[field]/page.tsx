@@ -65,8 +65,8 @@ export default async function EditFieldPage({
     (db.personality as any).findUnique({
       where: { userId },
       select: {
-        socialLevel: true,
-        conversationStyle: true,
+        smokingHabit: true,
+        drinkingHabit: true,
         kidsStatus: true,
         kidsPreference: true,
         religion: true,

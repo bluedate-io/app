@@ -132,8 +132,8 @@ export async function GET(req: NextRequest) {
       },
       personality: {
         select: {
-          socialLevel: true,
-          conversationStyle: true,
+          smokingHabit: true,
+          drinkingHabit: true,
           funFact: true,
           kidsStatus: true,
           kidsPreference: true,
@@ -225,8 +225,8 @@ export async function GET(req: NextRequest) {
       foodTaste: u.interests?.foodTaste ?? [],
       bffInterests: u.interests?.bffInterests ?? [],
       bffInterestsCompleted: u.interests?.bffInterestsCompleted ?? false,
-      socialLevel: u.personality?.socialLevel ?? null,
-      conversationStyle: u.personality?.conversationStyle ?? null,
+      smokingHabit: u.personality?.smokingHabit ?? null,
+      drinkingHabit: u.personality?.drinkingHabit ?? null,
       funFact: u.personality?.funFact ?? null,
       kidsStatus: u.personality?.kidsStatus ?? null,
       kidsPreference: u.personality?.kidsPreference ?? null,

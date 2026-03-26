@@ -45,8 +45,8 @@ export interface InterestsResponseDTO {
 
 export interface PersonalityResponseDTO {
   id: string;
-  socialLevel?: string;
-  conversationStyle?: string;
+  smokingHabit?: string;
+  drinkingHabit?: string;
   funFact?: string;
   kidsStatus?: string;
   kidsPreference?: string;
@@ -111,8 +111,8 @@ export const toInterestsDTO = (i: Interests): InterestsResponseDTO => ({
 
 export const toPersonalityDTO = (p: Personality): PersonalityResponseDTO => ({
   id: p.id,
-  socialLevel: p.socialLevel,
-  conversationStyle: p.conversationStyle,
+  smokingHabit: p.smokingHabit,
+  drinkingHabit: p.drinkingHabit,
   funFact: p.funFact,
   kidsStatus: p.kidsStatus,
   kidsPreference: p.kidsPreference,

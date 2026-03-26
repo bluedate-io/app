@@ -27,8 +27,8 @@ export interface ProfileData {
     favouriteActivities?: string[];
   } | null;
   personality: {
-    socialLevel?: string;
-    conversationStyle?: string;
+    smokingHabit?: string;
+    drinkingHabit?: string;
     kidsStatus?: string;
     kidsPreference?: string;
     religion?: string[];
@@ -75,8 +75,8 @@ export default async function ProfilePage() {
     (db.personality as any).findUnique({
       where: { userId },
       select: {
-        socialLevel: true,
-        conversationStyle: true,
+        smokingHabit: true,
+        drinkingHabit: true,
         kidsStatus: true,
         kidsPreference: true,
         religion: true,
@@ -90,7 +90,21 @@ export default async function ProfilePage() {
     }),
   ]);
 
+  const normalizedPersonality = personality
+    ? {
+        ...personality,
+        smokingHabit: personality.smokingHabit,
+        drinkingHabit: personality.drinkingHabit,
+      }
+    : null;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = { profile, preferences, interests, personality, photos } as any as ProfileData;
+  const data = {
+    profile,
+    preferences,
+    interests,
+    personality: normalizedPersonality,
+    photos,
+  } as any as ProfileData;
   return <ProfileView data={data} />;
 }

@@ -165,8 +165,8 @@ model Interests {
 model Personality {
   id                      String   @id @default(cuid())
   userId                  String   @unique
-  socialLevel             String?
-  conversationStyle       String?
+  smokingHabit            String?
+  drinkingHabit           String?
   funFact                 String?
   kidsStatus              String?
   kidsPreference          String?
