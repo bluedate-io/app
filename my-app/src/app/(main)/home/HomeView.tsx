@@ -134,8 +134,6 @@ export function HomeView({ initial }: { initial: OptInState }) {
   const [state, setState] = useState<OptInState>(initial);
   const [parts, setParts] = useState(() => getTimeParts(new Date(initial.deadline).getTime() - Date.now()));
   const [description, setDescription] = useState(initial.description ?? "");
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [optingIn, setOptingIn] = useState(false);
 
   const deadlineMs = useMemo(() => new Date(state.deadline).getTime(), [state.deadline]);
@@ -168,26 +166,7 @@ export function HomeView({ initial }: { initial: OptInState }) {
     }
   }
 
-  async function handleSave() {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/home/opt-in", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description: description.trim() || undefined }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setState((p) => ({ ...p, ...data.data }));
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      }
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const modeLine = state.mode === "bff" ? "BFF" : "Date";
+const modeLine = state.mode === "bff" ? "BFF" : "Date";
 
   return (
     <div
@@ -346,64 +325,6 @@ export function HomeView({ initial }: { initial: OptInState }) {
             </div>
           </div>
 
-          {/* Description card */}
-          <div
-            style={{
-              background: "#fff",
-              border: `2.5px solid ${DARK}`,
-              boxShadow: `4px 4px 0 ${DARK}`,
-              borderRadius: 18,
-              padding: "20px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 14,
-            }}
-          >
-            <div>
-              <p style={{ margin: "0 0 4px", fontFamily: SERIF, fontSize: 18, fontWeight: 700, color: DARK }}>
-                Describe your type
-              </p>
-              <p style={{ margin: 0, fontSize: 13, color: MUTED }}>
-                Help us find your best match — the more detail the better.
-              </p>
-            </div>
-
-            <TypeTextarea
-              value={description}
-              onChange={(v) => { setDescription(v); setSaved(false); }}
-              disabled={!windowOpen}
-              placeholder="e.g. someone outdoorsy who loves films…"
-            />
-
-            {windowOpen && (
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                style={{
-                  background: saved ? "#2D7A2D" : ACCENT,
-                  color: "#fff",
-                  border: `2.5px solid ${DARK}`,
-                  boxShadow: `3px 3px 0 ${DARK}`,
-                  borderRadius: 999,
-                  padding: "12px 24px",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  width: "100%",
-                  transition: "background 0.2s",
-                  opacity: saving ? 0.7 : 1,
-                }}
-              >
-                {saving ? "Saving…" : saved ? "Saved ✓" : "Save"}
-              </button>
-            )}
-
-            {!windowOpen && (
-              <p style={{ fontSize: 12, color: MUTED, textAlign: "center" }}>
-                Opt-in window is closed. See you next Monday!
-              </p>
-            )}
-          </div>
         </div>
       )}
     </div>
