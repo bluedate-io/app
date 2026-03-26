@@ -12,7 +12,7 @@ import { generateOptInToken } from "@/utils/optInToken";
 
 const log = logger.child("MatchEmailService");
 
-type UserEmailTarget = { id: string; email: string; name: string };
+type UserEmailTarget = { id: string; email: string; name: string; cardImageUrl?: string };
 
 // ─── Shared HTML helpers ──────────────────────────────────────────────────────
 
@@ -117,6 +117,15 @@ export class MatchEmailService {
 
   async sendPostMatchEmail(user: UserEmailTarget): Promise<void> {
     const url = this.optInUrl(user.id);
+    const cardHtml = user.cardImageUrl
+      ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+          <tr>
+            <td style="border-radius:12px;overflow:hidden;border:2px solid ${DARK};">
+              <img src="${user.cardImageUrl}" alt="Your match card" width="100%" style="display:block;max-width:100%;border-radius:10px;" />
+            </td>
+          </tr>
+        </table>`
+      : "";
     const html = wrap(
       bodyRow(`
         <p style="margin:0 0 4px;font-size:13px;color:${MUTED};">Hey ${user.name},</p>
@@ -126,6 +135,7 @@ export class MatchEmailService {
         <p style="margin:0 0 24px;font-size:14px;color:${MUTED};line-height:1.6;">
           We've found someone special for you this week. Check it out in the app.
         </p>
+        ${cardHtml}
         <p style="margin:0 0 28px;font-size:14px;color:${DARK};line-height:1.6;">
           Want to be matched again next week? Click the button below to opt in.
           Matches lock every Friday — opt in before then to be eligible.
