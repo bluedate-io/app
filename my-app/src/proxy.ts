@@ -11,10 +11,13 @@ const ALLOWED_ORIGINS = [
 const PROTECTED = ["/home", "/matches", "/profile"];
 
 /** Decode JWT payload without verifying signature (routing only — APIs still verify). */
-function decodeJwt(token: string): { onboardingCompleted?: boolean } {
+function decodeJwt(token: string): { onboardingCompleted?: boolean; exp?: number } {
   try {
-    const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-    return JSON.parse(atob(b64)) as { onboardingCompleted?: boolean };
+    const b64 = token.split(".")[1];
+    // Restore standard base64 and add padding
+    const padded = b64.replace(/-/g, "+").replace(/_/g, "/");
+    const withPadding = padded + "=".repeat((4 - (padded.length % 4)) % 4);
+    return JSON.parse(atob(withPadding)) as { onboardingCompleted?: boolean; exp?: number };
   } catch {
     return {};
   }
@@ -38,24 +41,27 @@ export function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const { onboardingCompleted } = decodeJwt(token);
+  const { onboardingCompleted, exp } = decodeJwt(token);
+  const isExpired = exp !== undefined && exp < Math.floor(Date.now() / 1000);
 
-  // Logged in + onboarding done → don't show login or onboarding again
-  if (pathname === "/login") {
+  // Logged in with a valid (non-expired) token → skip login
+  // If token is expired, let the user log in again (server components will verify)
+  if (pathname === "/login" && !isExpired) {
     return NextResponse.redirect(new URL("/home", req.url));
   }
 
   if (pathname === "/onboarding" || pathname.startsWith("/onboarding/")) {
-    if (onboardingCompleted) {
+    if (onboardingCompleted && !isExpired) {
       return NextResponse.redirect(new URL("/home", req.url));
     }
-    return NextResponse.next(); // let them continue onboarding
+    return NextResponse.next(); // let them continue onboarding (or re-auth)
   }
 
-  // Protected route + onboarding not done → back to onboarding
-  if (isProtected && !onboardingCompleted) {
-    return NextResponse.redirect(new URL("/onboarding", req.url));
-  }
+  // Protected routes: pass through if token is present.
+  // Server components verify JWT validity and handle onboarding checks themselves.
+  // (Removing the proxy-level stale-onboardingCompleted redirect avoids RSC
+  //  navigation issues where cookie updates from /api/auth/refresh aren't picked
+  //  up by the next middleware pass.)
 
   // ── CORS (API routes) ─────────────────────────────────────────────────────
 
@@ -85,8 +91,11 @@ export const config = {
     "/login",
     "/onboarding/:path*",
     "/onboarding",
+    "/home",
     "/home/:path*",
+    "/matches",
     "/matches/:path*",
+    "/profile",
     "/profile/:path*",
   ],
 };

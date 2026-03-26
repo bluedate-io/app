@@ -34,7 +34,7 @@ export interface ProfileData {
     religion?: string[];
     politics?: string[];
   } | null;
-  photos: { url: string; order: number }[];
+  photos: { id: string; url: string; order: number }[];
 }
 
 export default async function ProfilePage() {
@@ -85,7 +85,7 @@ export default async function ProfilePage() {
     }),
     db.photo.findMany({
       where: { userId },
-      select: { url: true, order: true },
+      select: { id: true, url: true, order: true },
       orderBy: { order: "asc" },
     }),
   ]);

@@ -8,6 +8,7 @@ import { EditFieldView } from "./EditFieldView";
 import type { ProfileData } from "../../page";
 
 const VALID_FIELDS = [
+  "basics",
   "photos",
   "interests",
   "looking-for",
@@ -74,7 +75,7 @@ export default async function EditFieldPage({
     }),
     db.photo.findMany({
       where: { userId },
-      select: { url: true, order: true },
+      select: { id: true, url: true, order: true },
       orderBy: { order: "asc" },
     }),
   ]);
