@@ -89,6 +89,9 @@ function Fab({ disabled, loading }: { disabled?: boolean; loading?: boolean }) {
 }
 
 export default function LoginForm() {
+  // remove KL University from the list
+  const isExcludedCollege = (name: string) => name.trim().toLowerCase() === "kl university";
+  
   const [step, setStep] = useState<Step>("email");
   const [colleges, setColleges] = useState<College[]>([]);
   const [selectedCollege, setSelectedCollege] = useState<College | null>(null);
@@ -111,7 +114,12 @@ export default function LoginForm() {
   useEffect(() => {
     fetch("/api/auth/colleges")
       .then((r) => r.json())
-      .then((json) => { if (json?.data) setColleges(json.data); })
+      // remove KL University from the list
+      .then((json) => {
+        if (json?.data) {
+          setColleges(json.data.filter((c: College) => !isExcludedCollege(c.collegeName)));
+        }
+      })
       .catch(() => {});
   }, []);
 
