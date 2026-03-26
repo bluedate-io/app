@@ -55,6 +55,25 @@ export type AdminUsersFilterTab = "all" | "completed" | "incomplete";
 
 export type AdminOptInStatusFilter = "opted_in" | "opted_out" | "opted_in_late" | "all";
 
+export function buildAdminUsersExportHref(opts: {
+  filter: AdminUsersFilterTab;
+  domainsCsv?: string;
+  gendersCsv?: string;
+  sort?: AdminUserSort;
+  q?: string;
+  optInStatus?: AdminOptInStatusFilter;
+}): string {
+  const p = new URLSearchParams();
+  if (opts.filter !== "all") p.set("filter", opts.filter);
+  if (opts.domainsCsv?.trim()) p.set("domains", opts.domainsCsv.trim());
+  if (opts.gendersCsv?.trim()) p.set("genders", opts.gendersCsv.trim());
+  if (opts.sort && opts.sort !== "joined_desc") p.set("sort", opts.sort);
+  if (opts.q?.trim()) p.set("q", opts.q.trim());
+  if (opts.optInStatus && opts.optInStatus !== "all") p.set("optInStatus", opts.optInStatus);
+  const qs = p.toString();
+  return qs ? `/api/admin/users/export?${qs}` : "/api/admin/users/export";
+}
+
 export function buildAdminUsersHref(opts: {
   filter: AdminUsersFilterTab;
   page?: number;
