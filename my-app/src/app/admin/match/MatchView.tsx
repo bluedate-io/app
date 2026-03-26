@@ -18,6 +18,7 @@ import {
 type Filters = {
   cities: string[];
   gender: string;
+  candidateGenders: string[];
   colleges: string[];
   ageMin: string;
   ageMax: string;
@@ -33,6 +34,50 @@ type MatchUser = {
   selfDescription: string | null;
   idealPartner: string | null;
   photoUrl: string | null;
+  nickname?: string | null;
+  dateOfBirth?: string | null;
+  bio?: string | null;
+  onboardingCompleted?: boolean;
+  optInStatus?: string | null;
+  optedInAt?: string | null;
+  genderPreference?: string[];
+  ageRangeMin?: number | null;
+  ageRangeMax?: number | null;
+  relationshipIntent?: string | null;
+  relationshipGoals?: string[];
+  heightCm?: number | null;
+  heightCompleted?: boolean;
+  wantDate?: boolean | null;
+  datingModeCompleted?: boolean;
+  photosStepCompleted?: boolean;
+  hobbies?: string[];
+  favouriteActivities?: string[];
+  musicTaste?: string[];
+  foodTaste?: string[];
+  bffInterests?: string[];
+  bffInterestsCompleted?: boolean;
+  socialLevel?: string | null;
+  conversationStyle?: string | null;
+  funFact?: string | null;
+  kidsStatus?: string | null;
+  kidsPreference?: string | null;
+  religion?: string[];
+  politics?: string[];
+  importantLifeCompleted?: boolean;
+  familyPlansCompleted?: boolean;
+  lifeExperiences?: string[];
+  lifeExperiencesCompleted?: boolean;
+  relationshipStatus?: string | null;
+  relationshipStatusCompleted?: boolean;
+  availabilityDays?: string[];
+  availabilityTimes?: string[];
+  idealDate?: string | null;
+  weeklyOptIns?: Array<{
+    weekStart: string;
+    mode: string;
+    description: string | null;
+    createdAt: string;
+  }>;
 };
 
 type PoolUser = MatchUser & { candidateCount: number };
@@ -53,11 +98,13 @@ function MultiSelectDropdown({
   options,
   selected,
   onChange,
+  active,
 }: {
   label: string;
   options: string[];
   selected: string[];
   onChange: (v: string[]) => void;
+  active?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -77,7 +124,7 @@ function MultiSelectDropdown({
     };
   }, []);
 
-  const active = selected.length > 0;
+  const isActive = active ?? selected.length > 0;
 
   function toggle(v: string) {
     onChange(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
@@ -90,13 +137,13 @@ function MultiSelectDropdown({
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition whitespace-nowrap"
         style={{
-          borderColor: active ? P : "#C9B8D9",
-          color: active ? P : MUTED,
-          backgroundColor: active ? P_LIGHT : "#FAF5FC",
+          borderColor: isActive ? P : "#C9B8D9",
+          color: isActive ? P : MUTED,
+          backgroundColor: isActive ? P_LIGHT : "#FAF5FC",
         }}
       >
         {label}
-        {active ? ` (${selected.length})` : ""}
+        {isActive ? ` (${selected.length})` : ""}
         <ChevronDown
           size={12}
           className="shrink-0"
@@ -130,7 +177,7 @@ function MultiSelectDropdown({
               ))
             )}
           </div>
-          {active && (
+          {selected.length > 0 && (
             <button
               type="button"
               onClick={() => onChange([])}
@@ -149,18 +196,34 @@ function MultiSelectDropdown({
 // ─── Filter bar ───────────────────────────────────────────────────────────────
 
 function FilterBar({
-  filters,
+  draft,
+  applied,
   allCities,
   allColleges,
-  onChange,
-  onReset,
+  showUserAGenderFilter,
+  showCandidateGender,
+  onDraftChange,
+  onApply,
+  onClear,
 }: {
-  filters: Filters;
+  draft: Filters;
+  applied: Filters;
   allCities: string[];
   allColleges: string[];
-  onChange: (f: Filters) => void;
-  onReset: () => void;
+  showUserAGenderFilter: boolean;
+  showCandidateGender: boolean;
+  onDraftChange: (f: Filters) => void;
+  onApply: () => void;
+  onClear: () => void;
 }) {
+  const appliedHasAny =
+    Boolean(applied.gender) ||
+    applied.cities.length > 0 ||
+    applied.candidateGenders.length > 0 ||
+    applied.colleges.length > 0 ||
+    Boolean(applied.ageMin) ||
+    Boolean(applied.ageMax);
+
   return (
     <div
       className="flex flex-wrap items-center gap-2 px-6 py-3 border-b bg-white shrink-0"
@@ -173,41 +236,59 @@ function FilterBar({
       <MultiSelectDropdown
         label="City"
         options={allCities}
-        selected={filters.cities}
-        onChange={(v) => onChange({ ...filters, cities: v })}
+        selected={draft.cities}
+        onChange={(v) => onDraftChange({ ...draft, cities: v })}
+        active={applied.cities.length > 0}
       />
 
-      <select
-        value={filters.gender}
-        onChange={(e) => onChange({ ...filters, gender: e.target.value })}
-        className="shrink-0 rounded-xl border px-3 py-2 text-xs font-semibold cursor-pointer whitespace-nowrap"
-        style={{
-          borderColor: filters.gender ? P : "#C9B8D9",
-          color: filters.gender ? P : MUTED,
-          backgroundColor: filters.gender ? P_LIGHT : "#FAF5FC",
-        }}
-      >
-        <option value="">User A: All genders</option>
-        <option value="Woman">Woman</option>
-        <option value="Man">Man</option>
-        <option value="Nonbinary">Nonbinary</option>
-      </select>
+      {showUserAGenderFilter && (
+        <select
+          value={draft.gender}
+          onChange={(e) => onDraftChange({ ...draft, gender: e.target.value })}
+          className="shrink-0 rounded-xl border px-3 py-2 text-xs font-semibold cursor-pointer whitespace-nowrap"
+          style={{
+            borderColor: applied.gender ? P : "#C9B8D9",
+            color: applied.gender ? P : MUTED,
+            backgroundColor: applied.gender ? P_LIGHT : "#FAF5FC",
+          }}
+        >
+          <option value="">User A: All genders</option>
+          <option value="Woman">Woman</option>
+          <option value="Man">Man</option>
+          <option value="Nonbinary">Nonbinary</option>
+        </select>
+      )}
+
+      {showCandidateGender && (
+        <MultiSelectDropdown
+          label="User B: Gender"
+          options={["Woman", "Man", "Nonbinary"]}
+          selected={draft.candidateGenders}
+          onChange={(v) => onDraftChange({ ...draft, candidateGenders: v })}
+          active={applied.candidateGenders.length > 0}
+        />
+      )}
 
       <MultiSelectDropdown
         label="College"
         options={allColleges}
-        selected={filters.colleges}
-        onChange={(v) => onChange({ ...filters, colleges: v })}
+        selected={draft.colleges}
+        onChange={(v) => onDraftChange({ ...draft, colleges: v })}
+        active={applied.colleges.length > 0}
       />
 
       <div className="flex items-center gap-1.5 shrink-0">
         <input
           type="number"
           placeholder="Age min"
-          value={filters.ageMin}
-          onChange={(e) => onChange({ ...filters, ageMin: e.target.value })}
+          value={draft.ageMin}
+          onChange={(e) => onDraftChange({ ...draft, ageMin: e.target.value })}
           className="w-20 rounded-xl border px-2.5 py-2 text-xs"
-          style={{ borderColor: "#C9B8D9", color: DARK }}
+          style={{
+            borderColor: applied.ageMin ? P : "#C9B8D9",
+            color: DARK,
+            backgroundColor: applied.ageMin ? P_LIGHT : "#FFFFFF",
+          }}
           min={18}
           max={99}
         />
@@ -215,10 +296,14 @@ function FilterBar({
         <input
           type="number"
           placeholder="Age max"
-          value={filters.ageMax}
-          onChange={(e) => onChange({ ...filters, ageMax: e.target.value })}
+          value={draft.ageMax}
+          onChange={(e) => onDraftChange({ ...draft, ageMax: e.target.value })}
           className="w-20 rounded-xl border px-2.5 py-2 text-xs"
-          style={{ borderColor: "#C9B8D9", color: DARK }}
+          style={{
+            borderColor: applied.ageMax ? P : "#C9B8D9",
+            color: DARK,
+            backgroundColor: applied.ageMax ? P_LIGHT : "#FFFFFF",
+          }}
           min={18}
           max={99}
         />
@@ -226,12 +311,30 @@ function FilterBar({
 
       <button
         type="button"
-        onClick={onReset}
+        onClick={onApply}
         className="flex items-center gap-1.5 shrink-0 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:bg-violet-50"
-        style={{ borderColor: "#C9B8D9", color: MUTED, backgroundColor: "#FAF5FC" }}
+        style={{
+          borderColor: "#C9B8D9",
+          color: P,
+          backgroundColor: "#FAF5FC",
+        }}
+      >
+        Apply
+        <Check size={11} />
+      </button>
+
+      <button
+        type="button"
+        onClick={onClear}
+        className="flex items-center gap-1.5 shrink-0 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:bg-violet-50"
+        style={{
+          borderColor: appliedHasAny ? P : "#C9B8D9",
+          color: appliedHasAny ? P : MUTED,
+          backgroundColor: appliedHasAny ? P_LIGHT : "#FAF5FC",
+        }}
       >
         <RotateCcw size={11} />
-        Reset
+        Clear filter
       </button>
     </div>
   );
@@ -311,10 +414,12 @@ function ProfilePanel({
   user,
   label,
   labelColor,
+  headerRight,
 }: {
   user: MatchUser;
   label: string;
   labelColor: string;
+  headerRight?: React.ReactNode;
 }) {
   return (
     <div
@@ -323,69 +428,59 @@ function ProfilePanel({
     >
       {/* Header */}
       <div
-        className="flex items-center px-4 py-2.5 border-b shrink-0"
+        className="flex items-center justify-between gap-3 px-4 py-2.5 border-b shrink-0"
         style={{ borderColor: "#F0EBFA", backgroundColor: `${labelColor}10` }}
       >
         <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: labelColor }}>
           {label}
         </span>
+        {headerRight ? <div className="shrink-0">{headerRight}</div> : null}
       </div>
 
       {/* Photo */}
       <div
-        className="relative w-full shrink-0"
-        style={{ aspectRatio: "4/3", backgroundColor: "#F5F0FB" }}
+        className="relative w-full shrink-0 overflow-hidden"
+        style={{ height: 420 }}
       >
         {user.photoUrl ? (
-          <Image
+          <img
             src={user.photoUrl}
             alt={user.name}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 400px"
+            className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-5xl">👤</div>
         )}
+
+        {/* Key details overlay (always above image) */}
+        <div className="absolute inset-x-0 bottom-0 z-10 p-4">
+          <div
+            className="rounded-xl px-3 py-2"
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(15, 23, 42, 0.00) 0%, rgba(15, 23, 42, 0.72) 40%, rgba(15, 23, 42, 0.82) 100%)",
+            }}
+          >
+            <p className="font-bold text-base leading-tight text-white">
+              {user.name}
+            </p>
+            <p className="text-xs mt-0.5 text-white/90">
+              {[
+                user.age != null ? `${user.age} yrs` : null,
+                user.gender,
+                user.city,
+                user.college,
+              ]
+                .filter(Boolean)
+                .join(" · ") || "—"}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Details */}
-      <div className="flex-1 p-4 flex flex-col gap-3 overflow-y-auto">
-        <div>
-          <p className="font-bold text-base" style={{ color: DARK }}>
-            {user.name}
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: MUTED }}>
-            {[user.age != null ? `${user.age} yrs` : null, user.gender]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: MUTED }}>
-            {[user.city, user.college].filter(Boolean).join(" · ") || "—"}
-          </p>
-        </div>
-
-        {user.selfDescription && (
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: SUBTLE }}>
-              About
-            </p>
-            <p className="text-sm leading-relaxed" style={{ color: DARK }}>
-              {user.selfDescription}
-            </p>
-          </div>
-        )}
-
-        {user.idealPartner && (
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: SUBTLE }}>
-              Looking for
-            </p>
-            <p className="text-sm leading-relaxed" style={{ color: DARK }}>
-              {user.idealPartner}
-            </p>
-          </div>
-        )}
+      <div className="flex-1 p-4 flex flex-col gap-3 overflow-y-auto min-h-0">
+        {/* (Other details can live here without being covered by the image.) */}
       </div>
     </div>
   );
@@ -394,23 +489,86 @@ function ProfilePanel({
 // ─── Prompt box ───────────────────────────────────────────────────────────────
 
 function buildPrompt(a: MatchUser, b: MatchUser): string {
+  const value = (v: unknown) => {
+    if (v === null || v === undefined || v === "") return "—";
+    return String(v);
+  };
+  const list = (arr?: string[]) => (arr && arr.length ? arr.join(", ") : "—");
+  const bool = (v?: boolean | null) => (v === null || v === undefined ? "—" : v ? "Yes" : "No");
+  const fmtDate = (iso?: string | null) => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? iso : d.toISOString().slice(0, 10);
+  };
+
+  const weekly = (u: MatchUser) =>
+    u.weeklyOptIns && u.weeklyOptIns.length > 0
+      ? u.weeklyOptIns
+          .map(
+            (w, i) =>
+              `${i + 1}. weekStart=${fmtDate(w.weekStart)}, mode=${value(w.mode)}, description=${value(w.description)}, createdAt=${fmtDate(w.createdAt)}`,
+          )
+          .join("\n")
+      : "—";
+
+  const userBlock = (label: string, u: MatchUser) => `${label}:
+- id: ${u.id}
+- name: ${value(u.name)}
+- nickname: ${value(u.nickname)}
+- age: ${value(u.age)}
+- dateOfBirth: ${fmtDate(u.dateOfBirth)}
+- city: ${value(u.city)}
+- college: ${value(u.college)}
+- genderIdentity: ${value(u.gender)}
+- genderPreference: ${list(u.genderPreference)}
+- profileBio: ${value(u.bio)}
+- selfDescription: ${value(u.selfDescription)}
+- idealPartner: ${value(u.idealPartner)}
+- idealDate: ${value(u.idealDate)}
+- onboardingCompleted: ${bool(u.onboardingCompleted)}
+- optInStatus: ${value(u.optInStatus)}
+- optedInAt: ${fmtDate(u.optedInAt)}
+- ageRangeMin: ${value(u.ageRangeMin)}
+- ageRangeMax: ${value(u.ageRangeMax)}
+- relationshipIntent: ${value(u.relationshipIntent)}
+- relationshipGoals: ${list(u.relationshipGoals)}
+- heightCm: ${value(u.heightCm)}
+- wantDate: ${bool(u.wantDate)}
+- hobbies: ${list(u.hobbies)}
+- favouriteActivities: ${list(u.favouriteActivities)}
+- musicTaste: ${list(u.musicTaste)}
+- foodTaste: ${list(u.foodTaste)}
+- bffInterests: ${list(u.bffInterests)}
+- socialLevel: ${value(u.socialLevel)}
+- conversationStyle: ${value(u.conversationStyle)}
+- funFact: ${value(u.funFact)}
+- kidsStatus: ${value(u.kidsStatus)}
+- kidsPreference: ${value(u.kidsPreference)}
+- religion: ${list(u.religion)}
+- politics: ${list(u.politics)}
+- lifeExperiences: ${list(u.lifeExperiences)}
+- relationshipStatus: ${value(u.relationshipStatus)}
+- availabilityDays: ${list(u.availabilityDays)}
+- availabilityTimes: ${list(u.availabilityTimes)}
+- completionFlags:
+  - heightCompleted: ${bool(u.heightCompleted)}
+  - datingModeCompleted: ${bool(u.datingModeCompleted)}
+  - photosStepCompleted: ${bool(u.photosStepCompleted)}
+  - bffInterestsCompleted: ${bool(u.bffInterestsCompleted)}
+  - importantLifeCompleted: ${bool(u.importantLifeCompleted)}
+  - familyPlansCompleted: ${bool(u.familyPlansCompleted)}
+  - lifeExperiencesCompleted: ${bool(u.lifeExperiencesCompleted)}
+  - relationshipStatusCompleted: ${bool(u.relationshipStatusCompleted)}
+- weeklyOptIns:
+${weekly(u)}`;
+
   return `Here are the two users you're introducing:
 
-User A:
-- Name: ${a.name}
-- Age: ${a.age ?? "—"}
-- College: ${a.college ?? "—"}
-- About them: ${a.selfDescription ?? "—"}
-- What they're looking for: ${a.idealPartner ?? "—"}
+${userBlock("User A", a)}
 
-User B:
-- Name: ${b.name}
-- Age: ${b.age ?? "—"}
-- College: ${b.college ?? "—"}
-- About them: ${b.selfDescription ?? "—"}
-- What they're looking for: ${b.idealPartner ?? "—"}
+${userBlock("User B", b)}
 
-Write the match blurb. Address it to both of them (e.g. "Hey ${a.name} and ${b.name}...").`;
+Write the match blurb. Address it to both of them (e.g. "${a.name} and ${b.name}...").`;
 }
 
 function PromptBox({ userA, userB }: { userA: MatchUser; userB: MatchUser }) {
@@ -646,7 +804,6 @@ function MatchPhaseView({
   s3CardUrl,
   onS3CardUrlChange,
   onBack,
-  onPrev,
   onSkip,
   onMatch,
 }: {
@@ -657,13 +814,13 @@ function MatchPhaseView({
   s3CardUrl: string;
   onS3CardUrlChange: (v: string) => void;
   onBack: () => void;
-  onPrev: () => void;
   onSkip: () => void;
   onMatch: () => void;
 }) {
   const currentCandidate = candidates[candidateIndex] ?? null;
-  const exhausted = !loading && candidateIndex >= candidates.length && candidates.length > 0;
   const noResults = !loading && candidates.length === 0;
+  const total = candidates.length;
+  const position = total > 0 ? Math.min(candidateIndex + 1, total) : 0;
 
   return (
     <div className="h-full overflow-y-auto px-6 py-5 flex flex-col gap-5">
@@ -682,28 +839,62 @@ function MatchPhaseView({
               Loading candidates…
             </p>
           </div>
-        ) : exhausted || noResults ? (
+        ) : noResults ? (
           <div
             className="rounded-2xl border bg-white flex flex-col items-center justify-center gap-2 p-6"
             style={{ borderColor: "#EDE8F7" }}
           >
             <span className="text-3xl">🔍</span>
             <p className="text-sm font-semibold text-center" style={{ color: DARK }}>
-              {noResults
-                ? "No candidates found for this user."
-                : "No more candidates for this user this week."}
+              No candidates found for this user.
             </p>
             <p className="text-xs text-center" style={{ color: SUBTLE }}>
               Try adjusting the filters or go back to choose someone else.
             </p>
           </div>
         ) : currentCandidate ? (
-          <ProfilePanel user={currentCandidate} label="User B" labelColor="#166534" />
+          <ProfilePanel
+            user={currentCandidate}
+            label="User B"
+            labelColor="#166534"
+          />
         ) : null}
       </div>
 
+      {/* User B navigation (below users) */}
+      {!loading && currentCandidate && !noResults && (
+        <div className="grid grid-cols-2 gap-4">
+          <div />
+          <div
+            className="flex items-center justify-between rounded-2xl border bg-white px-4 py-3"
+            style={{ borderColor: "#EDE8F7" }}
+          >
+            <span className="text-sm font-semibold" style={{ color: SUBTLE }}>
+              {total > 0 ? `${position}/${total}` : "—"}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onSkip}
+                disabled={noResults || loading}
+                className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:bg-violet-50"
+                style={{
+                  borderColor: "#C9B8D9",
+                  color: MUTED,
+                  opacity: noResults || loading ? 0.4 : 1,
+                  cursor: noResults || loading ? "not-allowed" : "pointer",
+                }}
+              >
+                Next
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Prompt box (only when both users are available) */}
-      {currentCandidate && !exhausted && !noResults && (
+      {currentCandidate && !noResults && (
         <>
           <PromptBox userA={userA} userB={currentCandidate} />
 
@@ -746,58 +937,19 @@ function MatchPhaseView({
           Back to Pool
         </button>
 
-        {/* Counter + navigation */}
-        <div className="flex items-center gap-3">
-          {!loading && candidates.length > 0 && (
-            <span className="text-sm font-medium" style={{ color: SUBTLE }}>
-              {Math.min(candidateIndex + 1, candidates.length)} of {candidates.length}
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={onPrev}
-            disabled={candidateIndex === 0 || loading}
-            className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-sm font-semibold transition"
-            style={{
-              borderColor: "#C9B8D9",
-              color: MUTED,
-              opacity: candidateIndex === 0 || loading ? 0.4 : 1,
-              cursor: candidateIndex === 0 || loading ? "not-allowed" : "pointer",
-            }}
-          >
-            <ChevronLeft size={15} />
-            Prev
-          </button>
-          <button
-            type="button"
-            onClick={onSkip}
-            disabled={exhausted || noResults || loading}
-            className="flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-sm font-semibold transition hover:bg-violet-50"
-            style={{
-              borderColor: "#C9B8D9",
-              color: MUTED,
-              opacity: exhausted || noResults || loading ? 0.4 : 1,
-              cursor: exhausted || noResults || loading ? "not-allowed" : "pointer",
-            }}
-          >
-            Skip
-            <ChevronRight size={15} />
-          </button>
-        </div>
-
         {/* Match button */}
         <button
           type="button"
           onClick={onMatch}
-          disabled={exhausted || noResults || loading || !s3CardUrl.trim()}
+              disabled={noResults || loading || !s3CardUrl.trim()}
           className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition"
           style={{
             background:
-              exhausted || noResults || loading || !s3CardUrl.trim()
+                  noResults || loading || !s3CardUrl.trim()
                 ? "#C9B8D9"
                 : "linear-gradient(135deg,#166534,#15803d)",
             cursor:
-              exhausted || noResults || loading || !s3CardUrl.trim() ? "not-allowed" : "pointer",
+                  noResults || loading || !s3CardUrl.trim() ? "not-allowed" : "pointer",
           }}
         >
           <Check size={15} />
@@ -817,9 +969,19 @@ export default function MatchView({
   cities: string[];
   colleges: string[];
 }) {
-  const [filters, setFilters] = useState<Filters>({
+  const [draftFilters, setDraftFilters] = useState<Filters>({
     cities: [],
     gender: "",
+    candidateGenders: [],
+    colleges: [],
+    ageMin: "",
+    ageMax: "",
+  });
+
+  const [appliedFilters, setAppliedFilters] = useState<Filters>({
+    cities: [],
+    gender: "",
+    candidateGenders: [],
     colleges: [],
     ageMin: "",
     ageMax: "",
@@ -842,15 +1004,15 @@ export default function MatchView({
 
   // ── Fetch pool ───────────────────────────────────────────────────────────────
 
-  const fetchPool = useCallback(async () => {
+  const fetchPool = useCallback(async (f: Filters) => {
     setPoolLoading(true);
     try {
       const params = new URLSearchParams();
-      if (filters.gender) params.set("gender", filters.gender);
-      if (filters.cities.length) params.set("city", filters.cities.join(","));
-      if (filters.colleges.length) params.set("college", filters.colleges.join(","));
-      if (filters.ageMin) params.set("ageMin", filters.ageMin);
-      if (filters.ageMax) params.set("ageMax", filters.ageMax);
+      if (f.gender) params.set("gender", f.gender);
+      if (f.cities.length) params.set("city", f.cities.join(","));
+      if (f.colleges.length) params.set("college", f.colleges.join(","));
+      if (f.ageMin) params.set("ageMin", f.ageMin);
+      if (f.ageMax) params.set("ageMax", f.ageMax);
       const res = await fetch(`/api/admin/match/pool?${params}`, { credentials: "include" });
       const json = await res.json();
       setPool(json.data ?? []);
@@ -859,25 +1021,26 @@ export default function MatchView({
     } finally {
       setPoolLoading(false);
     }
-  }, [filters]);
+  }, []);
 
   useEffect(() => {
-    fetchPool();
-  }, [fetchPool]);
+    fetchPool(appliedFilters);
+  }, [fetchPool, appliedFilters]);
 
   // ── Fetch candidates ─────────────────────────────────────────────────────────
 
   const fetchCandidates = useCallback(
-    async (aId: string) => {
+    async (aId: string, f: Filters) => {
       setCandidatesLoading(true);
       setCandidates([]);
       setCandidateIndex(0);
       try {
         const params = new URLSearchParams({ userId: aId });
-        if (filters.cities.length) params.set("city", filters.cities.join(","));
-        if (filters.colleges.length) params.set("college", filters.colleges.join(","));
-        if (filters.ageMin) params.set("ageMin", filters.ageMin);
-        if (filters.ageMax) params.set("ageMax", filters.ageMax);
+        if (f.cities.length) params.set("city", f.cities.join(","));
+        if (f.candidateGenders.length) params.set("gender", f.candidateGenders.join(","));
+        if (f.colleges.length) params.set("college", f.colleges.join(","));
+        if (f.ageMin) params.set("ageMin", f.ageMin);
+        if (f.ageMax) params.set("ageMax", f.ageMax);
         const res = await fetch(`/api/admin/match/candidates?${params}`, {
           credentials: "include",
         });
@@ -889,15 +1052,61 @@ export default function MatchView({
         setCandidatesLoading(false);
       }
     },
-    [filters],
+    [],
   );
 
   // ── Actions ──────────────────────────────────────────────────────────────────
 
+  function applyFilters() {
+    const next = draftFilters;
+    setAppliedFilters(next);
+    if (userA) fetchCandidates(userA.id, next);
+    else fetchPool(next);
+  }
+
+  function clearFilters() {
+    const cleared: Filters = {
+      cities: [],
+      gender: "",
+      candidateGenders: [],
+      colleges: [],
+      ageMin: "",
+      ageMax: "",
+    };
+    setDraftFilters(cleared);
+    setAppliedFilters(cleared);
+    if (userA) fetchCandidates(userA.id, cleared);
+    else fetchPool(cleared);
+  }
+
+  function normalizeGender(v: string): "Woman" | "Man" | "Nonbinary" | null {
+    const s = v.trim().toLowerCase();
+    if (s === "woman" || s === "women") return "Woman";
+    if (s === "man" || s === "men") return "Man";
+    if (s === "nonbinary" || s === "non-binary" || s === "nb") return "Nonbinary";
+    return null;
+  }
+
   function selectUserA(user: PoolUser) {
     setUserA(user);
     setS3CardUrl("");
-    fetchCandidates(user.id);
+    const college = (user.college ?? "").trim();
+    const defaultCandidateGenders = (user.genderPreference ?? [])
+      .map((g) => normalizeGender(g))
+      .filter((g): g is "Woman" | "Man" | "Nonbinary" => Boolean(g));
+
+    const next: Filters = {
+      ...appliedFilters,
+      candidateGenders: defaultCandidateGenders,
+      colleges: college ? [college] : [],
+    };
+    setDraftFilters((d) => ({
+      ...d,
+      candidateGenders: next.candidateGenders,
+      colleges: next.colleges,
+    }));
+    setAppliedFilters(next);
+    fetchCandidates(user.id, next);
   }
 
   function backToPool() {
@@ -905,14 +1114,16 @@ export default function MatchView({
     setCandidates([]);
     setCandidateIndex(0);
     setS3CardUrl("");
+    setDraftFilters((prev) => ({ ...prev, colleges: [] }));
+    setAppliedFilters((prev) => ({ ...prev, colleges: [] }));
   }
 
   function skip() {
-    setCandidateIndex((i) => i + 1);
-  }
-
-  function prev() {
-    setCandidateIndex((i) => Math.max(0, i - 1));
+    setCandidateIndex((i) => {
+      const n = candidates.length;
+      if (n <= 0) return 0;
+      return (i + 1) % n;
+    });
   }
 
   async function handleConfirmMatch() {
@@ -938,7 +1149,7 @@ export default function MatchView({
       setShowModal(false);
       setToast({ type: "success", msg: `Match created: ${userA.name} + ${currentCandidate.name} ✓` });
       backToPool();
-      fetchPool();
+      fetchPool(appliedFilters);
     } catch {
       setToast({ type: "error", msg: "Match failed — please try again" });
     } finally {
@@ -968,13 +1179,15 @@ export default function MatchView({
 
       {/* Filter bar */}
       <FilterBar
-        filters={filters}
+        draft={draftFilters}
+        applied={appliedFilters}
         allCities={allCities}
         allColleges={allColleges}
-        onChange={setFilters}
-        onReset={() =>
-          setFilters({ cities: [], gender: "", colleges: [], ageMin: "", ageMax: "" })
-        }
+        showUserAGenderFilter={userA === null}
+        showCandidateGender={userA !== null}
+        onDraftChange={setDraftFilters}
+        onApply={applyFilters}
+        onClear={clearFilters}
       />
 
       {/* Page header */}
@@ -1013,7 +1226,6 @@ export default function MatchView({
             s3CardUrl={s3CardUrl}
             onS3CardUrlChange={setS3CardUrl}
             onBack={backToPool}
-            onPrev={prev}
             onSkip={skip}
             onMatch={() => setShowModal(true)}
           />
