@@ -3,7 +3,19 @@
     "allow": [
       "Bash(npx ts-node:*)",
       "Bash(npx tsx:*)",
-      "Bash(ls -la \"/Users/tadikondasaimanikanta/bluedate.io/app/my-app/src/app/\\(main\\)/\")"
+      "Bash(ls -la \"/Users/tadikondasaimanikanta/bluedate.io/app/my-app/src/app/\\(main\\)/\")",
+      "Bash(grep -n \"basics\\\\|photos\\\\|interests\" /Users/tadikondasaimanikanta/bluedate.io/app/my-app/src/app/\\\\\\(main\\\\\\)/profile/edit/[field]/page.tsx)",
+      "Bash(grep -n \"BasicsEditor\\\\|basics\" /Users/tadikondasaimanikanta/bluedate.io/app/my-app/src/app/\\\\\\(main\\\\\\)/profile/edit/[field]/EditFieldView.tsx)",
+      "Bash(cat /Users/tadikondasaimanikanta/bluedate.io/app/my-app/src/app/\\\\\\(main\\\\\\)/layout.tsx)",
+      "Bash(cat /Users/tadikondasaimanikanta/bluedate.io/app/my-app/.next/server/chunks/[root-of-the-server]__0d50cb48._.js)",
+      "Bash(cat /Users/tadikondasaimanikanta/bluedate.io/app/my-app/src/app/\\\\\\(main\\\\\\)/page.tsx)",
+      "Bash(ls /Users/tadikondasaimanikanta/bluedate.io/app/my-app/src/app/\\\\\\(main\\\\\\)/profile/edit/)",
+      "Bash(grep -l \"onboarding\\\\|/home\\\\|isProtected\\\\|decodeJwt\" /Users/tadikondasaimanikanta/bluedate.io/app/my-app/.next/server/*.js)",
+      "Bash(find /Users/tadikondasaimanikanta/bluedate.io/app/my-app/src/app/login -name *.tsx -o -name *.ts)",
+      "Bash(find /Users/tadikondasaimanikanta/bluedate.io/app/my-app/node_modules/next -name CHANGELOG*)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d.get\\(''''version'''',''''''''\\)\\)\")",
+      "Bash(find /Users/tadikondasaimanikanta/bluedate.io/app/my-app/.next/static -name *.js)",
+      "Bash(ls -la /Users/tadikondasaimanikanta/bluedate.io/app/my-app/src/app/\\\\\\(main\\\\\\)/profile/ProfileView.tsx)"
     ],
     "additionalDirectories": [
       "/Users/tadikondasaimanikanta/bluedate.io/app/my-app/src/app/api/chat"

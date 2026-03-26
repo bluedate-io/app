@@ -4,8 +4,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactCompiler: true,
   allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok.io"],
-   images: {
-    domains: ["fbffkxpinphvudcnewqz.supabase.co"],
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "yzxohkgucjiurlkzbofd.supabase.co" },
+    ],
   },
 };
 

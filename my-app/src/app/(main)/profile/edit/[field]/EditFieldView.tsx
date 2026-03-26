@@ -18,6 +18,7 @@ const SANS = "var(--font-geist-sans, sans-serif)";
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const FIELD_TITLES: Record<EditField, string> = {
+  basics: "Edit Profile",
   photos: "My Photos",
   interests: "Interests",
   "looking-for": "Looking For",
@@ -173,6 +174,47 @@ function OptionRow({
 
 // ─── Field editors ────────────────────────────────────────────────────────────
 
+function BasicsEditor({
+  initialName, initialCity, initialBio, initialDob, onSave, loading,
+}: {
+  initialName?: string; initialCity?: string; initialBio?: string;
+  initialDob?: string; onSave: (v: { fullName: string; city: string; bio: string; dateOfBirth: string }) => void;
+  loading: boolean;
+}) {
+  const [name, setName] = useState(initialName ?? "");
+  const [city, setCity] = useState(initialCity ?? "");
+  const [bio, setBio] = useState(initialBio ?? "");
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "12px 14px", fontSize: 15, fontWeight: 500,
+    background: CARD, border: `2px solid ${DARK}`, borderRadius: 12,
+    boxShadow: `2px 2px 0 ${DARK}`, outline: "none", color: DARK,
+    fontFamily: SANS, boxSizing: "border-box",
+  };
+
+  return (
+    <>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "16px 20px 8px" }}>
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 8px", fontFamily: SANS }}>Full Name</p>
+          <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" maxLength={80} style={inputStyle} />
+        </div>
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 8px", fontFamily: SANS }}>City</p>
+          <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="Where do you live?" maxLength={80} style={inputStyle} />
+        </div>
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 8px", fontFamily: SANS }}>Bio</p>
+          <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Tell people a bit about yourself…" maxLength={500} rows={4}
+            style={{ ...inputStyle, resize: "none", lineHeight: 1.5 }} />
+          <p style={{ fontSize: 11, color: MUTED, margin: "4px 0 0", textAlign: "right", fontFamily: SANS }}>{bio.length}/500</p>
+        </div>
+      </div>
+      <SaveBtn loading={loading} onClick={() => onSave({ fullName: name, city, bio, dateOfBirth: (initialDob ?? "").slice(0, 10) })} />
+    </>
+  );
+}
+
 function InterestsEditor({ initial, onSave, loading }: { initial: string[]; onSave: (v: string[]) => void; loading: boolean }) {
   const [selected, setSelected] = useState<string[]>(initial);
   function toggle(h: string) {
@@ -311,9 +353,10 @@ function FamilyEditor({ initialStatus, initialPref, onSave, loading }: { initial
   );
 }
 
-function PhotosEditor({ initial }: { initial: { url: string; order: number }[] }) {
+function PhotosEditor({ initial }: { initial: { id: string; url: string; order: number }[] }) {
   const [photos, setPhotos] = useState(initial);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function upload(file: File) {
@@ -324,10 +367,22 @@ function PhotosEditor({ initial }: { initial: { url: string; order: number }[] }
       const res = await fetch("/api/onboarding/photos", { method: "POST", body: fd });
       if (res.ok) {
         const json = await res.json();
-        setPhotos(p => [...p, { url: json.data?.url ?? json.url, order: p.length }]);
+        setPhotos(p => [...p, { id: json.data?.id ?? json.id, url: json.data?.url ?? json.url, order: p.length }]);
       }
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function deletePhoto(photoId: string) {
+    setDeleting(photoId);
+    try {
+      const res = await fetch(`/api/onboarding/photos/${photoId}`, { method: "DELETE" });
+      if (res.ok || res.status === 204) {
+        setPhotos(p => p.filter(ph => ph.id !== photoId));
+      }
+    } finally {
+      setDeleting(null);
     }
   }
 
@@ -337,10 +392,27 @@ function PhotosEditor({ initial }: { initial: { url: string; order: number }[] }
         Add at least 2 photos
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-        {photos.map((p, i) => (
-          <div key={i} style={{ aspectRatio: "3/4", borderRadius: 14, overflow: "hidden", border: `2px solid ${DARK}`, boxShadow: `2px 2px 0 ${DARK}` }}>
+        {photos.map((p) => (
+          <div key={p.id} style={{ position: "relative", aspectRatio: "3/4", borderRadius: 14, overflow: "hidden", border: `2px solid ${DARK}`, boxShadow: `2px 2px 0 ${DARK}` }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={p.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <button
+              onClick={() => deletePhoto(p.id)}
+              disabled={deleting === p.id}
+              style={{
+                position: "absolute", top: 6, right: 6,
+                width: 26, height: 26, borderRadius: "50%",
+                background: "rgba(0,0,0,0.6)", border: "none",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              {deleting === p.id ? (
+                <div style={{ width: 12, height: 12, borderRadius: "50%", border: "2px solid #fff4", borderTopColor: "#fff", animation: "spin 0.8s linear infinite" }} />
+              ) : (
+                <X size={13} color="#fff" strokeWidth={2.5} />
+              )}
+            </button>
           </div>
         ))}
         {photos.length < 9 && (
@@ -410,6 +482,16 @@ export function EditFieldView({ field, data }: { field: EditField; data: Profile
           </div>
         )}
 
+        {field === "basics" && (
+          <BasicsEditor
+            initialName={data.profile?.fullName}
+            initialCity={data.profile?.city}
+            initialBio={data.profile?.bio}
+            initialDob={data.profile?.dateOfBirth}
+            onSave={v => post("/api/onboarding/profile", v)}
+            loading={loading}
+          />
+        )}
         {field === "interests" && (
           <InterestsEditor
             initial={interests?.hobbies?.filter(h => h && h !== "Not specified") ?? []}

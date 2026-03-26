@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ChevronRight,
   Camera,
@@ -10,11 +9,10 @@ import {
   Wine,
   BookOpen,
   Baby,
-  Bell,
   HelpCircle,
   LogOut,
-  Settings,
   Ruler,
+  User,
 } from "lucide-react";
 import type { ProfileData } from "./page";
 
@@ -105,7 +103,6 @@ function MenuRow({
         color: textColor,
       }}
     >
-      {/* Icon bubble */}
       <div
         style={{
           width: 40,
@@ -123,7 +120,6 @@ function MenuRow({
         {icon}
       </div>
 
-      {/* Text */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <p
           style={{
@@ -241,9 +237,9 @@ function Avatar({ url, name }: { url?: string; name: string }) {
         </div>
       )}
 
-      {/* Camera badge */}
+      {/* Camera badge → edit photos */}
       <Link
-        href="/onboarding"
+        href="/profile/edit/photos"
         style={{
           position: "absolute",
           bottom: 0,
@@ -267,12 +263,13 @@ function Avatar({ url, name }: { url?: string; name: string }) {
 
 // ─── Main ──────────────────────────────────────────────────────────────────────
 export function ProfileView({ data }: { data: ProfileData }) {
-  const router = useRouter();
   const { profile, preferences, interests, personality, photos } = data;
 
   function handleLogout() {
+    // Clear cookie then do a hard redirect so the browser doesn't send
+    // a stale token on the next request
     document.cookie = "access_token=; max-age=0; path=/";
-    router.push("/login");
+    window.location.assign("/login");
   }
 
   const name = profile?.fullName ?? "";
@@ -297,9 +294,6 @@ export function ProfileView({ data }: { data: ProfileData }) {
       {/* Header */}
       <div
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
           padding: "20px 20px 14px",
           borderBottom: `2px solid ${DARK}`,
           background: BG,
@@ -308,23 +302,6 @@ export function ProfileView({ data }: { data: ProfileData }) {
         <h1 style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 800, color: DARK, margin: 0, letterSpacing: -0.5 }}>
           My Profile
         </h1>
-        <Link
-          href="/onboarding"
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            background: CARD_BG,
-            border: `2px solid ${DARK}`,
-            boxShadow: `2px 2px 0 ${DARK}`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: ACCENT,
-          }}
-        >
-          <Settings size={18} />
-        </Link>
       </div>
 
       <div style={{ padding: "20px 16px", display: "flex", flexDirection: "column", gap: 20 }}>
@@ -338,7 +315,6 @@ export function ProfileView({ data }: { data: ProfileData }) {
               flexDirection: "column",
               alignItems: "center",
               gap: 16,
-              borderBottom: `1.5px solid ${DARK}20`,
             }}
           >
             <Avatar url={firstPhoto} name={displayName} />
@@ -355,31 +331,15 @@ export function ProfileView({ data }: { data: ProfileData }) {
                 {displayName}
               </h2>
               {subtitle && (
-                <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>{subtitle}</p>
+                <p style={{ fontSize: 13, color: MUTED, margin: "0 0 8px" }}>{subtitle}</p>
+              )}
+              {profile?.bio && (
+                <p style={{ fontSize: 13, color: DARK, margin: 0, lineHeight: 1.5, maxWidth: 280 }}>
+                  {profile.bio}
+                </p>
               )}
             </div>
           </div>
-
-          {/* Edit profile button row */}
-          <Link
-            href="/onboarding"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              padding: "14px 20px",
-              textDecoration: "none",
-              color: ACCENT,
-              fontWeight: 700,
-              fontSize: 14,
-              fontFamily: SANS,
-            }}
-            className="active:opacity-70"
-          >
-            Edit Profile
-            <ChevronRight size={16} />
-          </Link>
         </Card>
 
         {/* Profile details */}
@@ -387,7 +347,15 @@ export function ProfileView({ data }: { data: ProfileData }) {
           <SectionLabel text="Profile" />
           <Card>
             <MenuRow
-              href="/onboarding"
+              href="/profile/edit/basics"
+              icon={<User size={18} />}
+              iconBg="#F0F3FF"
+              label="About me"
+              hint={[profile?.city, profile?.bio].filter(Boolean).join(" · ") || "Add name, city & bio"}
+            />
+            <Divider />
+            <MenuRow
+              href="/profile/edit/photos"
               icon={<Camera size={18} />}
               iconBg="#FFF3EE"
               label="My Photos"
@@ -395,7 +363,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
             />
             <Divider />
             <MenuRow
-              href="/onboarding"
+              href="/profile/edit/interests"
               icon={<Sparkles size={18} />}
               iconBg="#FFF8EE"
               label="Interests"
@@ -403,7 +371,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
             />
             <Divider />
             <MenuRow
-              href="/onboarding"
+              href="/profile/edit/looking-for"
               icon={<Heart size={18} />}
               iconBg="#FFF0EE"
               label="Looking for"
@@ -411,7 +379,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
             />
             <Divider />
             <MenuRow
-              href="/onboarding"
+              href="/profile/edit/height"
               icon={<Ruler size={18} />}
               iconBg="#F5F8EE"
               label="Height"
@@ -425,7 +393,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
           <SectionLabel text="Lifestyle" />
           <Card>
             <MenuRow
-              href="/onboarding"
+              href="/profile/edit/drinking"
               icon={<Wine size={18} />}
               iconBg="#FFF8EE"
               label="Drinking"
@@ -433,7 +401,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
             />
             <Divider />
             <MenuRow
-              href="/onboarding"
+              href="/profile/edit/religion"
               icon={<BookOpen size={18} />}
               iconBg="#FFF3EE"
               label="Religion"
@@ -441,23 +409,11 @@ export function ProfileView({ data }: { data: ProfileData }) {
             />
             <Divider />
             <MenuRow
-              href="/onboarding"
+              href="/profile/edit/family"
               icon={<Baby size={18} />}
               iconBg="#FFF0EE"
               label="Family plans"
               hint={kidsHave ?? "Not set"}
-            />
-          </Card>
-        </div>
-
-        {/* Settings */}
-        <div>
-          <SectionLabel text="App" />
-          <Card>
-            <MenuRow
-              icon={<Bell size={18} />}
-              iconBg="#F5F8EE"
-              label="Notifications"
             />
           </Card>
         </div>
@@ -470,6 +426,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
               icon={<HelpCircle size={18} />}
               iconBg="#FFF3EE"
               label="Help &amp; Support"
+              onClick={() => window.open("https://wa.me/919703177577", "_blank")}
             />
             <Divider />
             <MenuRow

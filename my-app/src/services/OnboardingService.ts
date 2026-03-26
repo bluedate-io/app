@@ -315,7 +315,7 @@ export class OnboardingService {
 
     if (error) {
       log.error("Supabase photo upload failed", { userId, error: error.message });
-      throw new BadRequestError("Photo upload failed. Please try again.");
+      throw new BadRequestError(`Photo upload failed: ${error.message}`);
     }
 
     const { data: publicUrlData } = storage
