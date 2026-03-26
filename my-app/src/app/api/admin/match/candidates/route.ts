@@ -31,6 +31,34 @@ function parseCsv(raw: string | null): string[] {
   return raw.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
+function normalizeGender(v: string): "Woman" | "Man" | "Nonbinary" | null {
+  const s = v.trim().toLowerCase();
+  if (s === "woman" || s === "women") return "Woman";
+  if (s === "man" || s === "men") return "Man";
+  if (s === "nonbinary" || s === "non-binary" || s === "nb") return "Nonbinary";
+  return null;
+}
+
+function expandGenderValues(list: string[]): string[] {
+  const out: string[] = [];
+  for (const raw of list) {
+    const g = normalizeGender(raw);
+    if (!g) continue;
+    if (g === "Woman") out.push("Woman", "woman", "Women", "women");
+    if (g === "Man") out.push("Man", "man", "Men", "men");
+    if (g === "Nonbinary") out.push("Nonbinary", "nonbinary", "Non-binary", "non-binary");
+  }
+  return Array.from(new Set(out));
+}
+
+function emailDomain(email?: string | null): string | null {
+  if (!email) return null;
+  const at = email.lastIndexOf("@");
+  if (at <= -1) return null;
+  const domain = email.slice(at + 1).trim().toLowerCase();
+  return domain ? domain : null;
+}
+
 export async function GET(req: NextRequest) {
   if (!getAdminId(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -57,8 +85,16 @@ export async function GET(req: NextRequest) {
   const userAGender = userA.preferences?.genderIdentity ?? null;
   const userACity = userA.profile?.city ?? null;
 
+  if (!userAGender) {
+    return NextResponse.json(
+      { error: "User A must have genderIdentity to find opposite-gender candidates" },
+      { status: 400 },
+    );
+  }
+
   const cities = parseCsv(sp.get("city"));
   const colleges = parseCsv(sp.get("college"));
+  const genderFilterRaw = parseCsv(sp.get("gender"));
   const ageMin = parseInt(sp.get("ageMin") ?? "", 10);
   const ageMax = parseInt(sp.get("ageMax") ?? "", 10);
 
@@ -70,22 +106,121 @@ export async function GET(req: NextRequest) {
     { optInStatus: { in: ["opted_in", "opted_in_late"] } },
   ];
 
-  // Must be opposite gender
-  if (userAGender) {
-    and.push({ preferences: { is: { genderIdentity: { not: userAGender } } } });
+  // Gender filtering:
+  // - If admin provided `gender` filter, use it (override opposite-gender rule).
+  // - Otherwise, default to opposite gender of User A.
+  if (genderFilterRaw.length > 0) {
+    const allowed = expandGenderValues(genderFilterRaw);
+    if (allowed.length === 0) {
+      return NextResponse.json({ error: "Invalid gender filter" }, { status: 400 });
+    }
+    and.push({ preferences: { is: { genderIdentity: { in: allowed } } } });
+  } else {
+    const aGenderNorm = String(userAGender).trim().toLowerCase();
+    const oppositeGenderValues =
+      aGenderNorm === "man"
+        ? ["Woman", "woman", "Women", "women"]
+        : aGenderNorm === "woman"
+          ? ["Man", "man", "Men", "men"]
+          : [];
+    if (oppositeGenderValues.length === 0) {
+      return NextResponse.json(
+        { error: `Unsupported genderIdentity for opposite-gender matching: ${userAGender}` },
+        { status: 400 },
+      );
+    }
+    and.push({ preferences: { is: { genderIdentity: { in: oppositeGenderValues } } } });
   }
 
   if (cities.length > 0) and.push({ profile: { is: { city: { in: cities } } } });
-  if (colleges.length > 0) and.push({ collegeName: { in: colleges } });
+  if (colleges.length > 0) {
+    const domains = await db.collegeDomain.findMany({
+      where: { collegeName: { in: colleges } },
+      select: { domain: true },
+    });
+    const domainOr: Prisma.UserWhereInput[] = domains
+      .map((d) => (d.domain ? d.domain.trim().toLowerCase() : ""))
+      .filter(Boolean)
+      .map((d) => ({ email: { endsWith: `@${d}` } }));
+
+    // College filtering is based only on email-domain mapping.
+    and.push(domainOr.length > 0 ? { OR: domainOr } : { id: { equals: "__no_match__" } });
+  }
   if (!isNaN(ageMin)) and.push({ profile: { is: { age: { gte: ageMin } } } });
   if (!isNaN(ageMax)) and.push({ profile: { is: { age: { lte: ageMax } } } });
+
+  const collegeDomains = await db.collegeDomain.findMany({
+    select: { domain: true, collegeName: true },
+  });
+  const collegeByDomain = new Map<string, string>();
+  for (const cd of collegeDomains) {
+    const d = cd.domain?.trim().toLowerCase();
+    if (!d) continue;
+    collegeByDomain.set(d, cd.collegeName);
+  }
 
   const candidates = await db.user.findMany({
     where: { AND: and },
     include: {
-      profile: { select: { fullName: true, age: true, city: true, bio: true } },
-      preferences: { select: { genderIdentity: true } },
-      aiSignals: { select: { selfDescription: true, idealPartner: true } },
+      profile: {
+        select: {
+          fullName: true,
+          nickname: true,
+          dateOfBirth: true,
+          age: true,
+          city: true,
+          bio: true,
+        },
+      },
+      preferences: {
+        select: {
+          genderIdentity: true,
+          genderPreference: true,
+          ageRangeMin: true,
+          ageRangeMax: true,
+          relationshipIntent: true,
+          relationshipGoals: true,
+          heightCm: true,
+          heightCompleted: true,
+          wantDate: true,
+          datingModeCompleted: true,
+          photosStepCompleted: true,
+        },
+      },
+      interests: {
+        select: {
+          hobbies: true,
+          favouriteActivities: true,
+          musicTaste: true,
+          foodTaste: true,
+          bffInterests: true,
+          bffInterestsCompleted: true,
+        },
+      },
+      personality: {
+        select: {
+          socialLevel: true,
+          conversationStyle: true,
+          funFact: true,
+          kidsStatus: true,
+          kidsPreference: true,
+          religion: true,
+          politics: true,
+          importantLifeCompleted: true,
+          familyPlansCompleted: true,
+          lifeExperiences: true,
+          lifeExperiencesCompleted: true,
+          relationshipStatus: true,
+          relationshipStatusCompleted: true,
+        },
+      },
+      availability: { select: { days: true, times: true } },
+      aiSignals: { select: { selfDescription: true, idealPartner: true, idealDate: true } },
+      weeklyOptIns: {
+        select: { weekStart: true, mode: true, description: true, createdAt: true },
+        orderBy: { weekStart: "desc" },
+        take: 3,
+      },
       photos: { select: { url: true }, orderBy: { order: "asc" }, take: 1 },
     },
   });
@@ -119,17 +254,60 @@ export async function GET(req: NextRequest) {
     return 0;
   });
 
-  const result = filtered.map((c) => ({
-    id: c.id,
-    name: c.profile?.fullName ?? "—",
-    age: c.profile?.age ?? null,
-    city: c.profile?.city ?? null,
-    college: c.collegeName ?? null,
-    gender: c.preferences?.genderIdentity ?? null,
-    selfDescription: c.aiSignals?.selfDescription ?? c.profile?.bio ?? null,
-    idealPartner: c.aiSignals?.idealPartner ?? null,
-    photoUrl: c.photos[0]?.url ?? null,
-  }));
+  const result = filtered.map((c) => {
+    const derivedCollege = c.email ? collegeByDomain.get(emailDomain(c.email) ?? "") ?? null : null;
+
+    return {
+      id: c.id,
+      name: c.profile?.fullName ?? "—",
+      age: c.profile?.age ?? null,
+      city: c.profile?.city ?? null,
+      college: derivedCollege,
+      gender: c.preferences?.genderIdentity ?? null,
+      selfDescription: c.aiSignals?.selfDescription ?? c.profile?.bio ?? null,
+      idealPartner: c.aiSignals?.idealPartner ?? null,
+      nickname: c.profile?.nickname ?? null,
+      dateOfBirth: c.profile?.dateOfBirth ?? null,
+      bio: c.profile?.bio ?? null,
+      onboardingCompleted: c.onboardingCompleted,
+      optInStatus: c.optInStatus,
+      optedInAt: c.optedInAt ?? null,
+      genderPreference: c.preferences?.genderPreference ?? [],
+      ageRangeMin: c.preferences?.ageRangeMin ?? null,
+      ageRangeMax: c.preferences?.ageRangeMax ?? null,
+      relationshipIntent: c.preferences?.relationshipIntent ?? null,
+      relationshipGoals: c.preferences?.relationshipGoals ?? [],
+      heightCm: c.preferences?.heightCm ?? null,
+      heightCompleted: c.preferences?.heightCompleted ?? false,
+      wantDate: c.preferences?.wantDate ?? null,
+      datingModeCompleted: c.preferences?.datingModeCompleted ?? false,
+      photosStepCompleted: c.preferences?.photosStepCompleted ?? false,
+      hobbies: c.interests?.hobbies ?? [],
+      favouriteActivities: c.interests?.favouriteActivities ?? [],
+      musicTaste: c.interests?.musicTaste ?? [],
+      foodTaste: c.interests?.foodTaste ?? [],
+      bffInterests: c.interests?.bffInterests ?? [],
+      bffInterestsCompleted: c.interests?.bffInterestsCompleted ?? false,
+      socialLevel: c.personality?.socialLevel ?? null,
+      conversationStyle: c.personality?.conversationStyle ?? null,
+      funFact: c.personality?.funFact ?? null,
+      kidsStatus: c.personality?.kidsStatus ?? null,
+      kidsPreference: c.personality?.kidsPreference ?? null,
+      religion: c.personality?.religion ?? [],
+      politics: c.personality?.politics ?? [],
+      importantLifeCompleted: c.personality?.importantLifeCompleted ?? false,
+      familyPlansCompleted: c.personality?.familyPlansCompleted ?? false,
+      lifeExperiences: c.personality?.lifeExperiences ?? [],
+      lifeExperiencesCompleted: c.personality?.lifeExperiencesCompleted ?? false,
+      relationshipStatus: c.personality?.relationshipStatus ?? null,
+      relationshipStatusCompleted: c.personality?.relationshipStatusCompleted ?? false,
+      availabilityDays: c.availability?.days ?? [],
+      availabilityTimes: c.availability?.times ?? [],
+      idealDate: c.aiSignals?.idealDate ?? null,
+      weeklyOptIns: c.weeklyOptIns,
+      photoUrl: c.photos[0]?.url ?? null,
+    };
+  });
 
   return NextResponse.json({ data: result });
 }

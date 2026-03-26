@@ -32,6 +32,14 @@ function parseCsv(raw: string | null): string[] {
   return raw.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
+function emailDomain(email?: string | null): string | null {
+  if (!email) return null;
+  const at = email.lastIndexOf("@");
+  if (at <= -1) return null;
+  const domain = email.slice(at + 1).trim().toLowerCase();
+  return domain ? domain : null;
+}
+
 export async function GET(req: NextRequest) {
   if (!getAdminId(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -52,17 +60,100 @@ export async function GET(req: NextRequest) {
   ];
 
   if (cities.length > 0) baseAnd.push({ profile: { is: { city: { in: cities } } } });
-  if (colleges.length > 0) baseAnd.push({ collegeName: { in: colleges } });
+
+  // College filter can match either:
+  // - User.collegeName (already stored), OR
+  // - User.email domain mapped via college_domains
+  if (colleges.length > 0) {
+    const domains = await db.collegeDomain.findMany({
+      where: { collegeName: { in: colleges } },
+      select: { domain: true },
+    });
+    const domainOr: Prisma.UserWhereInput[] = domains
+      .map((d) => (d.domain ? d.domain.trim().toLowerCase() : ""))
+      .filter(Boolean)
+      .map((d) => ({ email: { endsWith: `@${d}` } }));
+
+    // College filtering is based only on email-domain mapping.
+    baseAnd.push(domainOr.length > 0 ? { OR: domainOr } : { id: { equals: "__no_match__" } });
+  }
   if (!isNaN(ageMin)) baseAnd.push({ profile: { is: { age: { gte: ageMin } } } });
   if (!isNaN(ageMax)) baseAnd.push({ profile: { is: { age: { lte: ageMax } } } });
+
+  // Preload college domain map so `college` always resolves correctly.
+  const collegeDomains = await db.collegeDomain.findMany({
+    select: { domain: true, collegeName: true },
+  });
+  const collegeByDomain = new Map<string, string>();
+  for (const cd of collegeDomains) {
+    const d = cd.domain?.trim().toLowerCase();
+    if (!d) continue;
+    collegeByDomain.set(d, cd.collegeName);
+  }
 
   // Fetch all opted-in users matching the base filters (both genders)
   const allUsers = await db.user.findMany({
     where: { AND: baseAnd },
     include: {
-      profile: { select: { fullName: true, age: true, city: true, bio: true } },
-      preferences: { select: { genderIdentity: true } },
-      aiSignals: { select: { selfDescription: true, idealPartner: true } },
+      profile: {
+        select: {
+          fullName: true,
+          nickname: true,
+          dateOfBirth: true,
+          age: true,
+          city: true,
+          bio: true,
+        },
+      },
+      preferences: {
+        select: {
+          genderIdentity: true,
+          genderPreference: true,
+          ageRangeMin: true,
+          ageRangeMax: true,
+          relationshipIntent: true,
+          relationshipGoals: true,
+          heightCm: true,
+          heightCompleted: true,
+          wantDate: true,
+          datingModeCompleted: true,
+          photosStepCompleted: true,
+        },
+      },
+      interests: {
+        select: {
+          hobbies: true,
+          favouriteActivities: true,
+          musicTaste: true,
+          foodTaste: true,
+          bffInterests: true,
+          bffInterestsCompleted: true,
+        },
+      },
+      personality: {
+        select: {
+          socialLevel: true,
+          conversationStyle: true,
+          funFact: true,
+          kidsStatus: true,
+          kidsPreference: true,
+          religion: true,
+          politics: true,
+          importantLifeCompleted: true,
+          familyPlansCompleted: true,
+          lifeExperiences: true,
+          lifeExperiencesCompleted: true,
+          relationshipStatus: true,
+          relationshipStatusCompleted: true,
+        },
+      },
+      availability: { select: { days: true, times: true } },
+      aiSignals: { select: { selfDescription: true, idealPartner: true, idealDate: true } },
+      weeklyOptIns: {
+        select: { weekStart: true, mode: true, description: true, createdAt: true },
+        orderBy: { weekStart: "desc" },
+        take: 3,
+      },
       photos: { select: { url: true }, orderBy: { order: "asc" }, take: 1 },
     },
   });
@@ -86,11 +177,13 @@ export async function GET(req: NextRequest) {
   }
 
   // Split by pool gender filter
+  const norm = (v: string | null | undefined) => (v ?? "").trim().toLowerCase();
+  const gNorm = norm(gender);
   const poolUsers = gender
-    ? allUsers.filter((u) => u.preferences?.genderIdentity === gender)
+    ? allUsers.filter((u) => norm(u.preferences?.genderIdentity) === gNorm)
     : allUsers;
   const oppositeUsers = gender
-    ? allUsers.filter((u) => u.preferences?.genderIdentity !== gender)
+    ? allUsers.filter((u) => norm(u.preferences?.genderIdentity) !== gNorm)
     : allUsers;
 
   const result = poolUsers.map((u) => {
@@ -99,15 +192,56 @@ export async function GET(req: NextRequest) {
       (c) => c.id !== u.id && !alreadyMatched.has(c.id),
     ).length;
 
+    const derivedCollege = u.email ? collegeByDomain.get(emailDomain(u.email) ?? "") ?? null : null;
+
     return {
       id: u.id,
       name: u.profile?.fullName ?? "—",
       age: u.profile?.age ?? null,
       city: u.profile?.city ?? null,
-      college: u.collegeName ?? null,
+      college: derivedCollege,
       gender: u.preferences?.genderIdentity ?? null,
       selfDescription: u.aiSignals?.selfDescription ?? u.profile?.bio ?? null,
       idealPartner: u.aiSignals?.idealPartner ?? null,
+      nickname: u.profile?.nickname ?? null,
+      dateOfBirth: u.profile?.dateOfBirth ?? null,
+      bio: u.profile?.bio ?? null,
+      onboardingCompleted: u.onboardingCompleted,
+      optInStatus: u.optInStatus,
+      optedInAt: u.optedInAt ?? null,
+      genderPreference: u.preferences?.genderPreference ?? [],
+      ageRangeMin: u.preferences?.ageRangeMin ?? null,
+      ageRangeMax: u.preferences?.ageRangeMax ?? null,
+      relationshipIntent: u.preferences?.relationshipIntent ?? null,
+      relationshipGoals: u.preferences?.relationshipGoals ?? [],
+      heightCm: u.preferences?.heightCm ?? null,
+      heightCompleted: u.preferences?.heightCompleted ?? false,
+      wantDate: u.preferences?.wantDate ?? null,
+      datingModeCompleted: u.preferences?.datingModeCompleted ?? false,
+      photosStepCompleted: u.preferences?.photosStepCompleted ?? false,
+      hobbies: u.interests?.hobbies ?? [],
+      favouriteActivities: u.interests?.favouriteActivities ?? [],
+      musicTaste: u.interests?.musicTaste ?? [],
+      foodTaste: u.interests?.foodTaste ?? [],
+      bffInterests: u.interests?.bffInterests ?? [],
+      bffInterestsCompleted: u.interests?.bffInterestsCompleted ?? false,
+      socialLevel: u.personality?.socialLevel ?? null,
+      conversationStyle: u.personality?.conversationStyle ?? null,
+      funFact: u.personality?.funFact ?? null,
+      kidsStatus: u.personality?.kidsStatus ?? null,
+      kidsPreference: u.personality?.kidsPreference ?? null,
+      religion: u.personality?.religion ?? [],
+      politics: u.personality?.politics ?? [],
+      importantLifeCompleted: u.personality?.importantLifeCompleted ?? false,
+      familyPlansCompleted: u.personality?.familyPlansCompleted ?? false,
+      lifeExperiences: u.personality?.lifeExperiences ?? [],
+      lifeExperiencesCompleted: u.personality?.lifeExperiencesCompleted ?? false,
+      relationshipStatus: u.personality?.relationshipStatus ?? null,
+      relationshipStatusCompleted: u.personality?.relationshipStatusCompleted ?? false,
+      availabilityDays: u.availability?.days ?? [],
+      availabilityTimes: u.availability?.times ?? [],
+      idealDate: u.aiSignals?.idealDate ?? null,
+      weeklyOptIns: u.weeklyOptIns,
       candidateCount,
       photoUrl: u.photos[0]?.url ?? null,
     };
