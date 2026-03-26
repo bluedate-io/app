@@ -154,7 +154,11 @@ export async function GET(req: NextRequest) {
         orderBy: { weekStart: "desc" },
         take: 3,
       },
-      photos: { select: { url: true }, orderBy: { order: "asc" }, take: 1 },
+      photos: {
+        select: { url: true },
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+        take: 1,
+      },
     },
   });
 
