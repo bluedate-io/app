@@ -365,8 +365,8 @@ export class OnboardingRepository implements IOnboardingRepository {
     });
     return {
       id: r.id, userId: r.userId,
-      socialLevel: n(r.socialLevel),
-      conversationStyle: n(r.conversationStyle),
+      smokingHabit: n(r.smokingHabit),
+      drinkingHabit: n(r.drinkingHabit),
       funFact: n(r.funFact),
       kidsStatus: n(r.kidsStatus),
       kidsPreference: n(r.kidsPreference),
@@ -380,8 +380,8 @@ export class OnboardingRepository implements IOnboardingRepository {
       where: { userId },
       create: {
         userId,
-        socialLevel: "Not specified",
-        conversationStyle: "Not specified",
+        smokingHabit: "Not specified",
+        drinkingHabit: "Not specified",
         funFact: null,
         kidsStatus: data.kidsStatus ?? null,
         kidsPreference: data.kidsPreference ?? null,
@@ -396,8 +396,8 @@ export class OnboardingRepository implements IOnboardingRepository {
     return {
       id: r.id,
       userId: r.userId,
-      socialLevel: n(r.socialLevel),
-      conversationStyle: n(r.conversationStyle),
+      smokingHabit: n(r.smokingHabit),
+      drinkingHabit: n(r.drinkingHabit),
       funFact: n(r.funFact),
       kidsStatus: n(r.kidsStatus),
       kidsPreference: n(r.kidsPreference),
@@ -414,8 +414,8 @@ export class OnboardingRepository implements IOnboardingRepository {
       where: { userId },
       create: {
         userId,
-        socialLevel: "Not specified",
-        conversationStyle: "Not specified",
+        smokingHabit: "Not specified",
+        drinkingHabit: "Not specified",
         funFact: null,
         kidsStatus: null,
         kidsPreference: null,
@@ -432,8 +432,8 @@ export class OnboardingRepository implements IOnboardingRepository {
     return {
       id: r.id,
       userId: r.userId,
-      socialLevel: n(r.socialLevel),
-      conversationStyle: n(r.conversationStyle),
+      smokingHabit: n(r.smokingHabit),
+      drinkingHabit: n(r.drinkingHabit),
       funFact: n(r.funFact),
       kidsStatus: n(r.kidsStatus),
       kidsPreference: n(r.kidsPreference),
@@ -452,8 +452,8 @@ export class OnboardingRepository implements IOnboardingRepository {
       where: { userId },
       create: {
         userId,
-        socialLevel: "Not specified",
-        conversationStyle: "Not specified",
+        smokingHabit: "Not specified",
+        drinkingHabit: "Not specified",
         funFact: null,
         kidsStatus: null,
         kidsPreference: null,
@@ -470,8 +470,8 @@ export class OnboardingRepository implements IOnboardingRepository {
     return {
       id: r.id,
       userId: r.userId,
-      socialLevel: n(r.socialLevel),
-      conversationStyle: n(r.conversationStyle),
+      smokingHabit: n(r.smokingHabit),
+      drinkingHabit: n(r.drinkingHabit),
       funFact: n(r.funFact),
       kidsStatus: n(r.kidsStatus),
       kidsPreference: n(r.kidsPreference),
@@ -490,8 +490,8 @@ export class OnboardingRepository implements IOnboardingRepository {
       where: { userId },
       create: {
         userId,
-        socialLevel: "Not specified",
-        conversationStyle: "Not specified",
+        smokingHabit: "Not specified",
+        drinkingHabit: "Not specified",
         funFact: null,
         kidsStatus: null,
         kidsPreference: null,
@@ -512,8 +512,8 @@ export class OnboardingRepository implements IOnboardingRepository {
     return {
       id: r.id,
       userId: r.userId,
-      socialLevel: n(r.socialLevel),
-      conversationStyle: n(r.conversationStyle),
+      smokingHabit: n(r.smokingHabit),
+      drinkingHabit: n(r.drinkingHabit),
       funFact: n(r.funFact),
       kidsStatus: n(r.kidsStatus),
       kidsPreference: n(r.kidsPreference),

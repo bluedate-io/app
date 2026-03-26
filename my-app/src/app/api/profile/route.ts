@@ -31,8 +31,8 @@ export const GET = withAuth(async (_req: NextRequest, ctx) => {
     (db.personality as any).findUnique({
       where: { userId },
       select: {
-        socialLevel: true,
-        conversationStyle: true,
+        smokingHabit: true,
+        drinkingHabit: true,
         kidsStatus: true,
         kidsPreference: true,
         religion: true,
@@ -47,6 +47,18 @@ export const GET = withAuth(async (_req: NextRequest, ctx) => {
   ]);
 
   return NextResponse.json({
-    data: { profile, preferences, interests, personality, photos },
+    data: {
+      profile,
+      preferences,
+      interests,
+      personality: personality
+        ? {
+            ...personality,
+            smokingHabit: personality.smokingHabit ?? null,
+            drinkingHabit: personality.drinkingHabit ?? null,
+          }
+        : null,
+      photos,
+    },
   });
 });

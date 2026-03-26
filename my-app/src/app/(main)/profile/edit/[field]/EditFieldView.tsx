@@ -515,8 +515,8 @@ export function EditFieldView({ field, data }: { field: EditField; data: Profile
         )}
         {field === "drinking" && (
           <DrinkingEditor
-            initial={personality?.socialLevel ?? undefined}
-            onSave={socialLevel => post("/api/onboarding/personality", { socialLevel, conversationStyle: personality?.conversationStyle ?? "Casual" })}
+            initial={personality?.drinkingHabit ?? undefined}
+            onSave={drinkingHabit => post("/api/onboarding/personality", { drinkingHabit, smokingHabit: personality?.smokingHabit ?? "No, I don't smoke" })}
             loading={loading}
           />
         )}

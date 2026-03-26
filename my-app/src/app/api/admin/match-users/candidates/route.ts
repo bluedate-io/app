@@ -18,7 +18,7 @@ type UserRow = {
   id: string;
   profile: { fullName: string | null; age: number | null; city: string | null; bio: string | null } | null;
   preferences: { heightCm: number | null; relationshipIntent: string | null; ageRangeMin: number | null; ageRangeMax: number | null; genderPreference: string[] } | null;
-  personality: { religion: string[]; kidsPreference: string | null; kidsStatus: string | null; socialLevel: string | null; conversationStyle: string | null } | null;
+  personality: { religion: string[]; kidsPreference: string | null; kidsStatus: string | null; smokingHabit: string | null; drinkingHabit: string | null } | null;
   interests: { hobbies: string[]; favouriteActivities: string[] } | null;
   photos: { url: string }[];
 };
@@ -39,8 +39,8 @@ function shape(u: UserRow) {
     religion: u.personality?.religion ?? [],
     kidsStatus: u.personality?.kidsStatus ?? null,
     kidsPreference: u.personality?.kidsPreference ?? null,
-    socialLevel: u.personality?.socialLevel ?? null,
-    conversationStyle: u.personality?.conversationStyle ?? null,
+    smokingHabit: u.personality?.smokingHabit ?? null,
+    drinkingHabit: u.personality?.drinkingHabit ?? null,
     hobbies: u.interests?.hobbies ?? [],
     activities: u.interests?.favouriteActivities ?? [],
     bio: u.profile?.bio ?? null,
@@ -50,7 +50,7 @@ function shape(u: UserRow) {
 const include = {
   profile: { select: { fullName: true, age: true, city: true, bio: true } },
   preferences: { select: { heightCm: true, relationshipIntent: true, ageRangeMin: true, ageRangeMax: true, genderPreference: true } },
-  personality: { select: { religion: true, kidsPreference: true, kidsStatus: true, socialLevel: true, conversationStyle: true } },
+  personality: { select: { religion: true, kidsPreference: true, kidsStatus: true, smokingHabit: true, drinkingHabit: true } },
   interests: { select: { hobbies: true, favouriteActivities: true } },
   photos: { orderBy: { order: "asc" as const }, take: 1 },
 };

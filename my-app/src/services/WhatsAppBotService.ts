@@ -993,8 +993,8 @@ export class WhatsAppBotService {
 
     const userId = tempData.userId as string;
     await this.onboardingRepo.upsertPersonality(userId, {
-      socialLevel: tempData.drinking as string,
-      conversationStyle: smoking,
+      drinkingHabit: tempData.drinking as string,
+      smokingHabit: smoking,
     });
     await this.onboardingRepo.upsertAvailability(userId, {
       days: ["fri", "sat", "sun"],

@@ -1104,8 +1104,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
 
       if (subStep === 9) {
         await apiPost("personality", {
-          socialLevel: drinkingHabit || "Not specified",
-          conversationStyle: smokingHabit || "Not specified",
+          smokingHabit: smokingHabit || "Not specified",
+          drinkingHabit: drinkingHabit || "Not specified",
         });
         await apiPost("availability", { days: ["fri", "sat", "sun"], times: ["evening"] });
         setSubStep(11);
@@ -1157,7 +1157,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
         await apiPost("interests", { hobbies: ["Other"], favouriteActivities: [], musicTaste: [], foodTaste: [] });
       }
       if (subStep === 9) {
-        await apiPost("personality", { socialLevel: "Not specified", conversationStyle: "Not specified" });
+        await apiPost("personality", { smokingHabit: "Not specified", drinkingHabit: "Not specified" });
         await apiPost("availability", { days: ["fri", "sat", "sun"], times: ["evening"] });
         setSubStep(11);
         setLoading(false);

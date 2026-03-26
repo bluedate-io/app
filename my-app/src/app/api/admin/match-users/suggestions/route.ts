@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
               relationshipIntent: true,
             },
           },
-          personality: { select: { religion: true, socialLevel: true, conversationStyle: true, kidsStatus: true, kidsPreference: true } },
+          personality: { select: { religion: true, smokingHabit: true, drinkingHabit: true, kidsStatus: true, kidsPreference: true } },
           interests: { select: { hobbies: true, favouriteActivities: true } },
           photos: { orderBy: { order: "asc" }, take: 1, select: { url: true } },
         },
@@ -161,7 +161,7 @@ export async function GET(req: NextRequest) {
               relationshipIntent: true,
             },
           },
-          personality: { select: { religion: true, socialLevel: true, conversationStyle: true, kidsStatus: true, kidsPreference: true } },
+          personality: { select: { religion: true, smokingHabit: true, drinkingHabit: true, kidsStatus: true, kidsPreference: true } },
           interests: { select: { hobbies: true, favouriteActivities: true } },
           photos: { orderBy: { order: "asc" }, take: 1, select: { url: true } },
         },
@@ -234,13 +234,13 @@ export async function GET(req: NextRequest) {
     }
 
     // Social level
-    if (sel.personality?.socialLevel && c.personality?.socialLevel && sel.personality.socialLevel === c.personality.socialLevel) {
-      breakdown.push({ label: "Same social energy", pts: 5 });
+    if (sel.personality?.smokingHabit && c.personality?.smokingHabit && sel.personality.smokingHabit === c.personality.smokingHabit) {
+      breakdown.push({ label: "Same smoking habit", pts: 5 });
     }
 
     // Conversation style
-    if (sel.personality?.conversationStyle && c.personality?.conversationStyle && sel.personality.conversationStyle === c.personality.conversationStyle) {
-      breakdown.push({ label: "Same conversation style", pts: 5 });
+    if (sel.personality?.drinkingHabit && c.personality?.drinkingHabit && sel.personality.drinkingHabit === c.personality.drinkingHabit) {
+      breakdown.push({ label: "Same drinking habit", pts: 5 });
     }
 
     const score = breakdown.reduce((s, b) => s + b.pts, 0);
@@ -264,8 +264,8 @@ export async function GET(req: NextRequest) {
       religion: cRel,
       kidsStatus: c.personality?.kidsStatus ?? null,
       kidsPreference: c.personality?.kidsPreference ?? null,
-      socialLevel: c.personality?.socialLevel ?? null,
-      conversationStyle: c.personality?.conversationStyle ?? null,
+      smokingHabit: c.personality?.smokingHabit ?? null,
+      drinkingHabit: c.personality?.drinkingHabit ?? null,
       hobbies: cHobbies,
       activities: cActs,
       score,
@@ -286,7 +286,7 @@ function shapeSelected(userId: string, optIn: {
     collegeName: string | null;
     profile: { fullName: string | null; age: number | null; city: string | null; bio: string | null } | null;
     preferences: { genderIdentity: string | null; genderPreference: string[]; ageRangeMin: number | null; ageRangeMax: number | null; heightCm: number | null; relationshipIntent: string | null } | null;
-    personality: { religion: string[]; socialLevel: string | null; conversationStyle: string | null; kidsStatus: string | null; kidsPreference: string | null } | null;
+    personality: { religion: string[]; smokingHabit: string | null; drinkingHabit: string | null; kidsStatus: string | null; kidsPreference: string | null } | null;
     interests: { hobbies: string[]; favouriteActivities: string[] } | null;
     photos: { url: string }[];
   };
@@ -312,8 +312,8 @@ function shapeSelected(userId: string, optIn: {
     religion: u.personality?.religion ?? [],
     kidsStatus: u.personality?.kidsStatus ?? null,
     kidsPreference: u.personality?.kidsPreference ?? null,
-    socialLevel: u.personality?.socialLevel ?? null,
-    conversationStyle: u.personality?.conversationStyle ?? null,
+    smokingHabit: u.personality?.smokingHabit ?? null,
+    drinkingHabit: u.personality?.drinkingHabit ?? null,
     hobbies: u.interests?.hobbies ?? [],
     activities: u.interests?.favouriteActivities ?? [],
   };

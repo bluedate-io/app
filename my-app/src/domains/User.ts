@@ -55,8 +55,8 @@ export interface Interests {
 export interface Personality {
   id: string;
   userId: string;
-  socialLevel?: string;
-  conversationStyle?: string;
+  smokingHabit?: string;
+  drinkingHabit?: string;
   funFact?: string;
   kidsStatus?: string;
   kidsPreference?: string;

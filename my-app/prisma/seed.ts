@@ -103,8 +103,8 @@ function seedUserData(args: { idx: number; gender: SeedGender }) {
       bffInterestsCompleted: true,
     },
     personality: {
-      socialLevel: idx % 2 === 0 ? "extrovert" : "introvert",
-      conversationStyle: idx % 2 === 0 ? "playful" : "thoughtful",
+      smokingHabit: idx % 2 === 0 ? "No, I don't smoke" : "I smoke sometimes",
+      drinkingHabit: idx % 2 === 0 ? "I drink sometimes" : "No, I don't drink",
       funFact: idx % 2 === 0 ? "I can solve a Rubik’s cube." : "I make great chai.",
       kidsStatus: "no_kids",
       kidsPreference: "someday",

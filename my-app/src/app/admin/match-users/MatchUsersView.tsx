@@ -27,8 +27,8 @@ type Candidate = OptedInUser & {
   religion: string[];
   kidsStatus: string | null;
   kidsPreference: string | null;
-  socialLevel: string | null;
-  conversationStyle: string | null;
+  smokingHabit: string | null;
+  drinkingHabit: string | null;
   hobbies: string[];
   activities: string[];
   score: number;
@@ -44,8 +44,8 @@ type SelectedUser = OptedInUser & {
   religion: string[];
   kidsStatus: string | null;
   kidsPreference: string | null;
-  socialLevel: string | null;
-  conversationStyle: string | null;
+  smokingHabit: string | null;
+  drinkingHabit: string | null;
   hobbies: string[];
   activities: string[];
 };
@@ -458,8 +458,8 @@ function FullProfileCard({
           <InfoRow label="Religion"      value={user.religion.length ? user.religion.join(", ") : null} />
           <InfoRow label="Has kids"      value={user.kidsStatus} />
           <InfoRow label="Wants kids"    value={user.kidsPreference} />
-          <InfoRow label="Social"        value={user.socialLevel} />
-          <InfoRow label="Convo style"   value={user.conversationStyle} />
+          <InfoRow label="Smoking habit" value={user.smokingHabit} />
+          <InfoRow label="Drinking habit" value={user.drinkingHabit} />
         </div>
 
         {user.hobbies.length > 0 && (

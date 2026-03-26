@@ -59,8 +59,8 @@ type DetailPayload = {
   interests: string[];
   lookingFor: string | null;
   heightCm: number | null;
-  drinking: string | null;
-  smoking: string | null;
+  smokingHabit: string | null;
+  drinkingHabit: string | null;
   religion: string | null;
   familyPlans: string | null;
   kidsPreference: string | null;
@@ -279,8 +279,8 @@ function UserDetailSheet({
               <p className="text-[10px] font-bold uppercase tracking-wide mt-6 mb-2" style={{ color: "#9B87B0" }}>
                 Lifestyle
               </p>
-              <DetailRow label="Drinking" value={data.drinking ?? null} />
-              <DetailRow label="Smoking" value={data.smoking ?? null} />
+              <DetailRow label="Smoking habit" value={data.smokingHabit ?? null} />
+              <DetailRow label="Drinking habit" value={data.drinkingHabit ?? null} />
               <DetailRow label="Religion" value={data.religion ?? null} />
               <DetailRow label="Family plans" value={data.familyPlans ?? null} />
               <DetailRow label="Kids preference" value={data.kidsPreference ?? null} />
