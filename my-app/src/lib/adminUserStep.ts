@@ -53,6 +53,8 @@ export function adminUserOrderBy(sort: AdminUserSort) {
 
 export type AdminUsersFilterTab = "all" | "completed" | "incomplete";
 
+export type AdminOptInStatusFilter = "opted_in" | "opted_out" | "opted_in_late" | "all";
+
 export function buildAdminUsersHref(opts: {
   filter: AdminUsersFilterTab;
   page?: number;
@@ -61,6 +63,7 @@ export function buildAdminUsersHref(opts: {
   sort?: AdminUserSort;
   /** Case-insensitive match on email or profile full name */
   q?: string;
+  optInStatus?: AdminOptInStatusFilter;
 }): string {
   const p = new URLSearchParams();
   if (opts.filter !== "all") p.set("filter", opts.filter);
@@ -69,6 +72,7 @@ export function buildAdminUsersHref(opts: {
   if (opts.gendersCsv?.trim()) p.set("genders", opts.gendersCsv.trim());
   if (opts.sort && opts.sort !== "joined_desc") p.set("sort", opts.sort);
   if (opts.q?.trim()) p.set("q", opts.q.trim());
+  if (opts.optInStatus && opts.optInStatus !== "all") p.set("optInStatus", opts.optInStatus);
   const qs = p.toString();
   return qs ? `/admin/users?${qs}` : "/admin/users";
 }

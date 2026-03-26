@@ -10,6 +10,7 @@ import {
   buildAdminUsersHref,
   computeAdminUserStep,
   parseAdminUserSort,
+  type AdminOptInStatusFilter,
   type AdminUserSort,
 } from "@/lib/adminUserStep";
 import UsersTable from "./UsersTable";
@@ -18,6 +19,11 @@ import AdminShell from "../AdminShell";
 const PAGE_SIZE = 20;
 
 type Filter = "all" | "completed" | "incomplete";
+
+function parseOptInStatus(raw: string | undefined): AdminOptInStatusFilter {
+  if (raw === "opted_in" || raw === "opted_out" || raw === "opted_in_late") return raw;
+  return "all";
+}
 
 function parseCsvLower(raw: string | undefined): string[] {
   if (!raw?.trim()) return [];
@@ -45,6 +51,7 @@ async function getUsers(
   activeGenders: (typeof ADMIN_GENDER_OPTIONS)[number][],
   sort: AdminUserSort,
   search: string,
+  optInStatus: AdminOptInStatusFilter,
 ) {
   const allowedSet = new Set(allowedDomains.map((d) => d.domain.toLowerCase()));
   const domainsFiltered = activeDomains.filter((d) => allowedSet.has(d));
@@ -66,6 +73,10 @@ async function getUsers(
     and.push({
       preferences: { is: { genderIdentity: { in: [...activeGenders] } } },
     });
+  }
+
+  if (optInStatus !== "all") {
+    and.push({ optInStatus });
   }
 
   const q = search.trim();
@@ -107,6 +118,7 @@ async function getUsers(
     gender: u.preferences?.genderIdentity ?? "—",
     step: computeAdminUserStep(u),
     completed: u.onboardingCompleted,
+    optInStatus: (u.optInStatus as string) ?? "opted_out",
     joinedAt: u.createdAt.toISOString(),
   }));
 
@@ -123,6 +135,7 @@ export default async function AdminUsersPage({
     genders?: string;
     sort?: string;
     q?: string;
+    optInStatus?: string;
   }>;
 }) {
   const cookieStore = await cookies();
@@ -140,6 +153,7 @@ export default async function AdminUsersPage({
     sp.filter === "completed" || sp.filter === "incomplete" ? sp.filter : "all";
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
   const sort = parseAdminUserSort(sp.sort);
+  const optInStatus = parseOptInStatus(sp.optInStatus);
 
   const [collegeDomains, rawDomainTokens] = await Promise.all([
     db.collegeDomain.findMany({ orderBy: { collegeName: "asc" } }),
@@ -165,6 +179,7 @@ export default async function AdminUsersPage({
     activeGenders,
     sort,
     appliedSearch,
+    optInStatus,
   );
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -176,6 +191,7 @@ export default async function AdminUsersPage({
       gendersCsv: gendersCsvForToolbar || undefined,
       sort,
       q: appliedSearch || undefined,
+      optInStatus,
     });
 
   /** Clears Email/Phone, Gender, and Step column filters; keeps onboarding tab; page 1. */
@@ -228,6 +244,7 @@ export default async function AdminUsersPage({
           initialDomainsCsv={domainsCsvForToolbar}
           initialGendersCsv={gendersCsvForToolbar}
           q={appliedSearch}
+          optInStatus={optInStatus}
           resetAllFiltersHref={resetAllColumnFiltersHref}
         />
       </div>
