@@ -263,17 +263,19 @@ const modeLine = state.mode === "bff" ? "BFF" : "Date";
               </p>
             </div>
 
-            <div>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
-                Describe your type <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span>
-              </label>
-              <TypeTextarea
-                value={description}
-                onChange={setDescription}
-                disabled={!windowOpen}
-                placeholder="e.g. someone outdoorsy who loves films…"
-              />
-            </div>
+            {!initial.description && (
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                  Describe your type <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+                </label>
+                <TypeTextarea
+                  value={description}
+                  onChange={setDescription}
+                  disabled={!windowOpen}
+                  placeholder="e.g. someone outdoorsy who loves films…"
+                />
+              </div>
+            )}
 
             <button
               onClick={handleOptIn}
