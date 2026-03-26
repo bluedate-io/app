@@ -19,7 +19,7 @@ export class CollegeDomainRepository implements ICollegeDomainRepository {
   constructor(private readonly db: PrismaClient) {}
 
   async findAll(): Promise<CollegeDomain[]> {
-    return this.db.collegeDomain.findMany({ orderBy: { createdAt: "asc" } });
+    return this.db.collegeDomain.findMany({ orderBy: { collegeName: "asc" } });
   }
 
   async findByCollegeName(collegeName: string): Promise<CollegeDomain | null> {
