@@ -127,6 +127,7 @@ model Preferences {
   id                  String   @id @default(cuid())
   userId              String   @unique
   genderIdentity      String?
+  genderUpdateCount   Int      @default(0)
   genderPreference    String[]
   ageRangeMin         Int?
   ageRangeMax         Int?

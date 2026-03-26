@@ -355,6 +355,14 @@ export function ProfileView({ data }: { data: ProfileData }) {
             />
             <Divider />
             <MenuRow
+              href="/profile/edit/gender"
+              icon={<User size={18} />}
+              iconBg="#FFF0EE"
+              label="Gender"
+              hint={preferences?.genderIdentity ?? "Not set"}
+            />
+            <Divider />
+            <MenuRow
               href="/profile/edit/photos"
               icon={<Camera size={18} />}
               iconBg="#FFF3EE"

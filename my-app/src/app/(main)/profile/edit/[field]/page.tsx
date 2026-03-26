@@ -11,6 +11,7 @@ const VALID_FIELDS = [
   "basics",
   "photos",
   "interests",
+  "gender",
   "looking-for",
   "height",
   "drinking",
@@ -50,6 +51,7 @@ export default async function EditFieldPage({
       where: { userId },
       select: {
         genderIdentity: true,
+        genderUpdateCount: true,
         genderPreference: true,
         ageRangeMin: true,
         ageRangeMax: true,

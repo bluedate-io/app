@@ -31,6 +31,7 @@ export interface Preferences {
   id: string;
   userId: string;
   genderIdentity?: string;
+  genderUpdateCount?: number;
   genderPreference: string[];
   ageRangeMin?: number;
   ageRangeMax?: number;

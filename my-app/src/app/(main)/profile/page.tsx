@@ -15,6 +15,7 @@ export interface ProfileData {
   } | null;
   preferences: {
     genderIdentity?: string;
+    genderUpdateCount?: number;
     genderPreference?: string[];
     ageRangeMin?: number;
     ageRangeMax?: number;
@@ -60,6 +61,7 @@ export default async function ProfilePage() {
       where: { userId },
       select: {
         genderIdentity: true,
+        genderUpdateCount: true,
         genderPreference: true,
         ageRangeMin: true,
         ageRangeMax: true,

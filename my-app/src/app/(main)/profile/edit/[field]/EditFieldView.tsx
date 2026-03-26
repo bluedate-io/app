@@ -21,6 +21,7 @@ const FIELD_TITLES: Record<EditField, string> = {
   basics: "Edit Profile",
   photos: "My Photos",
   interests: "Interests",
+  gender: "Gender",
   "looking-for": "Looking For",
   height: "Height",
   drinking: "Drinking",
@@ -64,6 +65,8 @@ const HOBBY_OPTIONS = [
   "Fashion", "Tech", "Nature", "Meditation", "DIY",
 ];
 
+const GENDER_OPTIONS = ["Woman", "Man", "Nonbinary"];
+
 // ─── Shared components ────────────────────────────────────────────────────────
 
 function Header({ title, onBack }: { title: string; onBack: () => void }) {
@@ -97,19 +100,20 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
   );
 }
 
-function SaveBtn({ loading, onClick }: { loading: boolean; onClick: () => void }) {
+function SaveBtn({ loading, onClick, disabled }: { loading: boolean; onClick: () => void; disabled?: boolean }) {
+  const isDisabled = loading || !!disabled;
   return (
     <div style={{ padding: "16px 20px 32px" }}>
       <button
         onClick={onClick}
-        disabled={loading}
+        disabled={isDisabled}
         style={{
           width: "100%", padding: "16px",
-          background: loading ? `${DARK}80` : DARK,
+          background: isDisabled ? `${DARK}80` : DARK,
           color: BG, fontFamily: SANS, fontSize: 15, fontWeight: 700,
           border: `2.5px solid ${DARK}`, borderRadius: 14,
-          boxShadow: loading ? "none" : `4px 4px 0 ${ACCENT}`,
-          cursor: loading ? "not-allowed" : "pointer",
+          boxShadow: isDisabled ? "none" : `4px 4px 0 ${ACCENT}`,
+          cursor: isDisabled ? "not-allowed" : "pointer",
           transition: "all 0.15s",
           letterSpacing: 0.2,
         }}
@@ -175,15 +179,41 @@ function OptionRow({
 // ─── Field editors ────────────────────────────────────────────────────────────
 
 function BasicsEditor({
-  initialName, initialCity, initialBio, initialDob, onSave, loading,
+  initialName, initialCity, initialBio, initialDob, onSave, loading, errorMessage,
 }: {
   initialName?: string; initialCity?: string; initialBio?: string;
-  initialDob?: string; onSave: (v: { fullName: string; city: string; bio: string; dateOfBirth: string }) => void;
+  initialDob?: string | Date | null; onSave: (v: { fullName: string; city: string; bio: string; dateOfBirth: string }) => void;
   loading: boolean;
+  errorMessage?: string | null;
 }) {
   const [name, setName] = useState(initialName ?? "");
   const [city, setCity] = useState(initialCity ?? "");
   const [bio, setBio] = useState(initialBio ?? "");
+  const [cityError, setCityError] = useState<string | null>(null);
+
+  function formatDateOfBirth(value: string | Date | null | undefined): string {
+    if (!value) return "";
+    if (typeof value === "string") return value.slice(0, 10);
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+      return value.toISOString().slice(0, 10);
+    }
+    return "";
+  }
+
+  function handleSave() {
+    const trimmedCity = city.trim();
+    if (trimmedCity.length < 2) {
+      setCityError("City is required (at least 2 characters).");
+      return;
+    }
+    setCityError(null);
+    onSave({
+      fullName: name,
+      city: trimmedCity,
+      bio,
+      dateOfBirth: formatDateOfBirth(initialDob),
+    });
+  }
 
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "12px 14px", fontSize: 15, fontWeight: 500,
@@ -201,7 +231,22 @@ function BasicsEditor({
         </div>
         <div>
           <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 8px", fontFamily: SANS }}>City</p>
-          <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="Where do you live?" maxLength={80} style={inputStyle} />
+          <input
+            type="text"
+            value={city}
+            onChange={e => {
+              setCity(e.target.value);
+              if (cityError) setCityError(null);
+            }}
+            placeholder="Where do you live?"
+            maxLength={80}
+            style={inputStyle}
+          />
+          {cityError && (
+            <p style={{ fontSize: 12, color: "#B33A1B", margin: "6px 2px 0", fontFamily: SANS }}>
+              {cityError}
+            </p>
+          )}
         </div>
         <div>
           <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 8px", fontFamily: SANS }}>Bio</p>
@@ -210,7 +255,12 @@ function BasicsEditor({
           <p style={{ fontSize: 11, color: MUTED, margin: "4px 0 0", textAlign: "right", fontFamily: SANS }}>{bio.length}/500</p>
         </div>
       </div>
-      <SaveBtn loading={loading} onClick={() => onSave({ fullName: name, city, bio, dateOfBirth: (initialDob ?? "").slice(0, 10) })} />
+      {errorMessage && (
+        <p style={{ fontSize: 12, color: "#B33A1B", margin: "4px 22px 0", fontFamily: SANS }}>
+          {errorMessage}
+        </p>
+      )}
+      <SaveBtn loading={loading} onClick={handleSave} />
     </>
   );
 }
@@ -248,6 +298,68 @@ function LookingForEditor({ initial, onSave, loading }: { initial: string[]; onS
         ))}
       </div>
       <SaveBtn loading={loading} onClick={() => onSave(selected)} />
+    </>
+  );
+}
+
+function GenderEditor({
+  initial,
+  genderUpdateCount,
+  onSave,
+  loading,
+  errorMessage,
+}: {
+  initial?: string;
+  genderUpdateCount?: number;
+  onSave: (v: string) => void;
+  loading: boolean;
+  errorMessage?: string | null;
+}) {
+  const [selected, setSelected] = useState(initial ?? "");
+  const count = genderUpdateCount ?? 0;
+  const remaining = Math.max(0, 2 - count);
+  const isLocked = count >= 2;
+  const lockMessage = "You updated gender too many times, please contact admin to change the gender.";
+
+  function handleSave() {
+    if (isLocked || !selected) return;
+    onSave(selected);
+  }
+
+  return (
+    <>
+      <div style={{ padding: "16px 20px 8px" }}>
+        <p style={{ fontSize: 13, color: MUTED, margin: "0 0 14px" }}>
+          Choose the gender that best describes you.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {GENDER_OPTIONS.map((option) => (
+            <OptionRow
+              key={option}
+              label={option}
+              selected={selected === option}
+              onSelect={() => {
+                if (!isLocked) setSelected(option);
+              }}
+            />
+          ))}
+        </div>
+      </div>
+      {isLocked ? (
+        <p style={{ fontSize: 12, color: "#B33A1B", margin: "4px 22px 0", fontFamily: SANS }}>
+          {lockMessage}
+        </p>
+      ) : (
+        <p style={{ fontSize: 12, color: MUTED, margin: "4px 22px 0", fontFamily: SANS }}>
+          You can update gender {remaining} more time{remaining === 1 ? "" : "s"}.
+        </p>
+      )}
+      {errorMessage && (
+        <p style={{ fontSize: 12, color: "#B33A1B", margin: "6px 22px 0", fontFamily: SANS }}>
+          {errorMessage}
+        </p>
+      )}
+      <SaveBtn loading={loading} disabled={isLocked || !selected} onClick={handleSave} />
     </>
   );
 }
@@ -446,9 +558,11 @@ export function EditFieldView({ field, data }: { field: EditField; data: Profile
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function post(url: string, body: Record<string, unknown>) {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch(url, {
         method: "POST",
@@ -458,7 +572,21 @@ export function EditFieldView({ field, data }: { field: EditField; data: Profile
       if (res.ok) {
         setSaved(true);
         setTimeout(() => router.push("/profile"), 700);
+        return;
       }
+
+      let message = "Couldn't save changes. Please check your inputs.";
+      try {
+        const json = await res.json();
+        if (typeof json?.error?.message === "string" && json.error.message.trim()) {
+          message = json.error.message;
+        } else if (typeof json?.message === "string" && json.message.trim()) {
+          message = json.message;
+        }
+      } catch {
+        // ignore parse errors and keep fallback message
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -490,6 +618,7 @@ export function EditFieldView({ field, data }: { field: EditField; data: Profile
             initialDob={data.profile?.dateOfBirth}
             onSave={v => post("/api/onboarding/profile", v)}
             loading={loading}
+            errorMessage={error}
           />
         )}
         {field === "interests" && (
@@ -497,6 +626,15 @@ export function EditFieldView({ field, data }: { field: EditField; data: Profile
             initial={interests?.hobbies?.filter(h => h && h !== "Not specified") ?? []}
             onSave={hobbies => post("/api/onboarding/interests", { hobbies, favouriteActivities: interests?.favouriteActivities ?? [] })}
             loading={loading}
+          />
+        )}
+        {field === "gender" && (
+          <GenderEditor
+            initial={preferences?.genderIdentity ?? undefined}
+            genderUpdateCount={preferences?.genderUpdateCount ?? 0}
+            onSave={genderIdentity => post("/api/onboarding/gender", { genderIdentity })}
+            loading={loading}
+            errorMessage={error}
           />
         )}
         {field === "looking-for" && (

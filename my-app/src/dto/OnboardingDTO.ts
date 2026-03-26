@@ -22,11 +22,13 @@ export interface ProfileResponseDTO {
 export interface GenderResponseDTO {
   id: string;
   genderIdentity: string;
+  genderUpdateCount?: number;
 }
 
 export interface PreferencesResponseDTO {
   id: string;
   genderIdentity?: string;
+  genderUpdateCount?: number;
   genderPreference: string[];
   ageRangeMin?: number;
   ageRangeMax?: number;
@@ -88,11 +90,13 @@ export const toProfileDTO = (p: Profile): ProfileResponseDTO => ({
 export const toGenderDTO = (p: Preferences): GenderResponseDTO => ({
   id: p.id,
   genderIdentity: p.genderIdentity ?? "",
+  genderUpdateCount: p.genderUpdateCount,
 });
 
 export const toPreferencesDTO = (p: Preferences): PreferencesResponseDTO => ({
   id: p.id,
   genderIdentity: p.genderIdentity,
+  genderUpdateCount: p.genderUpdateCount,
   genderPreference: p.genderPreference,
   ageRangeMin: p.ageRangeMin,
   ageRangeMax: p.ageRangeMax,
