@@ -24,6 +24,7 @@ import {
   ADMIN_GENDER_OPTIONS,
   buildAdminUsersHref,
   parseAdminUserSort,
+  type AdminOptInStatusFilter,
   type AdminUserSort,
   type AdminUsersFilterTab,
 } from "@/lib/adminUserStep";
@@ -37,6 +38,7 @@ type UserRow = {
   gender: string;
   step: string;
   completed: boolean;
+  optInStatus: string;
   joinedAt: string;
 };
 
@@ -113,6 +115,7 @@ function pageHref(
   gendersCsv: string,
   sort: AdminUserSort,
   q: string,
+  optInStatus: AdminOptInStatusFilter,
 ) {
   return buildAdminUsersHref({
     filter,
@@ -121,6 +124,7 @@ function pageHref(
     gendersCsv: gendersCsv.trim() || undefined,
     sort,
     q: q.trim() || undefined,
+    optInStatus,
   });
 }
 
@@ -327,6 +331,7 @@ export default function UsersTable({
   initialDomainsCsv,
   initialGendersCsv,
   q,
+  optInStatus,
   resetAllFiltersHref,
 }: {
   users: UserRow[];
@@ -341,6 +346,7 @@ export default function UsersTable({
   initialGendersCsv: string;
   /** Applied URL search (name or email, case-insensitive) */
   q: string;
+  optInStatus: AdminOptInStatusFilter;
   resetAllFiltersHref: string;
 }) {
   const router = useRouter();
@@ -455,9 +461,24 @@ export default function UsersTable({
       gendersCsv: draftGendersCsv || undefined,
       sort: sortDraft,
       q: q.trim() || undefined,
+      optInStatus,
     });
     router.push(href);
     setOpenFilter(null);
+  }
+
+  function applyOptInStatus(value: AdminOptInStatusFilter) {
+    router.push(
+      buildAdminUsersHref({
+        filter,
+        page: 1,
+        domainsCsv: domainsCsv.trim() || undefined,
+        gendersCsv: gendersCsv.trim() || undefined,
+        sort: sortProp,
+        q: q.trim() || undefined,
+        optInStatus: value,
+      }),
+    );
   }
 
   function toggleDomain(domainLower: string) {
@@ -505,6 +526,7 @@ export default function UsersTable({
         gendersCsv: gendersCsv.trim() || undefined,
         sort: sortProp,
         q: q.trim() || undefined,
+        optInStatus,
       }),
     );
     setOpenFilter(null);
@@ -519,6 +541,7 @@ export default function UsersTable({
         gendersCsv: undefined,
         sort: sortProp,
         q: q.trim() || undefined,
+        optInStatus,
       }),
     );
     setOpenFilter(null);
@@ -533,6 +556,7 @@ export default function UsersTable({
         gendersCsv: gendersCsv.trim() || undefined,
         sort: "joined_desc",
         q: q.trim() || undefined,
+        optInStatus,
       }),
     );
     setOpenFilter(null);
@@ -547,6 +571,7 @@ export default function UsersTable({
         gendersCsv: gendersCsv.trim() || undefined,
         sort: sortProp,
         q: searchDraft.trim() || undefined,
+        optInStatus,
       }),
     );
   }
@@ -560,6 +585,7 @@ export default function UsersTable({
         domainsCsv: domainsCsv.trim() || undefined,
         gendersCsv: gendersCsv.trim() || undefined,
         sort: sortProp,
+        optInStatus,
       }),
     );
   }
@@ -645,6 +671,22 @@ export default function UsersTable({
             Search
           </button>
         </form>
+        <select
+          value={optInStatus}
+          onChange={(e) => applyOptInStatus(e.target.value as AdminOptInStatusFilter)}
+          aria-label="Filter by opt-in status"
+          className="shrink-0 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:border-violet-400 hover:bg-violet-50 cursor-pointer"
+          style={{
+            borderColor: optInStatus !== "all" ? "#6B2F7A" : "#C9B8D9",
+            color: optInStatus !== "all" ? "#6B2F7A" : "#6B5E7A",
+            backgroundColor: optInStatus !== "all" ? "#EDE8F7" : "#FAF5FC",
+          }}
+        >
+          <option value="all">Opt-in: All</option>
+          <option value="opted_in">Opted in</option>
+          <option value="opted_out">Opted out</option>
+          <option value="opted_in_late">Late</option>
+        </select>
         <a
           href={resetAllFiltersHref}
           className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-2 text-xs font-semibold transition-colors hover:border-violet-400 hover:bg-violet-50"
@@ -939,6 +981,9 @@ export default function UsersTable({
                 )}
               </th>
               <th className={plainThClass} style={{ color: HEADER_TEXT }}>
+                Opt-in
+              </th>
+              <th className={plainThClass} style={{ color: HEADER_TEXT }}>
                 Joined
               </th>
               <th className={`${plainThClass} w-12`} style={{ color: HEADER_TEXT }} aria-label="Actions" />
@@ -947,7 +992,7 @@ export default function UsersTable({
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-16 text-center text-sm" style={{ color: "#9B87B0" }}>
+                <td colSpan={8} className="px-4 py-16 text-center text-sm" style={{ color: "#9B87B0" }}>
                   No users found.
                 </td>
               </tr>
@@ -989,6 +1034,21 @@ export default function UsersTable({
                       {u.step}
                     </span>
                   </td>
+                  <td className="px-4 py-3">
+                    {u.optInStatus === "opted_in" ? (
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium" style={{ color: "#166534", backgroundColor: "#16653418" }}>
+                        Opted in
+                      </span>
+                    ) : u.optInStatus === "opted_in_late" ? (
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium" style={{ color: "#92400e", backgroundColor: "#92400e18" }}>
+                        Late
+                      </span>
+                    ) : (
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium" style={{ color: "#6b7280", backgroundColor: "#6b728018" }}>
+                        Opted out
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3" style={{ color: "#9B87B0" }}>
                     {formatDate(u.joinedAt)}
                   </td>
@@ -1021,7 +1081,7 @@ export default function UsersTable({
           <div className="flex gap-2">
             {page > 1 ? (
               <a
-                href={pageHref(page - 1, filter, domainsCsv, gendersCsv, sortProp, q)}
+                href={pageHref(page - 1, filter, domainsCsv, gendersCsv, sortProp, q, optInStatus)}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition"
                 style={{ borderColor: "#EDE8F7", color: "#6B5E7A", backgroundColor: "#fff" }}
               >
@@ -1038,7 +1098,7 @@ export default function UsersTable({
 
             {page < totalPages ? (
               <a
-                href={pageHref(page + 1, filter, domainsCsv, gendersCsv, sortProp, q)}
+                href={pageHref(page + 1, filter, domainsCsv, gendersCsv, sortProp, q, optInStatus)}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition"
                 style={{ borderColor: "#EDE8F7", color: "#6B5E7A", backgroundColor: "#fff" }}
               >
