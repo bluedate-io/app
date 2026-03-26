@@ -18,24 +18,25 @@ export default async function AdminMatchPage() {
     redirect("/admin/login");
   }
 
-  // Fetch distinct cities and colleges for filter dropdowns
-  const [profilesRaw, usersWithCollege] = await Promise.all([
+  // Fetch distinct cities and colleges for filter dropdowns.
+  // Use collegeDomain as source-of-truth since matching/filtering is domain-based.
+  const [profilesRaw, collegeDomainRows] = await Promise.all([
     db.profile.findMany({
       where: { city: { not: null } },
       select: { city: true },
       distinct: ["city"],
       orderBy: { city: "asc" },
     }),
-    db.user.findMany({
-      where: { collegeName: { not: null }, role: { not: "admin" } },
+    db.collegeDomain.findMany({
       select: { collegeName: true },
-      distinct: ["collegeName"],
       orderBy: { collegeName: "asc" },
     }),
   ]);
 
   const cities = profilesRaw.map((p) => p.city!).filter(Boolean);
-  const colleges = usersWithCollege.map((u) => u.collegeName!).filter(Boolean);
+  const colleges = Array.from(
+    new Set(collegeDomainRows.map((row) => row.collegeName).filter(Boolean)),
+  );
 
   return (
     <AdminShell>
