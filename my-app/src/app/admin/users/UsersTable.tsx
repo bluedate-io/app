@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import {
   ADMIN_GENDER_OPTIONS,
+  buildAdminUsersExportHref,
   buildAdminUsersHref,
   parseAdminUserSort,
   type AdminOptInStatusFilter,
@@ -687,6 +688,26 @@ export default function UsersTable({
           <option value="opted_out">Opted out</option>
           <option value="opted_in_late">Late</option>
         </select>
+        <a
+          href={buildAdminUsersExportHref({
+            filter,
+            domainsCsv: domainsCsv.trim() || undefined,
+            gendersCsv: gendersCsv.trim() || undefined,
+            sort: sortProp,
+            q: q.trim() || undefined,
+            optInStatus,
+          })}
+          download
+          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-2 text-xs font-semibold transition-colors hover:border-violet-400 hover:bg-violet-50"
+          style={{
+            borderColor: "#C9B8D9",
+            color: "#6B2F7A",
+            backgroundColor: "#FAF5FC",
+          }}
+          title="Download CSV of all users matching current filters (includes all profile data and photo URLs)"
+        >
+          ↓ Download CSV
+        </a>
         <a
           href={resetAllFiltersHref}
           className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-2 text-xs font-semibold transition-colors hover:border-violet-400 hover:bg-violet-50"
