@@ -777,6 +777,7 @@ function MatchPhaseView({
   s3CardUrl,
   onS3CardUrlChange,
   onBack,
+  onPrev,
   onSkip,
   onMatch,
 }: {
@@ -787,6 +788,7 @@ function MatchPhaseView({
   s3CardUrl: string;
   onS3CardUrlChange: (v: string) => void;
   onBack: () => void;
+  onPrev: () => void;
   onSkip: () => void;
   onMatch: () => void;
 }) {
@@ -846,6 +848,21 @@ function MatchPhaseView({
               {total > 0 ? `${position}/${total}` : "—"}
             </span>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onPrev}
+                disabled={noResults || loading}
+                className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:bg-violet-50"
+                style={{
+                  borderColor: "#C9B8D9",
+                  color: MUTED,
+                  opacity: noResults || loading ? 0.4 : 1,
+                  cursor: noResults || loading ? "not-allowed" : "pointer",
+                }}
+              >
+                <ChevronLeft size={14} />
+                Prev
+              </button>
               <button
                 type="button"
                 onClick={onSkip}
@@ -1099,6 +1116,14 @@ export default function MatchView({
     });
   }
 
+  function prev() {
+    setCandidateIndex((i) => {
+      const n = candidates.length;
+      if (n <= 0) return 0;
+      return (i - 1 + n) % n;
+    });
+  }
+
   async function handleConfirmMatch() {
     const currentCandidate = candidates[candidateIndex];
     if (!userA || !currentCandidate || !s3CardUrl.trim()) return;
@@ -1121,8 +1146,21 @@ export default function MatchView({
       }
       setShowModal(false);
       setToast({ type: "success", msg: `Match created: ${userA.name} + ${currentCandidate.name} ✓` });
-      backToPool();
-      fetchPool(appliedFilters);
+      const cleared: Filters = {
+        cities: [],
+        gender: "",
+        candidateGenders: [],
+        colleges: [],
+        ageMin: "",
+        ageMax: "",
+      };
+      setUserA(null);
+      setCandidates([]);
+      setCandidateIndex(0);
+      setS3CardUrl("");
+      setDraftFilters(cleared);
+      setAppliedFilters(cleared);
+      fetchPool(cleared);
     } catch {
       setToast({ type: "error", msg: "Match failed — please try again" });
     } finally {
@@ -1199,6 +1237,7 @@ export default function MatchView({
             s3CardUrl={s3CardUrl}
             onS3CardUrlChange={setS3CardUrl}
             onBack={backToPool}
+            onPrev={prev}
             onSkip={skip}
             onMatch={() => setShowModal(true)}
           />
