@@ -17,6 +17,7 @@ import { WhatsAppBotService } from "@/services/WhatsAppBotService";
 import { WaInteractiveService } from "@/services/WaInteractiveService";
 import { AuthController } from "@/controllers/AuthController";
 import { OnboardingController } from "@/controllers/OnboardingController";
+import { MatchEmailService } from "@/services/MatchEmailService";
 
 // ─── Repositories ─────────────────────────────────────────────────────────────
 const userRepository = new UserRepository(db);
@@ -27,6 +28,7 @@ const collegeDomainRepository = new CollegeDomainRepository(db);
 
 // ─── Services ─────────────────────────────────────────────────────────────────
 const twilioService = new TwilioService();
+const matchEmailService = new MatchEmailService();
 const emailService = new EmailService(db);
 const authService = new AuthService(userRepository, emailService, collegeDomainRepository);
 const inviteCodeService = new InviteCodeService(
@@ -61,6 +63,7 @@ export const container = {
   // Services
   twilioService,
   emailService,
+  matchEmailService,
   authService,
   onboardingService,
   whatsAppBotService,

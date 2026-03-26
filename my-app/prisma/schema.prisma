@@ -35,6 +35,12 @@ enum MatchStatus {
   unmatched
 }
 
+enum OptInStatus {
+  opted_in
+  opted_out
+  opted_in_late
+}
+
 // ─── Core auth table — email-first auth ──────────────────────────────────────
 
 model User {
@@ -42,10 +48,13 @@ model User {
   phone               String?  @unique
   email               String?  @unique
   collegeName         String?
-  role                UserRole @default(user)
-  onboardingCompleted Boolean  @default(false)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  role                UserRole    @default(user)
+  onboardingCompleted Boolean     @default(false)
+  optInStatus         OptInStatus @default(opted_in)
+  optedInAt           DateTime?
+  lastMatchedAt       DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
 
   // Relations
   profile       Profile?

@@ -75,6 +75,14 @@ export const config = {
     apiKey: optionalEnv("ANTHROPIC_API_KEY", ""),
   },
 
+  inngest: {
+    // Set INNGEST_EVENT_KEY + INNGEST_SIGNING_KEY in production.
+    // Inngest reads these automatically from the environment; they are listed
+    // here only so the config module documents them.
+    eventKey: optionalEnv("INNGEST_EVENT_KEY", ""),
+    signingKey: optionalEnv("INNGEST_SIGNING_KEY", ""),
+  },
+
   supabase: {
     url: firstEnv(["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL"], ""),
     anonKey: firstEnv(

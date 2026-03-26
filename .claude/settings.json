@@ -15,7 +15,9 @@
       "Bash(find /Users/tadikondasaimanikanta/bluedate.io/app/my-app/node_modules/next -name CHANGELOG*)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d.get\\(''''version'''',''''''''\\)\\)\")",
       "Bash(find /Users/tadikondasaimanikanta/bluedate.io/app/my-app/.next/static -name *.js)",
-      "Bash(ls -la /Users/tadikondasaimanikanta/bluedate.io/app/my-app/src/app/\\\\\\(main\\\\\\)/profile/ProfileView.tsx)"
+      "Bash(ls -la /Users/tadikondasaimanikanta/bluedate.io/app/my-app/src/app/\\\\\\(main\\\\\\)/profile/ProfileView.tsx)",
+      "Bash(find /Users/tadikondasaimanikanta/bluedate.io/app/my-app -name package.json -exec head -50 {})",
+      "Bash(2)"
     ],
     "additionalDirectories": [
       "/Users/tadikondasaimanikanta/bluedate.io/app/my-app/src/app/api/chat"
