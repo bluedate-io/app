@@ -1,6 +1,7 @@
 // ─── OnboardingController ─────────────────────────────────────────────────────
 
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import type { AuthService } from "@/services/AuthService";
 import type { OnboardingService } from "@/services/OnboardingService";
 import {
   profileSchema,
@@ -26,7 +27,10 @@ import { successResponse, createdResponse, noContentResponse, handleError } from
 import type { RequestContext } from "@/types";
 
 export class OnboardingController {
-  constructor(private readonly onboardingService: OnboardingService) {}
+  constructor(
+    private readonly onboardingService: OnboardingService,
+    private readonly authService: AuthService,
+  ) {}
 
   // POST /api/onboarding/profile
   async saveProfile(req: NextRequest, ctx: RequestContext) {
@@ -294,7 +298,18 @@ export class OnboardingController {
   async complete(_req: NextRequest, ctx: RequestContext) {
     try {
       await this.onboardingService.completeOnboarding(ctx.userId);
-      return successResponse(null, { message: "Onboarding complete! Welcome to bluedate." });
+      const { accessToken, expiresIn } = this.authService.issueToken(
+        ctx.userId,
+        ctx.phone,
+        ctx.email,
+        ctx.role,
+        true,
+      );
+      return NextResponse.json({
+        success: true,
+        data: { accessToken, expiresIn },
+        message: "Onboarding complete! Welcome to bluedate.",
+      });
     } catch (error) {
       return handleError(error);
     }
