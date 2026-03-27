@@ -12,7 +12,14 @@ import { generateOptInToken } from "@/utils/optInToken";
 
 const log = logger.child("MatchEmailService");
 
-type UserEmailTarget = { id: string; email: string; name: string; cardImageUrl?: string };
+type UserEmailTarget = {
+  id: string;
+  email: string;
+  name: string;
+  cardImageUrl?: string;
+  otherPersonEmail?: string | null;
+  otherPersonPhone?: string | null;
+};
 
 // ─── Shared HTML helpers ──────────────────────────────────────────────────────
 
@@ -26,7 +33,7 @@ function wrap(body: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:${BG};font-family:Georgia,serif;">
+<body style="margin:0;padding:0;background:${BG};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:${BG};padding:40px 16px;">
     <tr><td align="center">
       <table width="480" cellpadding="0" cellspacing="0"
@@ -68,6 +75,13 @@ function ctaButton(text: string, url: string): string {
 
 function bodyRow(content: string): string {
   return `<tr><td style="padding:32px;">${content}</td></tr>`;
+}
+
+function buildWhatsAppUrl(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  const digitsOnly = phone.replace(/\D/g, "");
+  if (!digitsOnly) return null;
+  return `https://wa.me/${digitsOnly}`;
 }
 
 // ─── Service class ────────────────────────────────────────────────────────────
@@ -116,7 +130,8 @@ export class MatchEmailService {
   // Sent to both users right after admin creates a match.
 
   async sendPostMatchEmail(user: UserEmailTarget): Promise<void> {
-    const url = this.optInUrl(user.id);
+    const whatsappUrl = buildWhatsAppUrl(user.otherPersonPhone);
+    const mailUrl = user.otherPersonEmail ? `mailto:${user.otherPersonEmail}` : null;
     const cardHtml = user.cardImageUrl
       ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
           <tr>
@@ -126,6 +141,50 @@ export class MatchEmailService {
           </tr>
         </table>`
       : "";
+    const contactDetailsHtml =
+      user.otherPersonEmail || whatsappUrl
+        ? `<div style="margin:0 0 24px;border:2.5px solid ${DARK};border-radius:18px;box-shadow:5px 5px 0 ${DARK};overflow:hidden;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="background:${BG};border:2px solid ${DARK};border-radius:12px;padding:16px;">
+                  <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:${MUTED};text-transform:uppercase;letter-spacing:0.8px;">
+                    Match contact details
+                  </p>
+                  ${
+                    whatsappUrl
+                      ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 14px;">
+                          <tr>
+                            <td>
+                              <a href="${whatsappUrl}"
+                                style="display:block;width:100%;box-sizing:border-box;padding:14px 16px;background:#25D366;color:#0E2018;
+                                  text-align:center;font-size:16px;font-weight:700;text-decoration:none;
+                                  border-radius:12px;border:2.5px solid ${DARK};box-shadow:3px 3px 0 ${DARK};"
+                              >Message on WhatsApp</a>
+                            </td>
+                          </tr>
+                        </table>`
+                      : ""
+                  }
+                  ${
+                    mailUrl
+                      ? `<table width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td>
+                              <a href="${mailUrl}"
+                                style="display:block;width:100%;box-sizing:border-box;padding:14px 16px;background:#D96431;color:#fff;
+                                  text-align:center;font-size:16px;font-weight:700;text-decoration:none;
+                                  border-radius:12px;border:2.5px solid ${DARK};box-shadow:3px 3px 0 ${DARK};"
+                              >Mail Contact</a>
+                            </td>
+                          </tr>
+                        </table>`
+                      : ""
+                  }
+                </td>
+              </tr>
+            </table>
+          </div>`
+        : "";
     const html = wrap(
       bodyRow(`
         <p style="margin:0 0 4px;font-size:13px;color:${MUTED};">Hey ${user.name},</p>
@@ -136,17 +195,10 @@ export class MatchEmailService {
           We've found someone special for you this week. Check it out in the app.
         </p>
         ${cardHtml}
-        <p style="margin:0 0 28px;font-size:14px;color:${DARK};line-height:1.6;">
-          Want to be matched again next week? Click the button below to opt in.
-          Matches lock every Friday — opt in before then to be eligible.
-        </p>
-        ${ctaButton("Opt in for next week", url)}
-        <p style="margin:20px 0 0;font-size:11px;color:${SUBTLE};line-height:1.6;">
-          This link is unique to you. Don't share it.
-        </p>
+        ${contactDetailsHtml}
       `),
     );
-    await this.send(user.email, "Your match is out! Opt in for next week 🎯", html);
+    await this.send(user.email, "Your match contact details are here 🎉", html);
   }
 
   // ── 2. Monday reminder ─────────────────────────────────────────────────────

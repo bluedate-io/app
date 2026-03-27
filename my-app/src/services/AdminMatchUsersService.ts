@@ -295,18 +295,35 @@ export class AdminMatchUsersService {
   private sendPostMatchEmails(userId1: string, userId2: string): void {
     this.repo
       .findUsersForPostMatchEmails([userId1, userId2])
-      .then((users: Array<{ id: string; email: string | null; profile: { fullName: string | null } | null }>) =>
-        Promise.allSettled(
-          users
-            .filter((u) => u.email)
-            .map((u) =>
-              this.matchEmailService.sendPostMatchEmail({
-                id: u.id,
-                email: u.email!,
-                name: u.profile?.fullName ?? "there",
-              }),
-            ),
-        ),
+      .then(
+        (users: Array<{
+          id: string;
+          email: string | null;
+          phone: string | null;
+          profile: { fullName: string | null } | null;
+        }>) => {
+          const byId = new Map(users.map((u) => [u.id, u]));
+          const user1 = byId.get(userId1);
+          const user2 = byId.get(userId2);
+          if (!user1 || !user2) return Promise.resolve([]);
+
+          return Promise.allSettled(
+            [
+              { recipient: user1, counterpart: user2 },
+              { recipient: user2, counterpart: user1 },
+            ]
+              .filter((pair) => pair.recipient.email)
+              .map(({ recipient, counterpart }) =>
+                this.matchEmailService.sendPostMatchEmail({
+                  id: recipient.id,
+                  email: recipient.email!,
+                  name: recipient.profile?.fullName ?? "there",
+                  otherPersonEmail: counterpart.email,
+                  otherPersonPhone: counterpart.phone,
+                }),
+              ),
+          );
+        },
       )
       .catch((err: unknown) => log.error("Post-match email(s) failed", { userId1, userId2, err }));
   }

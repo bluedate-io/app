@@ -172,7 +172,7 @@ export class AdminMatchUsersRepository {
   async findUsersForPostMatchEmails(userIds: string[]) {
     return this.db.user.findMany({
       where: { id: { in: userIds } },
-      select: { id: true, email: true, profile: { select: { fullName: true } } },
+      select: { id: true, email: true, phone: true, profile: { select: { fullName: true } } },
     });
   }
 }
