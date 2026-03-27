@@ -228,20 +228,30 @@ export class AdminMatchmakingService {
   ): void {
     this.repo
       .findUsersForPostMatchEmails([userAId, userBId])
-      .then((users) =>
-        Promise.allSettled(
-          users
-            .filter((u) => u.email)
-            .map((u) =>
+      .then((users) => {
+        const byId = new Map(users.map((u) => [u.id, u]));
+        const userA = byId.get(userAId);
+        const userB = byId.get(userBId);
+        if (!userA || !userB) return Promise.resolve([]);
+
+        return Promise.allSettled(
+          [
+            { recipient: userA, counterpart: userB },
+            { recipient: userB, counterpart: userA },
+          ]
+            .filter((pair) => pair.recipient.email)
+            .map(({ recipient, counterpart }) =>
               this.matchEmail.sendPostMatchEmail({
-                id: u.id,
-                email: u.email!,
-                name: u.profile?.fullName ?? "there",
+                id: recipient.id,
+                email: recipient.email!,
+                name: recipient.profile?.fullName ?? "there",
                 cardImageUrl,
+                otherPersonEmail: counterpart.email,
+                otherPersonPhone: counterpart.phone,
               }),
             ),
-        ),
-      )
+        );
+      })
       .catch((err) => log.error("Post-match emails failed", { userAId, userBId, err }));
   }
 }

@@ -93,7 +93,12 @@ export interface IAdminMatchmakingRepository {
     cardImageUrl: string;
   }): Promise<{ id: string; matchedAt: Date }>;
   findUsersForPostMatchEmails(userIds: string[]): Promise<
-    Array<{ id: string; email: string | null; profile: { fullName: string | null } | null }>
+    Array<{
+      id: string;
+      email: string | null;
+      phone: string | null;
+      profile: { fullName: string | null } | null;
+    }>
   >;
 }
 
@@ -199,7 +204,7 @@ export class AdminMatchmakingRepository implements IAdminMatchmakingRepository {
   async findUsersForPostMatchEmails(userIds: string[]) {
     return this.db.user.findMany({
       where: { id: { in: userIds } },
-      select: { id: true, email: true, profile: { select: { fullName: true } } },
+      select: { id: true, email: true, phone: true, profile: { select: { fullName: true } } },
     });
   }
 }
