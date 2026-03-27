@@ -33,7 +33,7 @@ type MatchUser = {
   gender: string | null;
   selfDescription: string | null;
   idealPartner: string | null;
-  photoUrl: string | null;
+  photos: string[];
   nickname?: string | null;
   dateOfBirth?: string | null;
   bio?: string | null;
@@ -358,9 +358,9 @@ function PoolCard({ user, onClick }: { user: PoolUser; onClick: () => void }) {
           className="rounded-xl overflow-hidden shrink-0 flex items-center justify-center"
           style={{ width: 56, height: 56, backgroundColor: "#F5F0FB" }}
         >
-          {user.photoUrl ? (
+          {user.photos[0] ? (
             <Image
-              src={user.photoUrl}
+              src={user.photos[0]}
               alt={user.name}
               width={56}
               height={56}
@@ -437,34 +437,59 @@ function ProfilePanel({
         {headerRight ? <div className="shrink-0">{headerRight}</div> : null}
       </div>
 
-      {/* Photo */}
-      <div
-        className="relative w-full shrink-0 overflow-hidden"
-        style={{ height: 420 }}
-      >
-        {user.photoUrl ? (
-          <img
-            src={user.photoUrl}
-            alt={user.name}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-5xl">👤</div>
-        )}
-
-        {/* Key details overlay (always above image) */}
-        <div className="absolute inset-x-0 bottom-0 z-10 p-4">
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        {/* Photo grid */}
+        {user.photos.length > 0 ? (
           <div
-            className="rounded-xl px-3 py-2"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(15, 23, 42, 0.00) 0%, rgba(15, 23, 42, 0.72) 40%, rgba(15, 23, 42, 0.82) 100%)",
-            }}
+            className={`grid gap-0.5 ${user.photos.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
           >
-            <p className="font-bold text-base leading-tight text-white">
-              {user.name}
-            </p>
-            <p className="text-xs mt-0.5 text-white/90">
+            {user.photos.map((url, i) => (
+              <div
+                key={i}
+                className="relative overflow-hidden"
+                style={{ aspectRatio: "4/5" }}
+              >
+                <img
+                  src={url}
+                  alt={`${user.name} photo ${i + 1}`}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                {/* Name + details overlay on first photo */}
+                {i === 0 && (
+                  <div
+                    className="absolute inset-x-0 bottom-0 z-10 p-3"
+                    style={{
+                      background:
+                        "linear-gradient(0deg, rgba(15,23,42,0.78) 0%, rgba(15,23,42,0.0) 100%)",
+                    }}
+                  >
+                    <p className="font-bold text-sm leading-tight text-white">
+                      {user.name}
+                    </p>
+                    <p className="text-xs mt-0.5 text-white/85">
+                      {[
+                        user.age != null ? `${user.age} yrs` : null,
+                        user.gender,
+                        user.city,
+                        user.college,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div
+            className="flex flex-col items-center justify-center gap-2"
+            style={{ height: 200 }}
+          >
+            <span className="text-5xl">👤</span>
+            <p className="font-bold text-sm" style={{ color: DARK }}>{user.name}</p>
+            <p className="text-xs" style={{ color: MUTED }}>
               {[
                 user.age != null ? `${user.age} yrs` : null,
                 user.gender,
@@ -475,12 +500,25 @@ function ProfilePanel({
                 .join(" · ") || "—"}
             </p>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Details */}
-      <div className="flex-1 p-4 flex flex-col gap-3 overflow-y-auto min-h-0">
-        {/* (Other details can live here without being covered by the image.) */}
+        {/* Opt-in description */}
+        {(() => {
+          const desc = user.weeklyOptIns?.find((w) => w.description)?.description;
+          return desc ? (
+            <div className="px-4 py-3 border-b" style={{ borderColor: "#F0EBFA" }}>
+              <p
+                className="text-[10px] font-bold uppercase tracking-widest mb-1"
+                style={{ color: SUBTLE }}
+              >
+                Described Type
+              </p>
+              <p className="text-sm leading-relaxed" style={{ color: DARK }}>
+                {desc}
+              </p>
+            </div>
+          ) : null;
+        })()}
       </div>
     </div>
   );

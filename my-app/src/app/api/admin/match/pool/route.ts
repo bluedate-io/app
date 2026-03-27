@@ -157,7 +157,6 @@ export async function GET(req: NextRequest) {
       photos: {
         select: { url: true },
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-        take: 1,
       },
     },
   });
@@ -247,7 +246,7 @@ export async function GET(req: NextRequest) {
       idealDate: u.aiSignals?.idealDate ?? null,
       weeklyOptIns: u.weeklyOptIns,
       candidateCount,
-      photoUrl: u.photos[0]?.url ?? null,
+      photos: u.photos.map((p) => p.url),
     };
   });
 
