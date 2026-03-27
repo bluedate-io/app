@@ -1,27 +1,14 @@
-// POST /api/onboarding/phone — save user's phone number
 import { type NextRequest } from "next/server";
-import { z } from "zod";
 import { withAuth } from "@/middleware/withMiddleware";
-import { db } from "@/lib/db";
 import { successResponse } from "@/utils/response";
 import type { RequestContext } from "@/types";
-
-const schema = z.object({
-  phone: z
-    .string()
-    .regex(/^\+91[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
-});
+import { container } from "@/lib/container";
+import { parsePhoneBody } from "@/validations/userApi.validation";
 
 async function handler(req: NextRequest, ctx: RequestContext) {
-  const body = await req.json();
-  const { phone } = schema.parse(body);
-
-  await db.user.update({
-    where: { id: ctx.userId },
-    data: { phone },
-  });
-
-  return successResponse({ phone });
+  const { phone } = parsePhoneBody(await req.json());
+  const data = await container.userSelfService.updatePhone(ctx.userId, phone);
+  return successResponse(data);
 }
 
 export const POST = withAuth(handler);
