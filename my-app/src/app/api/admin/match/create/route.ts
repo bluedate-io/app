@@ -3,7 +3,7 @@
 // Body: { userAId, userBId, s3CardUrl }
 //
 // In a single DB transaction:
-//   1. Insert Match record (s3CardUrl stored in the blurb field)
+//   1. Insert Match record (cardImageUrl = s3CardUrl)
 //   2. Set optInStatus = 'opted_out' + lastMatchedAt = now for both users
 // After transaction: send match email with card image (fire-and-forget).
 
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
           userId1: userAId,
           userId2: userBId,
           matchedBy: adminId,
-          blurb: s3CardUrl.trim(), // store s3 URL in blurb field
+          cardImageUrl: s3CardUrl.trim(),
         },
       }),
       db.user.update({

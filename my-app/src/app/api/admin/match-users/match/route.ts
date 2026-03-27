@@ -36,7 +36,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: { message: "Unauthorized" } }, { status: 401 });
   }
 
-  const { userId1, userId2, blurb } = await req.json();
+  const { userId1, userId2, blurb, cardImageUrl } = await req.json() as {
+    userId1?: string;
+    userId2?: string;
+    blurb?: string | null;
+    cardImageUrl?: string | null;
+  };
   if (!userId1 || !userId2) {
     return NextResponse.json(
       { error: { message: "userId1 and userId2 required" } },
@@ -52,7 +57,13 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const [match] = await db.$transaction([
       db.match.create({
-        data: { userId1, userId2, matchedBy: adminId, blurb: blurb ?? null },
+        data: {
+          userId1,
+          userId2,
+          matchedBy: adminId,
+          blurb: blurb ?? null,
+          cardImageUrl: cardImageUrl?.trim() ? cardImageUrl.trim() : null,
+        },
       }),
       db.user.update({
         where: { id: userId1 },

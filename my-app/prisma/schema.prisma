@@ -265,9 +265,10 @@ model Match {
   userId1     String
   userId2     String
   matchedBy   String
-  status      MatchStatus @default(active)
-  blurb       String?
-  matchedAt   DateTime    @default(now())
+  status        MatchStatus @default(active)
+  blurb         String?
+  cardImageUrl  String?
+  matchedAt     DateTime    @default(now())
   unmatchedAt DateTime?
 
   user1    User      @relation("MatchUser1", fields: [userId1], references: [id], onDelete: Cascade)

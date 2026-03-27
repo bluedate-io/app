@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
     id: m.id,
     matchedAt: m.matchedAt.toISOString(),
     blurb: m.blurb ?? null,
+    cardImageUrl: m.cardImageUrl ?? null,
     woman: {
       name: m.user1.profile?.fullName ?? "—",
       age: m.user1.profile?.age ?? null,
