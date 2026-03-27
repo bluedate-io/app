@@ -145,43 +145,41 @@ export class MatchEmailService {
       user.otherPersonEmail || whatsappUrl
         ? `<div style="margin:0 0 24px;border:2.5px solid ${DARK};border-radius:18px;box-shadow:5px 5px 0 ${DARK};overflow:hidden;">
             <table width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="background:${BG};border:2px solid ${DARK};border-radius:12px;padding:16px;">
-                  <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:${MUTED};text-transform:uppercase;letter-spacing:0.8px;">
-                    Match contact details
-                  </p>
-                  ${
-                    whatsappUrl
-                      ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 14px;">
-                          <tr>
-                            <td>
-                              <a href="${whatsappUrl}"
-                                style="display:block;width:100%;box-sizing:border-box;padding:14px 16px;background:#25D366;color:#0E2018;
-                                  text-align:center;font-size:16px;font-weight:700;text-decoration:none;
-                                  border-radius:12px;border:2.5px solid ${DARK};box-shadow:3px 3px 0 ${DARK};"
-                              >Message on WhatsApp</a>
-                            </td>
-                          </tr>
-                        </table>`
-                      : ""
-                  }
-                  ${
-                    mailUrl
-                      ? `<table width="100%" cellpadding="0" cellspacing="0">
-                          <tr>
-                            <td>
-                              <a href="${mailUrl}"
-                                style="display:block;width:100%;box-sizing:border-box;padding:14px 16px;background:#D96431;color:#fff;
-                                  text-align:center;font-size:16px;font-weight:700;text-decoration:none;
-                                  border-radius:12px;border:2.5px solid ${DARK};box-shadow:3px 3px 0 ${DARK};"
-                              >Mail Contact</a>
-                            </td>
-                          </tr>
-                        </table>`
-                      : ""
-                  }
-                </td>
-              </tr>
+            <tr>
+              <td style="background:${BG};border:2px solid ${DARK};border-radius:12px;padding:16px;">
+                <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:${MUTED};text-transform:uppercase;letter-spacing:0.8px;">
+                  Match contact details
+                </p>
+                ${whatsappUrl
+          ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 14px;">
+                        <tr>
+                          <td>
+                            <a href="${whatsappUrl}"
+                              style="display:block;width:100%;box-sizing:border-box;padding:14px 16px;background:#25D366;color:#0E2018;
+                                text-align:center;font-size:16px;font-weight:700;text-decoration:none;
+                                border-radius:12px;border:2.5px solid ${DARK};box-shadow:3px 3px 0 ${DARK};"
+                            >Message on WhatsApp</a>
+                          </td>
+                        </tr>
+                      </table>`
+          : ""
+        }
+                ${mailUrl
+          ? `<table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td>
+                            <a href="${mailUrl}"
+                              style="display:block;width:100%;box-sizing:border-box;padding:14px 16px;background:#D96431;color:#fff;
+                                text-align:center;font-size:16px;font-weight:700;text-decoration:none;
+                                border-radius:12px;border:2.5px solid ${DARK};box-shadow:3px 3px 0 ${DARK};"
+                            >Mail Contact</a>
+                          </td>
+                        </tr>
+                      </table>`
+          : ""
+        }
+              </td>
+            </tr>
             </table>
           </div>`
         : "";
@@ -195,6 +193,21 @@ export class MatchEmailService {
           We've found someone special for you this week. Check it out in the app.
         </p>
         ${cardHtml}
+        <div style="margin:0 0 24px;border:2.5px solid ${DARK};border-radius:18px;box-shadow:5px 5px 0 ${DARK};overflow:hidden;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+        <td style="background:#FFF7EC;border:2px solid ${DARK};border-radius:12px;padding:14px 16px;">
+        <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:${ACCENT};text-transform:uppercase;letter-spacing:0.7px;">
+        Date idea
+        </p>
+        <p style="margin:0;font-size:14px;color:${DARK};line-height:1.6;">
+        Start with a quick hello, then pick a time that works for both of you.
+        A small plan makes the first meetup feel easy and fun.
+        </p>
+        </td>
+        </tr>
+        </table>
+        </div>
         ${contactDetailsHtml}
       `),
     );
