@@ -1,20 +1,10 @@
-// POST /api/date/toggle — set wantDate on/off
 import { type NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/middleware/withMiddleware";
-import { db } from "@/lib/db";
+import { container } from "@/lib/container";
+import { parseDateToggleBody } from "@/validations/userApi.validation";
 
 export const POST = withAuth(async (req: NextRequest, ctx) => {
-  const { wantDate } = await req.json();
-
-  if (typeof wantDate !== "boolean") {
-    return NextResponse.json({ error: "wantDate must be a boolean" }, { status: 400 });
-  }
-
-  await db.preferences.upsert({
-    where: { userId: ctx.userId },
-    create: { userId: ctx.userId, wantDate },
-    update: { wantDate },
-  });
-
-  return NextResponse.json({ data: { wantDate } });
+  const { wantDate } = parseDateToggleBody(await req.json());
+  const data = await container.userSelfService.toggleWantDate(ctx.userId, wantDate);
+  return NextResponse.json({ data });
 });
