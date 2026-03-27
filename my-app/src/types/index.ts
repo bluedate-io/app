@@ -71,3 +71,20 @@ export interface RequestContext {
   onboardingCompleted: boolean;
   requestId: string;
 }
+
+export interface MatchListItem {
+  id: string;
+  matchedAt: string;
+  cardImageUrl: string | null;
+  blurb: string | null;
+  partner: {
+    id: string;
+    name: string;
+    age: number | null;
+    gender: string | null;
+    college: string | null;
+    bio: string | null;
+    weeklyOptInDescription: string | null;
+    photos: string[];
+  };
+}

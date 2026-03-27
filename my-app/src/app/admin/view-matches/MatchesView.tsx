@@ -7,6 +7,7 @@ type MatchRow = {
   id: string;
   matchedAt: string;
   blurb: string | null;
+  cardImageUrl: string | null;
   woman: { name: string; age: number | null; city: string | null; photoUrl: string | null };
   man:   { name: string; age: number | null; city: string | null; photoUrl: string | null };
 };
@@ -157,6 +158,44 @@ export default function MatchesView() {
               )}
             </div>
           </div>
+
+          {/* Match card image */}
+          {m.cardImageUrl && (
+            <div className="px-5 pb-5">
+              <div
+                className="relative rounded-2xl overflow-hidden"
+                style={{
+                  background: "linear-gradient(135deg, #F5F0FB 0%, #FDF3FF 50%, #F0EBFA 100%)",
+                  border: "1px solid #E8DEFF",
+                }}
+              >
+                <div
+                  className="absolute top-0 left-0 right-0 z-1"
+                  style={{ height: 3, background: "linear-gradient(90deg, #8F3A8F, #C060C0, #E080A0)" }}
+                />
+                <div className="px-5 pt-5 pb-4">
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <div
+                      className="w-4 h-4 rounded-full flex items-center justify-center"
+                      style={{ background: "linear-gradient(135deg,#8F3A8F,#C060C0)" }}
+                    >
+                      <span style={{ fontSize: 8, color: "#fff", lineHeight: 1 }}>✦</span>
+                    </div>
+                    <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#8F3A8F" }}>
+                      Match card
+                    </span>
+                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={m.cardImageUrl}
+                    alt="Match card"
+                    className="w-full rounded-xl object-contain max-h-[280px] bg-white/50"
+                    style={{ border: "1px solid #E8DEFF" }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Blurb */}
           {m.blurb && (
