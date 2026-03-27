@@ -24,6 +24,14 @@ import { WaInteractiveService } from "@/services/WaInteractiveService";
 import { MatchService } from "@/services/MatchService";
 import { AuthController } from "@/controllers/AuthController";
 import { OnboardingController } from "@/controllers/OnboardingController";
+import { UserApiController } from "@/controllers/UserApiController";
+import { AdminMatchmakingController } from "@/controllers/AdminMatchmakingController";
+import { AdminMatchUsersController } from "@/controllers/AdminMatchUsersController";
+import { AdminUsersController } from "@/controllers/AdminUsersController";
+import { AdminMatchesController } from "@/controllers/AdminMatchesController";
+import { AdminAuthController } from "@/controllers/AdminAuthController";
+import { MatchController } from "@/controllers/MatchController";
+
 import { MatchEmailService } from "@/services/MatchEmailService";
 import { AdminMatchmakingService } from "@/services/AdminMatchmakingService";
 import { AdminMatchUsersService } from "@/services/AdminMatchUsersService";
@@ -82,7 +90,14 @@ const adminAuthService = new AdminAuthService(twilioService, userRepository, use
 
 // ─── Controllers ──────────────────────────────────────────────────────────────
 const authController = new AuthController(authService, userRepository, collegeDomainRepository);
-const onboardingController = new OnboardingController(onboardingService);
+const onboardingController = new OnboardingController(onboardingService, authService);
+const userApiController = new UserApiController(userSelfService, authService);
+const adminMatchmakingController = new AdminMatchmakingController(adminMatchmakingService);
+const adminMatchUsersController = new AdminMatchUsersController(adminMatchUsersService);
+const adminUsersController = new AdminUsersController(adminUsersService);
+const adminMatchesController = new AdminMatchesController(adminMatchesService);
+const adminAuthController = new AdminAuthController(twilioService, adminAuthService);
+const matchController = new MatchController(matchService);
 
 export const container = {
   // Repositories
@@ -117,4 +132,11 @@ export const container = {
   // Controllers
   authController,
   onboardingController,
+  userApiController,
+  adminMatchmakingController,
+  adminMatchUsersController,
+  adminUsersController,
+  adminMatchesController,
+  adminAuthController,
+  matchController,
 } as const;
