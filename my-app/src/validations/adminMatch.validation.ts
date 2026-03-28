@@ -16,6 +16,12 @@ export const adminMatchPoolQuerySchema = z.object({
   college: z.string().optional().default(""),
   ageMin: optionalAge,
   ageMax: optionalAge,
+  search: z
+    .string()
+    .optional()
+    .default("")
+    .transform((s) => s.trim())
+    .pipe(z.string().max(120)),
 });
 
 export type AdminMatchPoolQuery = z.infer<typeof adminMatchPoolQuerySchema>;
@@ -27,6 +33,7 @@ export function parseAdminMatchPoolQuery(sp: URLSearchParams): AdminMatchPoolQue
     college: sp.get("college") ?? "",
     ageMin: sp.get("ageMin") ?? undefined,
     ageMax: sp.get("ageMax") ?? undefined,
+    search: sp.get("search") ?? "",
   });
 }
 
@@ -45,6 +52,7 @@ export function parseAdminMatchCandidatesQuery(sp: URLSearchParams): AdminMatchC
     college: sp.get("college") ?? "",
     ageMin: sp.get("ageMin") ?? undefined,
     ageMax: sp.get("ageMax") ?? undefined,
+    search: sp.get("search") ?? "",
   });
 }
 
