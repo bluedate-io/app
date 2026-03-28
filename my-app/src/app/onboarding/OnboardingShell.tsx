@@ -176,7 +176,7 @@ function Fab({
       type={type}
       onClick={onClick}
       disabled={disabled || loading}
-      className="focus:outline-none cursor-pointer disabled:opacity-40 shrink-0 transition-all active:translate-y-[1px] active:shadow-none"
+      className="focus:outline-none cursor-pointer disabled:opacity-40 shrink-0 transition-all active:translate-y-px active:shadow-none"
       style={{
         width: 56,
         height: 56,
@@ -235,7 +235,7 @@ function BackBtn({ onClick }: { onClick: () => void }) {
 function GlobalLoader() {
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center"
+      className="fixed inset-0 z-100 flex items-center justify-center"
       style={{ backdropFilter: "blur(3px)", backgroundColor: "rgba(245,240,220,0.75)" }}
     >
       <div className="flex flex-col items-center gap-3">
@@ -776,7 +776,7 @@ function PhotosStep({
         {/* Photo upload overlay */}
         {uploading && (
           <div
-            className="fixed inset-0 z-[100] flex items-center justify-center"
+            className="fixed inset-0 z-100 flex items-center justify-center"
             style={{ backdropFilter: "blur(3px)", backgroundColor: "rgba(245,240,220,0.80)" }}
           >
             <div className="bg-white rounded-2xl px-10 py-8 flex flex-col items-center gap-4 shadow-xl">
