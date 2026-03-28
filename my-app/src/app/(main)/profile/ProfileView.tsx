@@ -13,6 +13,7 @@ import {
   LogOut,
   Ruler,
   User,
+  Users,
 } from "lucide-react";
 import type { ProfileData } from "./page";
 
@@ -26,6 +27,28 @@ const SERIF = "var(--font-playfair, Georgia, serif)";
 const SANS = "var(--font-geist-sans, sans-serif)";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
+const WHO_TO_MEET_ALL = ["Men", "Women", "Nonbinary people"];
+
+function genderPreferenceHint(pref: string[] | undefined): string {
+  if (!pref?.length) return "Not set";
+  if (WHO_TO_MEET_ALL.every((x) => pref.includes(x))) return "Open to everyone";
+  return pref.join(", ");
+}
+
+function relationshipIntentHint(intent: string | null | undefined): string {
+  if (!intent) return "Not set";
+  if (intent === "friendship") return "BFF — friends & community";
+  if (intent === "date" || intent === "undecided") return "Date";
+  return intent;
+}
+
+function relationshipIntentSubtitle(intent: string | null | undefined): string | null {
+  if (!intent) return null;
+  if (intent === "friendship") return "BFF";
+  if (intent === "date" || intent === "undecided") return "Date";
+  return intent;
+}
+
 function calcAge(dob?: string): number | null {
   if (!dob) return null;
   const d = new Date(dob);
@@ -284,7 +307,12 @@ export function ProfileView({ data }: { data: ProfileData }) {
   const photoCount = photos.length;
 
   const displayName = name || "Your name";
-  const subtitle = [age ? `${age} yrs` : null, preferences?.genderIdentity, profile?.city]
+  const subtitle = [
+    age ? `${age} yrs` : null,
+    preferences?.genderIdentity,
+    profile?.city,
+    relationshipIntentSubtitle(preferences?.relationshipIntent),
+  ]
     .filter(Boolean)
     .join(" · ");
 
@@ -360,6 +388,22 @@ export function ProfileView({ data }: { data: ProfileData }) {
               iconBg="#FFF0EE"
               label="Gender"
               hint={preferences?.genderIdentity ?? "Not set"}
+            />
+            <Divider />
+            <MenuRow
+              href="/profile/edit/relationship-intent"
+              icon={<Heart size={18} />}
+              iconBg="#FFE8EE"
+              label="I'm here for"
+              hint={relationshipIntentHint(preferences?.relationshipIntent)}
+            />
+            <Divider />
+            <MenuRow
+              href="/profile/edit/gender-preference"
+              icon={<Users size={18} />}
+              iconBg="#F0EEFF"
+              label="Who I'd like to meet"
+              hint={genderPreferenceHint(preferences?.genderPreference)}
             />
             <Divider />
             <MenuRow

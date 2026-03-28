@@ -23,6 +23,7 @@ type Filters = {
   ageMin: string;
   ageMax: string;
   search: string;
+  relationshipIntent: string;
 };
 
 type MatchUser = {
@@ -136,7 +137,7 @@ function MultiSelectDropdown({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition whitespace-nowrap"
+        className="flex h-10 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition whitespace-nowrap"
         style={{
           borderColor: isActive ? P : "#C9B8D9",
           color: isActive ? P : MUTED,
@@ -224,122 +225,194 @@ function FilterBar({
     applied.colleges.length > 0 ||
     Boolean(applied.ageMin) ||
     Boolean(applied.ageMax) ||
-    Boolean(applied.search.trim());
+    Boolean(applied.search.trim()) ||
+    Boolean(applied.relationshipIntent);
+
+  const ageApplied = Boolean(applied.ageMin) || Boolean(applied.ageMax);
+  const intentLabel = showCandidateGender ? "B intent" : "A intent";
 
   return (
     <div
-      className="flex flex-wrap items-center gap-2 px-6 py-3 border-b bg-white shrink-0"
+      className="shrink-0 border-b bg-white px-6 py-3.5"
       style={{ borderColor: "#EDE8F7" }}
     >
-      <span className="text-[11px] font-bold uppercase tracking-widest mr-1" style={{ color: SUBTLE }}>
-        Filters
-      </span>
+      {/* Row 1: filters + actions — single baseline, consistent control height (h-10) */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5">
+        <div
+          className="flex h-10 items-center pr-1"
+          title="Filter the list below, then click Apply"
+        >
+          <span
+            className="text-[11px] font-bold uppercase tracking-[0.12em] leading-none"
+            style={{ color: SUBTLE }}
+          >
+            Filters
+          </span>
+        </div>
 
-      <MultiSelectDropdown
-        label="City"
-        options={allCities}
-        selected={draft.cities}
-        onChange={(v) => onDraftChange({ ...draft, cities: v })}
-        active={applied.cities.length > 0}
-      />
+        <MultiSelectDropdown
+          label="City"
+          options={allCities}
+          selected={draft.cities}
+          onChange={(v) => onDraftChange({ ...draft, cities: v })}
+          active={applied.cities.length > 0}
+        />
 
-      {showUserAGenderFilter && (
-        <select
-          value={draft.gender}
-          onChange={(e) => onDraftChange({ ...draft, gender: e.target.value })}
-          className="shrink-0 rounded-xl border px-3 py-2 text-xs font-semibold cursor-pointer whitespace-nowrap"
+        {showUserAGenderFilter && (
+          <select
+            value={draft.gender}
+            onChange={(e) => onDraftChange({ ...draft, gender: e.target.value })}
+            className="h-10 shrink-0 rounded-xl border px-3 text-xs font-semibold cursor-pointer"
+            style={{
+              borderColor: applied.gender ? P : "#C9B8D9",
+              color: applied.gender ? P : MUTED,
+              backgroundColor: applied.gender ? P_LIGHT : "#FAF5FC",
+            }}
+          >
+            <option value="">User A: All genders</option>
+            <option value="Woman">Woman</option>
+            <option value="Man">Man</option>
+            <option value="Nonbinary">Nonbinary</option>
+          </select>
+        )}
+
+        {showCandidateGender && (
+          <MultiSelectDropdown
+            label="User B: Gender"
+            options={["Woman", "Man", "Nonbinary"]}
+            selected={draft.candidateGenders}
+            onChange={(v) => onDraftChange({ ...draft, candidateGenders: v })}
+            active={applied.candidateGenders.length > 0}
+          />
+        )}
+
+        <div
+          className="flex h-10 min-w-0 max-w-[min(100%,14rem)] shrink-0 items-center gap-2 rounded-xl border px-2.5"
           style={{
-            borderColor: applied.gender ? P : "#C9B8D9",
-            color: applied.gender ? P : MUTED,
-            backgroundColor: applied.gender ? P_LIGHT : "#FAF5FC",
+            borderColor: applied.relationshipIntent ? P : "#C9B8D9",
+            backgroundColor: applied.relationshipIntent ? P_LIGHT : "#FAF5FC",
           }}
         >
-          <option value="">User A: All genders</option>
-          <option value="Woman">Woman</option>
-          <option value="Man">Man</option>
-          <option value="Nonbinary">Nonbinary</option>
-        </select>
-      )}
+          <span
+            className="hidden shrink-0 text-[10px] font-bold uppercase tracking-wide sm:inline"
+            style={{ color: SUBTLE }}
+          >
+            {intentLabel}
+          </span>
+          <select
+            value={draft.relationshipIntent}
+            onChange={(e) => onDraftChange({ ...draft, relationshipIntent: e.target.value })}
+            aria-label={`Relationship intent for ${showCandidateGender ? "User B" : "User A"}`}
+            className="min-w-0 flex-1 cursor-pointer rounded-md border-0 bg-transparent py-1 text-xs font-semibold focus:outline-none focus:ring-0"
+            style={{
+              color: applied.relationshipIntent ? P : MUTED,
+            }}
+          >
+            <option value="">All modes</option>
+            <option value="date">Date</option>
+            <option value="friendship">Friendship (BFF)</option>
+          </select>
+        </div>
 
-      {showCandidateGender && (
         <MultiSelectDropdown
-          label="User B: Gender"
-          options={["Woman", "Man", "Nonbinary"]}
-          selected={draft.candidateGenders}
-          onChange={(v) => onDraftChange({ ...draft, candidateGenders: v })}
-          active={applied.candidateGenders.length > 0}
+          label="College"
+          options={allColleges}
+          selected={draft.colleges}
+          onChange={(v) => onDraftChange({ ...draft, colleges: v })}
+          active={applied.colleges.length > 0}
         />
-      )}
 
-      <MultiSelectDropdown
-        label="College"
-        options={allColleges}
-        selected={draft.colleges}
-        onChange={(v) => onDraftChange({ ...draft, colleges: v })}
-        active={applied.colleges.length > 0}
-      />
+        <div
+          className="flex h-10 shrink-0 items-center gap-2 rounded-xl border px-2.5"
+          style={{
+            borderColor: ageApplied ? P : "#C9B8D9",
+            backgroundColor: ageApplied ? P_LIGHT : "#FFFFFF",
+          }}
+        >
+          <span
+            className="text-[10px] font-bold uppercase tracking-wide"
+            style={{ color: SUBTLE }}
+          >
+            Age
+          </span>
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder="Min"
+            aria-label="Minimum age"
+            title="Minimum age"
+            value={draft.ageMin}
+            onChange={(e) => onDraftChange({ ...draft, ageMin: e.target.value })}
+            className="w-13 shrink-0 rounded-lg border px-1.5 py-1 text-center text-xs tabular-nums"
+            style={{
+              borderColor: applied.ageMin ? P : "#E5DCF0",
+              color: DARK,
+              backgroundColor: applied.ageMin ? P_LIGHT : "#FFFFFF",
+            }}
+            min={18}
+            max={99}
+          />
+          <span className="text-xs font-medium tabular-nums" style={{ color: MUTED }}>
+            –
+          </span>
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder="Max"
+            aria-label="Maximum age"
+            title="Maximum age"
+            value={draft.ageMax}
+            onChange={(e) => onDraftChange({ ...draft, ageMax: e.target.value })}
+            className="w-13 shrink-0 rounded-lg border px-1.5 py-1 text-center text-xs tabular-nums"
+            style={{
+              borderColor: applied.ageMax ? P : "#E5DCF0",
+              color: DARK,
+              backgroundColor: applied.ageMax ? P_LIGHT : "#FFFFFF",
+            }}
+            min={18}
+            max={99}
+          />
+        </div>
 
-      <div className="flex items-center gap-1.5 shrink-0">
-        <input
-          type="number"
-          placeholder="Age min"
-          value={draft.ageMin}
-          onChange={(e) => onDraftChange({ ...draft, ageMin: e.target.value })}
-          className="w-20 rounded-xl border px-2.5 py-2 text-xs"
+        <div className="mx-0.5 hidden h-6 w-px self-center sm:block" style={{ backgroundColor: "#E8DEF5" }} />
+
+        <button
+          type="button"
+          onClick={onApply}
+          className="flex h-10 items-center gap-1.5 rounded-xl border px-4 text-xs font-semibold transition hover:opacity-90"
           style={{
-            borderColor: applied.ageMin ? P : "#C9B8D9",
-            color: DARK,
-            backgroundColor: applied.ageMin ? P_LIGHT : "#FFFFFF",
+            borderColor: P,
+            color: P,
+            backgroundColor: "#FAF5FC",
           }}
-          min={18}
-          max={99}
-        />
-        <span className="text-xs" style={{ color: MUTED }}>–</span>
-        <input
-          type="number"
-          placeholder="Age max"
-          value={draft.ageMax}
-          onChange={(e) => onDraftChange({ ...draft, ageMax: e.target.value })}
-          className="w-20 rounded-xl border px-2.5 py-2 text-xs"
+        >
+          Apply
+          <Check size={12} strokeWidth={2.5} />
+        </button>
+
+        <button
+          type="button"
+          onClick={onClear}
+          className="flex h-10 items-center gap-1.5 rounded-xl border px-4 text-xs font-semibold transition hover:opacity-90"
           style={{
-            borderColor: applied.ageMax ? P : "#C9B8D9",
-            color: DARK,
-            backgroundColor: applied.ageMax ? P_LIGHT : "#FFFFFF",
+            borderColor: appliedHasAny ? P : "#C9B8D9",
+            color: appliedHasAny ? P : MUTED,
+            backgroundColor: appliedHasAny ? P_LIGHT : "#FAF5FC",
           }}
-          min={18}
-          max={99}
-        />
+        >
+          <RotateCcw size={12} strokeWidth={2} />
+          Clear
+        </button>
       </div>
 
-      <button
-        type="button"
-        onClick={onApply}
-        className="flex items-center gap-1.5 shrink-0 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:bg-violet-50"
-        style={{
-          borderColor: "#C9B8D9",
-          color: P,
-          backgroundColor: "#FAF5FC",
-        }}
-      >
-        Apply
-        <Check size={11} />
-      </button>
-
-      <button
-        type="button"
-        onClick={onClear}
-        className="flex items-center gap-1.5 shrink-0 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:bg-violet-50"
-        style={{
-          borderColor: appliedHasAny ? P : "#C9B8D9",
-          color: appliedHasAny ? P : MUTED,
-          backgroundColor: appliedHasAny ? P_LIGHT : "#FAF5FC",
-        }}
-      >
-        <RotateCcw size={11} />
-        Clear filter
-      </button>
-
-      <div className="ml-auto flex-1 min-w-48 max-w-md shrink-0 basis-[min(100%,20rem)]">
+      {/* Row 2: search — full width, aligned with filter column */}
+      <div className="mt-3 flex w-full max-w-3xl items-center gap-2 sm:gap-3">
+        <span
+          className="w-11 shrink-0 text-right text-[10px] font-bold uppercase tracking-widest sm:w-14 sm:text-[11px] sm:tracking-[0.12em]"
+          style={{ color: SUBTLE }}
+        >
+          Search
+        </span>
         <input
           type="search"
           placeholder={
@@ -350,7 +423,7 @@ function FilterBar({
           value={draft.search}
           maxLength={120}
           onChange={(e) => onDraftChange({ ...draft, search: e.target.value })}
-          className="w-full rounded-xl border px-3 py-2 text-xs"
+          className="h-10 min-w-0 flex-1 rounded-xl border px-3 text-sm"
           style={{
             borderColor: applied.search.trim() ? P : "#C9B8D9",
             color: DARK,
@@ -1027,6 +1100,7 @@ export default function MatchView({
     ageMin: "",
     ageMax: "",
     search: "",
+    relationshipIntent: "",
   });
 
   const [appliedFilters, setAppliedFilters] = useState<Filters>({
@@ -1037,6 +1111,7 @@ export default function MatchView({
     ageMin: "",
     ageMax: "",
     search: "",
+    relationshipIntent: "",
   });
 
   const [pool, setPool] = useState<PoolUser[]>([]);
@@ -1066,6 +1141,9 @@ export default function MatchView({
       if (f.ageMin) params.set("ageMin", f.ageMin);
       if (f.ageMax) params.set("ageMax", f.ageMax);
       if (f.search.trim()) params.set("search", f.search.trim());
+      if (f.relationshipIntent === "date" || f.relationshipIntent === "friendship") {
+        params.set("relationshipIntent", f.relationshipIntent);
+      }
       const res = await fetch(`/api/admin/match/pool?${params}`, { credentials: "include" });
       const json = await res.json();
       setPool(json.data ?? []);
@@ -1095,6 +1173,9 @@ export default function MatchView({
         if (f.ageMin) params.set("ageMin", f.ageMin);
         if (f.ageMax) params.set("ageMax", f.ageMax);
         if (f.search.trim()) params.set("search", f.search.trim());
+        if (f.relationshipIntent === "date" || f.relationshipIntent === "friendship") {
+          params.set("relationshipIntent", f.relationshipIntent);
+        }
         const res = await fetch(`/api/admin/match/candidates?${params}`, {
           credentials: "include",
         });
@@ -1127,6 +1208,7 @@ export default function MatchView({
       ageMin: "",
       ageMax: "",
       search: "",
+      relationshipIntent: "",
     };
     setDraftFilters(cleared);
     setAppliedFilters(cleared);
@@ -1150,17 +1232,24 @@ export default function MatchView({
       .map((g) => normalizeGender(g))
       .filter((g): g is "Woman" | "Man" | "Nonbinary" => Boolean(g));
 
+    const intentForB =
+      user.relationshipIntent === "date" || user.relationshipIntent === "friendship"
+        ? user.relationshipIntent
+        : appliedFilters.relationshipIntent;
+
     const next: Filters = {
       ...appliedFilters,
       candidateGenders: defaultCandidateGenders,
       colleges: college ? [college] : [],
       search: "",
+      relationshipIntent: intentForB,
     };
     setDraftFilters((d) => ({
       ...d,
       candidateGenders: next.candidateGenders,
       colleges: next.colleges,
       search: "",
+      relationshipIntent: intentForB,
     }));
     setAppliedFilters(next);
     fetchCandidates(user.id, next);
@@ -1171,8 +1260,8 @@ export default function MatchView({
     setCandidates([]);
     setCandidateIndex(0);
     setS3CardUrl("");
-    setDraftFilters((prev) => ({ ...prev, colleges: [], search: "" }));
-    setAppliedFilters((prev) => ({ ...prev, colleges: [], search: "" }));
+    setDraftFilters((prev) => ({ ...prev, colleges: [], search: "", relationshipIntent: "" }));
+    setAppliedFilters((prev) => ({ ...prev, colleges: [], search: "", relationshipIntent: "" }));
   }
 
   function skip() {
@@ -1221,6 +1310,7 @@ export default function MatchView({
         ageMin: "",
         ageMax: "",
         search: "",
+        relationshipIntent: "",
       };
       setUserA(null);
       setCandidates([]);

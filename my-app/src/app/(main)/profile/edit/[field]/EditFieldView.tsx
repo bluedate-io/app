@@ -3,6 +3,11 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, Plus, X } from "lucide-react";
+import {
+  INTEREST_SYMBOLS,
+  SUGGESTED_INTERESTS,
+  SUGGESTED_INTERESTS_SET,
+} from "@/domains/suggestedInterests";
 import type { EditField } from "./page";
 import type { ProfileData } from "../../page";
 
@@ -22,6 +27,8 @@ const FIELD_TITLES: Record<EditField, string> = {
   photos: "My Photos",
   interests: "Interests",
   gender: "Gender",
+  "gender-preference": "Who to meet",
+  "relationship-intent": "I'm here for",
   "looking-for": "Looking For",
   height: "Height",
   drinking: "Drinking",
@@ -58,12 +65,7 @@ const KIDS_PLAN_OPTIONS = [
   "Want kids", "Open to kids", "Don't want kids", "Not sure",
 ];
 
-const HOBBY_OPTIONS = [
-  "Travel", "Music", "Cooking", "Fitness", "Reading",
-  "Movies", "Hiking", "Gaming", "Art", "Photography",
-  "Dancing", "Yoga", "Sports", "Foodie", "Pets",
-  "Fashion", "Tech", "Nature", "Meditation", "DIY",
-];
+const MAX_INTERESTS_ONBOARDING = 5;
 
 const GENDER_OPTIONS = ["Woman", "Man", "Nonbinary"];
 
@@ -124,6 +126,35 @@ function SaveBtn({ loading, onClick, disabled }: { loading: boolean; onClick: ()
   );
 }
 
+/** Pill chip — matches onboarding `Pill` for interests */
+function InterestPill({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium transition-all"
+      style={{
+        borderRadius: 999,
+        border: `2px solid ${selected ? ACCENT : DARK}`,
+        boxShadow: `1.5px 1.5px 0 ${selected ? ACCENT : DARK}`,
+        backgroundColor: selected ? `${ACCENT}15` : "#fff",
+        color: selected ? ACCENT : DARK,
+      }}
+    >
+      {label}
+      {!selected && <span style={{ color: "#9B8B78", fontSize: 15, lineHeight: 1 }}>+</span>}
+    </button>
+  );
+}
+
 function Chip({
   label, selected, onToggle,
 }: { label: string; selected: boolean; onToggle: () => void }) {
@@ -153,7 +184,7 @@ function OptionRow({
       style={{
         width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "14px 16px", borderRadius: 14, textAlign: "left", cursor: "pointer",
-        background: selected ? `${DARK}08` : CARD,
+        background: selected ? BG : CARD,
         border: `2px solid ${selected ? DARK : `${DARK}20`}`,
         boxShadow: selected ? `3px 3px 0 ${DARK}` : "none",
         transition: "all 0.1s",
@@ -265,22 +296,125 @@ function BasicsEditor({
   );
 }
 
-function InterestsEditor({ initial, onSave, loading }: { initial: string[]; onSave: (v: string[]) => void; loading: boolean }) {
-  const [selected, setSelected] = useState<string[]>(initial);
-  function toggle(h: string) {
-    setSelected(p => p.includes(h) ? p.filter(x => x !== h) : p.length < 10 ? [...p, h] : p);
+function InterestsEditor({
+  initial,
+  onSave,
+  loading,
+}: {
+  initial: string[];
+  onSave: (v: string[]) => void;
+  loading: boolean;
+}) {
+  const [selected, setSelected] = useState<string[]>(() => initial.filter(Boolean));
+  const [search, setSearch] = useState("");
+
+  const filtered = search.trim()
+    ? SUGGESTED_INTERESTS.filter((i) => i.toLowerCase().includes(search.trim().toLowerCase()))
+    : [...SUGGESTED_INTERESTS];
+
+  const extraSelected = selected.filter((s) => !SUGGESTED_INTERESTS_SET.has(s));
+
+  function toggleSuggested(interest: string) {
+    setSelected((p) => {
+      if (p.includes(interest)) return p.filter((x) => x !== interest);
+      if (p.length >= MAX_INTERESTS_ONBOARDING) return p;
+      return [...p, interest];
+    });
   }
+
+  function handleSave() {
+    if (selected.length < 1 || selected.length > MAX_INTERESTS_ONBOARDING) return;
+    onSave(selected);
+  }
+
+  const canSave = selected.length >= 1 && selected.length <= MAX_INTERESTS_ONBOARDING;
+
   return (
     <>
-      <div style={{ padding: "16px 20px 8px" }}>
-        <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>Select up to 10 interests</p>
+      <div className="flex flex-col flex-1 px-5 pt-4 pb-2">
+        <div className="flex justify-start mb-6">
+          <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3z"
+            />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
+          </svg>
+        </div>
+        <h1 className="text-3xl font-black leading-tight mb-2" style={{ fontFamily: SERIF, color: DARK }}>
+          Choose 5 things you&apos;re really into
+        </h1>
+        <p className="text-sm text-gray-500 mb-6">
+          Add interests to help you match with people who love them too.
+        </p>
+
+        {extraSelected.length > 0 && (
+          <>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">On your profile</p>
+            <div className="flex flex-wrap gap-2 mb-5">
+              {extraSelected.map((interest) => (
+                <InterestPill
+                  key={interest}
+                  label={interest}
+                  selected
+                  onClick={() => setSelected((p) => p.filter((x) => x !== interest))}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        <div className="relative mb-5">
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+          </svg>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="What are you into?"
+            className="w-full bg-white border border-gray-200 rounded-lg pl-9 pr-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-gray-400"
+          />
+        </div>
+
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">You might like...</p>
+
+        <div className="flex flex-wrap gap-2">
+          {filtered.map((interest) => {
+            const isSelected = selected.includes(interest);
+            const symbol = INTEREST_SYMBOLS[interest] ?? "•";
+            const displayLabel = `${symbol} ${interest}`;
+            return (
+              <InterestPill
+                key={interest}
+                label={displayLabel}
+                selected={isSelected}
+                onClick={() => toggleSuggested(interest)}
+              />
+            );
+          })}
+        </div>
+
+        <p className="text-sm text-gray-400 mt-6">{selected.length}/{MAX_INTERESTS_ONBOARDING} selected</p>
+
+        {selected.length > MAX_INTERESTS_ONBOARDING && (
+          <p style={{ fontSize: 12, color: "#B33A1B", marginTop: 8, fontFamily: SANS }}>
+            Remove interests until you have at most {MAX_INTERESTS_ONBOARDING} to save (same as when you signed up).
+          </p>
+        )}
+        {selected.length === 0 && (
+          <p style={{ fontSize: 12, color: MUTED, marginTop: 8, fontFamily: SANS }}>
+            Select at least one interest to save.
+          </p>
+        )}
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: "0 20px 8px" }}>
-        {HOBBY_OPTIONS.map(h => (
-          <Chip key={h} label={h} selected={selected.includes(h)} onToggle={() => toggle(h)} />
-        ))}
-      </div>
-      <SaveBtn loading={loading} onClick={() => onSave(selected)} />
+      <SaveBtn loading={loading} disabled={!canSave} onClick={handleSave} />
     </>
   );
 }
@@ -360,6 +494,129 @@ function GenderEditor({
         </p>
       )}
       <SaveBtn loading={loading} disabled={isLocked || !selected} onClick={handleSave} />
+    </>
+  );
+}
+
+const GP_PREF_OPTIONS = ["Men", "Women", "Nonbinary people"] as const;
+const GP_PREF_DEFAULT_ALL: string[] = [...GP_PREF_OPTIONS];
+
+function deriveGenderPreferenceUiState(pref: string[] | null | undefined): {
+  openToAll: boolean;
+  selection: string[];
+} {
+  const p = pref?.filter(Boolean) ?? [];
+  if (p.length === 0) return { openToAll: false, selection: [] };
+  const hasFullSet = GP_PREF_DEFAULT_ALL.every((x) => p.includes(x));
+  if (hasFullSet) return { openToAll: true, selection: [] };
+  const selection = GP_PREF_OPTIONS.filter((x) => p.includes(x));
+  return { openToAll: false, selection };
+}
+
+function GpInfoLine({ text }: { text: string }) {
+  return (
+    <p className="text-sm mt-5 flex items-start gap-1.5" style={{ color: "#9B8B78" }}>
+      <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <circle cx="12" cy="12" r="9" strokeWidth={1.5} />
+        <path strokeLinecap="round" d="M12 8v4m0 4h.01" strokeWidth={2} />
+      </svg>
+      {text}
+    </p>
+  );
+}
+
+function GenderPreferenceEditor({
+  initialPreference,
+  onSave,
+  loading,
+  errorMessage,
+}: {
+  initialPreference: string[] | undefined | null;
+  onSave: (payload: { genderPreference: string[] }) => void;
+  loading: boolean;
+  errorMessage?: string | null;
+}) {
+  const initial = deriveGenderPreferenceUiState(initialPreference ?? undefined);
+  const [openToAll, setOpenToAll] = useState(initial.openToAll);
+  const [selection, setSelection] = useState<string[]>(initial.selection);
+
+  const canSave = openToAll || selection.length > 0;
+
+  function handleSave() {
+    if (!canSave) return;
+    onSave({
+      genderPreference: openToAll ? GP_PREF_DEFAULT_ALL : [...selection],
+    });
+  }
+
+  return (
+    <>
+      <div className="flex flex-col flex-1 px-5 pt-4 pb-2">
+        <div className="flex justify-start mb-6">
+          <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0z"
+            />
+          </svg>
+        </div>
+        <h1
+          className="text-3xl font-black leading-tight mb-2"
+          style={{ fontFamily: SERIF, color: DARK }}
+        >
+          Who would you like to meet?
+        </h1>
+        <p className="text-sm text-gray-500 mb-6">
+          You can choose more than one answer and change it any time.
+        </p>
+
+        <div
+          className="flex items-center gap-3 py-4 border-b border-gray-200 cursor-pointer select-none"
+          onClick={() => {
+            setOpenToAll((v) => !v);
+            if (!openToAll) setSelection([]);
+          }}
+        >
+          <div
+            className="relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0"
+            style={{ backgroundColor: openToAll ? ACCENT : "#D1D5DB" }}
+          >
+            <span
+              className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200"
+              style={{ transform: openToAll ? "translateX(22px)" : "translateX(2px)" }}
+            />
+          </div>
+          <span className="text-base text-gray-900 font-medium">I&apos;m open to dating everyone</span>
+        </div>
+
+        <div
+          className={`transition-opacity duration-200 ${openToAll ? "opacity-40 pointer-events-none" : ""}`}
+          style={{ display: "flex", flexDirection: "column", gap: 10 }}
+        >
+          {GP_PREF_OPTIONS.map((g) => {
+            const sel = selection.includes(g);
+            return (
+              <OptionRow
+                key={g}
+                label={g}
+                selected={sel}
+                onSelect={() =>
+                  setSelection((p) => (sel ? p.filter((x) => x !== g) : [...p, g]))
+                }
+              />
+            );
+          })}
+        </div>
+
+        <GpInfoLine text="You'll only be shown to people looking to date your gender." />
+      </div>
+      {errorMessage && (
+        <p style={{ fontSize: 12, color: "#B33A1B", margin: "6px 22px 0", fontFamily: SANS }}>
+          {errorMessage}
+        </p>
+      )}
+      <SaveBtn loading={loading} disabled={!canSave} onClick={handleSave} />
     </>
   );
 }
@@ -461,6 +718,135 @@ function FamilyEditor({ initialStatus, initialPref, onSave, loading }: { initial
         </div>
       </div>
       <SaveBtn loading={loading} onClick={() => onSave(status, pref)} />
+    </>
+  );
+}
+
+/** Matches onboarding step 3 (dating mode); cream selected bg like other profile rows */
+function DatingModeRadioRow({
+  label,
+  sublabel,
+  selected,
+  onClick,
+}: {
+  label: string;
+  sublabel?: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center justify-between text-left transition-all mb-3"
+      style={{
+        padding: "14px 16px",
+        background: selected ? BG : "#fff",
+        border: `2px solid ${selected ? ACCENT : DARK}`,
+        borderRadius: 14,
+        boxShadow: selected ? `2px 2px 0 ${ACCENT}` : `2px 2px 0 ${DARK}`,
+      }}
+    >
+      <div>
+        <p className="text-base font-semibold" style={{ color: DARK }}>{label}</p>
+        {sublabel && <p className="text-sm mt-0.5" style={{ color: "#9B8B78" }}>{sublabel}</p>}
+      </div>
+      <span
+        className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ml-4 transition-colors"
+        style={{ borderColor: selected ? ACCENT : "#C0B0A0" }}
+      >
+        {selected && (
+          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: ACCENT }} />
+        )}
+      </span>
+    </button>
+  );
+}
+
+function DatingModeInfoLine({ text }: { text: string }) {
+  return (
+    <p className="text-sm mt-5 flex items-start gap-1.5" style={{ color: "#9B8B78" }}>
+      <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <circle cx="12" cy="12" r="9" strokeWidth={1.5} />
+        <path strokeLinecap="round" d="M12 8v4m0 4h.01" strokeWidth={2} />
+      </svg>
+      {text}
+    </p>
+  );
+}
+
+function relationshipIntentToMode(intent: string | null | undefined): "date" | "bff" | null {
+  if (!intent) return null;
+  if (intent === "friendship") return "bff";
+  if (intent === "date" || intent === "undecided") return "date";
+  return null;
+}
+
+function DatingModeEditor({
+  initialRelationshipIntent,
+  onSave,
+  loading,
+  errorMessage,
+}: {
+  initialRelationshipIntent: string | null | undefined;
+  onSave: (mode: "date" | "bff") => void;
+  loading: boolean;
+  errorMessage?: string | null;
+}) {
+  const initial = relationshipIntentToMode(initialRelationshipIntent);
+  const [mode, setMode] = useState<"date" | "bff" | "">(initial ?? "");
+
+  function handleSave() {
+    if (mode !== "date" && mode !== "bff") return;
+    onSave(mode);
+  }
+
+  const canSave = mode === "date" || mode === "bff";
+
+  return (
+    <>
+      <div className="flex flex-col flex-1 px-5 pt-4 pb-2">
+        <div className="flex justify-start mb-6">
+          <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+            />
+          </svg>
+        </div>
+        <h1 className="text-3xl font-black leading-tight mb-2" style={{ fontFamily: SERIF, color: DARK }}>
+          What brings you to bluedate?
+        </h1>
+        <p className="text-sm text-gray-500 mb-8">
+          Romance and butterflies or a beautiful friendship? Choose a mode to find your people.
+        </p>
+
+        <div>
+          {(
+            [
+              { id: "date" as const, label: "Date", sub: "Find a relationship, something casual, or anything in-between" },
+              { id: "bff" as const, label: "BFF", sub: "Make new friends and find your community" },
+            ] as const
+          ).map(({ id, label, sub }) => (
+            <DatingModeRadioRow
+              key={id}
+              label={label}
+              sublabel={sub}
+              selected={mode === id}
+              onClick={() => setMode(id)}
+            />
+          ))}
+        </div>
+
+        <DatingModeInfoLine text="You'll only be shown to people in the same mode as you." />
+      </div>
+      {errorMessage && (
+        <p style={{ fontSize: 12, color: "#B33A1B", margin: "6px 22px 0", fontFamily: SANS }}>
+          {errorMessage}
+        </p>
+      )}
+      <SaveBtn loading={loading} disabled={!canSave} onClick={handleSave} />
     </>
   );
 }
@@ -633,6 +1019,22 @@ export function EditFieldView({ field, data }: { field: EditField; data: Profile
             initial={preferences?.genderIdentity ?? undefined}
             genderUpdateCount={preferences?.genderUpdateCount ?? 0}
             onSave={genderIdentity => post("/api/onboarding/gender", { genderIdentity })}
+            loading={loading}
+            errorMessage={error}
+          />
+        )}
+        {field === "gender-preference" && (
+          <GenderPreferenceEditor
+            initialPreference={preferences?.genderPreference}
+            onSave={(v) => post("/api/onboarding/gender-preference", v)}
+            loading={loading}
+            errorMessage={error}
+          />
+        )}
+        {field === "relationship-intent" && (
+          <DatingModeEditor
+            initialRelationshipIntent={preferences?.relationshipIntent}
+            onSave={(m) => post("/api/onboarding/dating-mode", { mode: m })}
             loading={loading}
             errorMessage={error}
           />
