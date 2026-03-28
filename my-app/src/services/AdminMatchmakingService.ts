@@ -68,6 +68,17 @@ export class AdminMatchmakingService {
     return baseAnd;
   }
 
+  private pushNameEmailSearch(and: Prisma.UserWhereInput[], search: string): void {
+    const term = search.trim();
+    if (!term) return;
+    and.push({
+      OR: [
+        { email: { contains: term, mode: "insensitive" } },
+        { profile: { is: { fullName: { contains: term, mode: "insensitive" } } } },
+      ],
+    });
+  }
+
   async getPool(query: AdminMatchPoolQuery): Promise<AdminPoolUserDTO[]> {
     const { cities, colleges } = csvFromPoolQuery(query);
     const gender = query.gender?.trim() ?? "";
@@ -78,6 +89,7 @@ export class AdminMatchmakingService {
       colleges.length > 0 ? await this.repo.findDomainsByCollegeNames(colleges) : [];
 
     const baseAnd = this.buildBaseAndFilters(cities, colleges, domains, ageMin, ageMax);
+    this.pushNameEmailSearch(baseAnd, query.search ?? "");
     const collegeByDomain = await this.buildCollegeDomainMap();
 
     const allUsers = await this.repo.findUsersForPool({ AND: baseAnd });
@@ -162,6 +174,8 @@ export class AdminMatchmakingService {
     }
     if (ageMin !== undefined) and.push({ profile: { is: { age: { gte: ageMin } } } });
     if (ageMax !== undefined) and.push({ profile: { is: { age: { lte: ageMax } } } });
+
+    this.pushNameEmailSearch(and, query.search ?? "");
 
     const collegeByDomain = await this.buildCollegeDomainMap();
 

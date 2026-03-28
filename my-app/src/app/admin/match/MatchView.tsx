@@ -22,6 +22,7 @@ type Filters = {
   colleges: string[];
   ageMin: string;
   ageMax: string;
+  search: string;
 };
 
 type MatchUser = {
@@ -222,7 +223,8 @@ function FilterBar({
     applied.candidateGenders.length > 0 ||
     applied.colleges.length > 0 ||
     Boolean(applied.ageMin) ||
-    Boolean(applied.ageMax);
+    Boolean(applied.ageMax) ||
+    Boolean(applied.search.trim());
 
   return (
     <div
@@ -336,6 +338,26 @@ function FilterBar({
         <RotateCcw size={11} />
         Clear filter
       </button>
+
+      <div className="ml-auto flex-1 min-w-48 max-w-md shrink-0 basis-[min(100%,20rem)]">
+        <input
+          type="search"
+          placeholder={
+            showCandidateGender
+              ? "Search User B by name or email"
+              : "Search User A by name or email"
+          }
+          value={draft.search}
+          maxLength={120}
+          onChange={(e) => onDraftChange({ ...draft, search: e.target.value })}
+          className="w-full rounded-xl border px-3 py-2 text-xs"
+          style={{
+            borderColor: applied.search.trim() ? P : "#C9B8D9",
+            color: DARK,
+            backgroundColor: applied.search.trim() ? P_LIGHT : "#FFFFFF",
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -1004,6 +1026,7 @@ export default function MatchView({
     colleges: [],
     ageMin: "",
     ageMax: "",
+    search: "",
   });
 
   const [appliedFilters, setAppliedFilters] = useState<Filters>({
@@ -1013,6 +1036,7 @@ export default function MatchView({
     colleges: [],
     ageMin: "",
     ageMax: "",
+    search: "",
   });
 
   const [pool, setPool] = useState<PoolUser[]>([]);
@@ -1041,6 +1065,7 @@ export default function MatchView({
       if (f.colleges.length) params.set("college", f.colleges.join(","));
       if (f.ageMin) params.set("ageMin", f.ageMin);
       if (f.ageMax) params.set("ageMax", f.ageMax);
+      if (f.search.trim()) params.set("search", f.search.trim());
       const res = await fetch(`/api/admin/match/pool?${params}`, { credentials: "include" });
       const json = await res.json();
       setPool(json.data ?? []);
@@ -1069,6 +1094,7 @@ export default function MatchView({
         if (f.colleges.length) params.set("college", f.colleges.join(","));
         if (f.ageMin) params.set("ageMin", f.ageMin);
         if (f.ageMax) params.set("ageMax", f.ageMax);
+        if (f.search.trim()) params.set("search", f.search.trim());
         const res = await fetch(`/api/admin/match/candidates?${params}`, {
           credentials: "include",
         });
@@ -1100,6 +1126,7 @@ export default function MatchView({
       colleges: [],
       ageMin: "",
       ageMax: "",
+      search: "",
     };
     setDraftFilters(cleared);
     setAppliedFilters(cleared);
@@ -1127,11 +1154,13 @@ export default function MatchView({
       ...appliedFilters,
       candidateGenders: defaultCandidateGenders,
       colleges: college ? [college] : [],
+      search: "",
     };
     setDraftFilters((d) => ({
       ...d,
       candidateGenders: next.candidateGenders,
       colleges: next.colleges,
+      search: "",
     }));
     setAppliedFilters(next);
     fetchCandidates(user.id, next);
@@ -1142,8 +1171,8 @@ export default function MatchView({
     setCandidates([]);
     setCandidateIndex(0);
     setS3CardUrl("");
-    setDraftFilters((prev) => ({ ...prev, colleges: [] }));
-    setAppliedFilters((prev) => ({ ...prev, colleges: [] }));
+    setDraftFilters((prev) => ({ ...prev, colleges: [], search: "" }));
+    setAppliedFilters((prev) => ({ ...prev, colleges: [], search: "" }));
   }
 
   function skip() {
@@ -1191,6 +1220,7 @@ export default function MatchView({
         colleges: [],
         ageMin: "",
         ageMax: "",
+        search: "",
       };
       setUserA(null);
       setCandidates([]);
