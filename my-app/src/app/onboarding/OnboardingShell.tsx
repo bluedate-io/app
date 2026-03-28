@@ -3,6 +3,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { INTEREST_SYMBOLS, SUGGESTED_INTERESTS } from "@/domains/suggestedInterests";
 import type { OnboardingStatus } from "./page";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -19,50 +20,6 @@ const ACCENT = "#E8622A";
 const BG = "#EDE8D5";
 const FAB_BG = "#2B1A07";
 const FONT_SERIF = "var(--font-playfair), Georgia, serif";
-
-const SUGGESTED_INTERESTS = [
-  "Skiing", "Museums & galleries", "LGBTQ+ rights", "Wine", "Writing",
-  "Horror", "Yoga", "Cats", "Dogs", "Crafts", "Festivals", "Coffee",
-  "Art", "City breaks", "Camping", "Foodie", "R&B", "Tennis", "Dancing",
-  "Vegetarian", "Gardening", "Baking", "Gigs", "Country", "Photography",
-  "Travel", "Gaming", "Cooking", "Reading", "Hiking", "Fitness", "Movies",
-];
-
-/** Emoji/symbol per interest for the suggestions grid (label only; API still receives plain name) */
-const INTEREST_SYMBOLS: Record<string, string> = {
-  "Skiing": "⛷️",
-  "Museums & galleries": "🖼️",
-  "LGBTQ+ rights": "🏳️‍🌈",
-  "Wine": "🍷",
-  "Writing": "✍️",
-  "Horror": "🎃",
-  "Yoga": "🧘",
-  "Cats": "🐱",
-  "Dogs": "🐕",
-  "Crafts": "🎨",
-  "Festivals": "🎪",
-  "Coffee": "☕",
-  "Art": "🖌️",
-  "City breaks": "🌆",
-  "Camping": "⛺",
-  "Foodie": "🍽️",
-  "R&B": "🎵",
-  "Tennis": "🎾",
-  "Dancing": "💃",
-  "Vegetarian": "🥬",
-  "Gardening": "🌱",
-  "Baking": "🧁",
-  "Gigs": "🎸",
-  "Country": "🤠",
-  "Photography": "📷",
-  "Travel": "✈️",
-  "Gaming": "🎮",
-  "Cooking": "👨‍🍳",
-  "Reading": "📚",
-  "Hiking": "🥾",
-  "Fitness": "💪",
-  "Movies": "🎬",
-};
 
 const DEFAULT_GENDER_PREFERENCE = ["Men", "Women", "Nonbinary people"];
 

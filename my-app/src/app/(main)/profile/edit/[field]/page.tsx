@@ -12,6 +12,8 @@ const VALID_FIELDS = [
   "photos",
   "interests",
   "gender",
+  "relationship-intent",
+  "gender-preference",
   "looking-for",
   "height",
   "drinking",

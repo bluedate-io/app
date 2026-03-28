@@ -79,6 +79,12 @@ export class AdminMatchmakingService {
     });
   }
 
+  private pushRelationshipIntentFilter(and: Prisma.UserWhereInput[], intent: string): void {
+    const v = intent.trim();
+    if (v !== "date" && v !== "friendship") return;
+    and.push({ preferences: { is: { relationshipIntent: v } } });
+  }
+
   async getPool(query: AdminMatchPoolQuery): Promise<AdminPoolUserDTO[]> {
     const { cities, colleges } = csvFromPoolQuery(query);
     const gender = query.gender?.trim() ?? "";
@@ -90,6 +96,7 @@ export class AdminMatchmakingService {
 
     const baseAnd = this.buildBaseAndFilters(cities, colleges, domains, ageMin, ageMax);
     this.pushNameEmailSearch(baseAnd, query.search ?? "");
+    this.pushRelationshipIntentFilter(baseAnd, query.relationshipIntent ?? "");
     const collegeByDomain = await this.buildCollegeDomainMap();
 
     const allUsers = await this.repo.findUsersForPool({ AND: baseAnd });
@@ -176,6 +183,7 @@ export class AdminMatchmakingService {
     if (ageMax !== undefined) and.push({ profile: { is: { age: { lte: ageMax } } } });
 
     this.pushNameEmailSearch(and, query.search ?? "");
+    this.pushRelationshipIntentFilter(and, query.relationshipIntent ?? "");
 
     const collegeByDomain = await this.buildCollegeDomainMap();
 

@@ -22,6 +22,14 @@ export const adminMatchPoolQuerySchema = z.object({
     .default("")
     .transform((s) => s.trim())
     .pipe(z.string().max(120)),
+  relationshipIntent: z
+    .string()
+    .optional()
+    .default("")
+    .transform((s) => s.trim())
+    .refine((s) => s === "" || s === "date" || s === "friendship", {
+      message: "relationshipIntent must be empty, date, or friendship",
+    }),
 });
 
 export type AdminMatchPoolQuery = z.infer<typeof adminMatchPoolQuerySchema>;
@@ -34,6 +42,7 @@ export function parseAdminMatchPoolQuery(sp: URLSearchParams): AdminMatchPoolQue
     ageMin: sp.get("ageMin") ?? undefined,
     ageMax: sp.get("ageMax") ?? undefined,
     search: sp.get("search") ?? "",
+    relationshipIntent: sp.get("relationshipIntent") ?? "",
   });
 }
 
@@ -53,6 +62,7 @@ export function parseAdminMatchCandidatesQuery(sp: URLSearchParams): AdminMatchC
     ageMin: sp.get("ageMin") ?? undefined,
     ageMax: sp.get("ageMax") ?? undefined,
     search: sp.get("search") ?? "",
+    relationshipIntent: sp.get("relationshipIntent") ?? "",
   });
 }
 
