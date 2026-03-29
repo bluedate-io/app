@@ -1,6 +1,9 @@
 // ─── AdminMatchmakingService — pool, candidates, and curated match creation ───
 
+import { randomUUID } from "crypto";
 import type { Prisma } from "@/generated/prisma/client";
+import { config } from "@/config";
+import { getSupabaseStorage } from "@/lib/supabaseStorageClient";
 import {
   toAdminPoolUserDTO,
   type AdminMatchCreateResultDTO,
@@ -25,10 +28,54 @@ import { csvFromPoolQuery } from "@/validations/adminMatch.validation";
 const log = logger.child("AdminMatchmakingService");
 
 export class AdminMatchmakingService {
+  private static readonly MAX_MATCH_CARD_BYTES = 5 * 1024 * 1024;
+  private static readonly MATCH_CARD_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
+
   constructor(
     private readonly repo: IAdminMatchmakingRepository,
     private readonly matchEmail: MatchEmailService,
   ) {}
+
+  /**
+   * Uploads a match card image to Supabase Storage (`match-cards/{adminId}/…` in the photo bucket).
+   * Requires bucket policies that allow this prefix when using the anon key (see ops note in admin upload route).
+   */
+  async uploadMatchCardImage(adminId: string, file: File): Promise<{ url: string }> {
+    if (!config.supabase.url?.trim() || !config.supabase.anonKey?.trim()) {
+      throw new BadRequestError("Image storage is not configured.");
+    }
+    if (!AdminMatchmakingService.MATCH_CARD_MIME.has(file.type)) {
+      throw new BadRequestError("Only JPEG, PNG, or WebP images are allowed.");
+    }
+    if (file.size > AdminMatchmakingService.MAX_MATCH_CARD_BYTES) {
+      throw new BadRequestError("Image must be 5MB or smaller.");
+    }
+
+    const extFromName = (file.name.split(".").pop() ?? "").toLowerCase();
+    const ext =
+      file.type === "image/jpeg"
+        ? extFromName === "jpeg"
+          ? "jpeg"
+          : "jpg"
+        : file.type === "image/png"
+          ? "png"
+          : "webp";
+
+    const path = `match-cards/${adminId}/${Date.now()}-${randomUUID()}.${ext}`;
+    const storage = getSupabaseStorage();
+    const { error } = await storage
+      .from(config.supabase.photoBucket)
+      .upload(path, file, { contentType: file.type, upsert: false });
+
+    if (error) {
+      log.error("Match card upload failed", { adminId, message: error.message });
+      throw new BadRequestError(`Upload failed: ${error.message}`);
+    }
+
+    const { data } = storage.from(config.supabase.photoBucket).getPublicUrl(path);
+    log.info("Match card uploaded", { adminId, path });
+    return { url: data.publicUrl };
+  }
 
   private async buildCollegeDomainMap(): Promise<Map<string, string>> {
     const collegeRows = await this.repo.findCollegeDomains();

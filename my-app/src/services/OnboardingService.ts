@@ -1,8 +1,8 @@
 // ─── OnboardingService ────────────────────────────────────────────────────────
 // Orchestrates all onboarding steps and tracks completion.
 
-import { createClient } from "@supabase/supabase-js";
 import { config } from "@/config";
+import { getSupabaseStorage } from "@/lib/supabaseStorageClient";
 import type { IOnboardingRepository } from "@/repositories/OnboardingRepository";
 import type { IUserRepository } from "@/repositories/UserRepository";
 import type {
@@ -47,11 +47,6 @@ import { NotFoundError, BadRequestError, UnauthorizedError } from "@/utils/error
 import { logger } from "@/utils/logger";
 
 const log = logger.child("OnboardingService");
-
-// Lazy Supabase storage client (only initialised when needed)
-function getStorageClient() {
-  return createClient(config.supabase.url, config.supabase.anonKey).storage;
-}
 
 export class OnboardingService {
   constructor(
@@ -308,7 +303,7 @@ export class OnboardingService {
     const ext = file.name.split(".").pop() ?? "jpg";
     const path = `${userId}/${Date.now()}.${ext}`;
 
-    const storage = getStorageClient();
+    const storage = getSupabaseStorage();
     const { error } = await storage
       .from(config.supabase.photoBucket)
       .upload(path, file, { contentType: file.type, upsert: false });
