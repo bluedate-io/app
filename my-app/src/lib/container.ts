@@ -7,6 +7,7 @@ import { AdminAuthController } from "@/controllers/AdminAuthController";
 import { AdminMatchesController } from "@/controllers/AdminMatchesController";
 import { AdminMatchmakingController } from "@/controllers/AdminMatchmakingController";
 import { AdminMatchUsersController } from "@/controllers/AdminMatchUsersController";
+import { AdminOnboardingReminderController } from "@/controllers/AdminOnboardingReminderController";
 import { AdminUsersController } from "@/controllers/AdminUsersController";
 import { AuthController } from "@/controllers/AuthController";
 import { MatchController } from "@/controllers/MatchController";
@@ -27,6 +28,7 @@ import { AdminAuthService } from "@/services/AdminAuthService";
 import { AdminMatchesService } from "@/services/AdminMatchesService";
 import { AdminMatchmakingService } from "@/services/AdminMatchmakingService";
 import { AdminMatchUsersService } from "@/services/AdminMatchUsersService";
+import { AdminOnboardingReminderService } from "@/services/AdminOnboardingReminderService";
 import { AdminUsersService } from "@/services/AdminUsersService";
 import { AuthService } from "@/services/AuthService";
 import { EmailService } from "@/services/EmailService";
@@ -83,6 +85,7 @@ const adminMatchUsersService = new AdminMatchUsersService(
   matchEmailService,
 );
 const adminUsersService = new AdminUsersService(adminUsersRepository);
+const adminOnboardingReminderService = new AdminOnboardingReminderService(db);
 const adminMatchesService = new AdminMatchesService(adminMatchesRepository);
 const userSelfService = new UserSelfService(userSelfRepository, matchEmailService);
 const adminAuthService = new AdminAuthService(twilioService, userRepository, userSelfRepository);
@@ -94,6 +97,9 @@ const userApiController = new UserApiController(userSelfService, authService);
 const adminMatchmakingController = new AdminMatchmakingController(adminMatchmakingService);
 const adminMatchUsersController = new AdminMatchUsersController(adminMatchUsersService);
 const adminUsersController = new AdminUsersController(adminUsersService);
+const adminOnboardingReminderController = new AdminOnboardingReminderController(
+  adminOnboardingReminderService,
+);
 const adminMatchesController = new AdminMatchesController(adminMatchesService);
 const adminAuthController = new AdminAuthController(twilioService, adminAuthService);
 const matchController = new MatchController(matchService);
@@ -124,6 +130,7 @@ export const container = {
   adminMatchmakingService,
   adminMatchUsersService,
   adminUsersService,
+  adminOnboardingReminderService,
   adminMatchesService,
   userSelfService,
   adminAuthService,
@@ -135,6 +142,7 @@ export const container = {
   adminMatchmakingController,
   adminMatchUsersController,
   adminUsersController,
+  adminOnboardingReminderController,
   adminMatchesController,
   adminAuthController,
   matchController,

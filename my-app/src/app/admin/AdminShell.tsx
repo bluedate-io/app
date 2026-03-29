@@ -2,10 +2,11 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Users, Heart, GitMerge, UserPlus, ShieldCheck, LogOut, Shuffle } from "lucide-react";
+import { Users, Heart, GitMerge, UserPlus, ShieldCheck, LogOut, Shuffle, MailWarning } from "lucide-react";
 
 const NAV = [
   { label: "Users",        href: "/admin/users",        icon: Users },
+  { label: "Onboarding reminders", href: "/admin/onboarding-incomplete", icon: MailWarning },
   { label: "Match",        href: "/admin/match",        icon: Shuffle },
   { label: "Match Users",  href: "/admin/match-users",  icon: GitMerge },
   { label: "View Matches", href: "/admin/view-matches",  icon: Heart },

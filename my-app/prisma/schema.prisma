@@ -74,9 +74,25 @@ model User {
   skipsAsAdmin       AdminSkip[]  @relation("SkipAdmin")
   sentMessages       Message[]    @relation("MessageSender")
   weeklyOptIns       WeeklyOptIn[]
+  adminOnboardingReminderSends AdminOnboardingReminderSend[]
 
   @@index([email])
   @@map("users")
+}
+
+// ─── Admin bulk onboarding reminder (BCC) audit log ───────────────────────────
+
+model AdminOnboardingReminderSend {
+  id               String   @id @default(cuid())
+  sentAt           DateTime @default(now())
+  sentByUserId     String
+  recipientCount   Int
+  recipientUserIds String[]
+
+  sentBy User @relation(fields: [sentByUserId], references: [id], onDelete: Cascade)
+
+  @@index([sentAt])
+  @@map("admin_onboarding_reminder_sends")
 }
 
 // ─── College domain mapping ───────────────────────────────────────────────────
