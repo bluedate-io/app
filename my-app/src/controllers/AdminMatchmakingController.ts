@@ -47,4 +47,18 @@ export class AdminMatchmakingController {
       return adminRouteErrorResponse(e);
     }
   }
+
+  async uploadMatchCard(req: NextRequest, adminId: string) {
+    try {
+      const formData = await req.formData();
+      const file = formData.get("file");
+      if (!(file instanceof File)) {
+        return NextResponse.json({ error: { message: "Field 'file' must be a file" } }, { status: 400 });
+      }
+      const data = await this.adminMatchmakingService.uploadMatchCardImage(adminId, file);
+      return NextResponse.json({ data });
+    } catch (e) {
+      return adminRouteErrorResponse(e);
+    }
+  }
 }

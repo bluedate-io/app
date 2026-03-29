@@ -1,0 +1,12 @@
+-- Optional reference: if POST /api/admin/match/upload-card fails with a Storage permission error,
+-- add policies on the bucket named by SUPABASE_PHOTO_BUCKET (default: photos) so the anon key
+-- can INSERT objects under the match-cards/ prefix and the public URL can be read.
+--
+-- Configure in Supabase Dashboard → Storage → [bucket] → Policies, or run SQL appropriate to
+-- your project’s Storage RLS version. See:
+-- https://supabase.com/docs/guides/storage/security/access-control
+--
+-- Example checks to attach to INSERT / SELECT policies:
+--   (storage.foldername(name))[1] = 'match-cards'
+-- or
+--   name LIKE 'match-cards/%'

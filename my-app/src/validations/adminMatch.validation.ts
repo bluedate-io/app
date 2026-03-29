@@ -81,7 +81,11 @@ export function csvFromPoolQuery(q: AdminMatchPoolQuery | AdminMatchCandidatesQu
 export const adminMatchCreateBodySchema = z.object({
   userAId: z.string().trim().min(1, "userAId is required"),
   userBId: z.string().trim().min(1, "userBId is required"),
-  s3CardUrl: z.string().trim().min(1, "s3CardUrl is required"),
+  s3CardUrl: z
+    .string()
+    .trim()
+    .min(1, "Match card image is required")
+    .pipe(z.string().url("Match card image must be a valid URL")),
 });
 
 export type AdminMatchCreateBody = z.infer<typeof adminMatchCreateBodySchema>;

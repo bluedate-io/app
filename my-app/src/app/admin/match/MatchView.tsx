@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Check,
   Copy,
+  Loader2,
   RotateCcw,
   X,
 } from "lucide-react";
@@ -900,6 +901,224 @@ function PoolView({
   );
 }
 
+// ─── Match card image upload (Supabase via admin API) ───────────────────────────
+
+const MAX_MATCH_CARD_BYTES = 5 * 1024 * 1024;
+const MATCH_CARD_ACCEPT = "image/jpeg,image/png,image/webp";
+const MATCH_CARD_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function uploadMatchCardWithProgress(
+  file: File,
+  onProgress: (pct: number) => void,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/admin/match/upload-card");
+    xhr.withCredentials = true;
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && e.total > 0) {
+        onProgress(Math.min(100, Math.round((100 * e.loaded) / e.total)));
+      }
+    };
+    xhr.onload = () => {
+      let json: { data?: { url?: string }; error?: { message?: string } } = {};
+      try {
+        json = JSON.parse(xhr.responseText) as typeof json;
+      } catch {
+        /* ignore */
+      }
+      if (xhr.status >= 200 && xhr.status < 300 && json.data?.url) {
+        resolve(json.data.url);
+        return;
+      }
+      reject(new Error(json.error?.message ?? "Upload failed"));
+    };
+    xhr.onerror = () => reject(new Error("Network error — please try again"));
+    const fd = new FormData();
+    fd.append("file", file);
+    xhr.send(fd);
+  });
+}
+
+function MatchCardImageUpload({
+  resetKey,
+  cardUrl,
+  onCardUrlChange,
+  onUploadingChange,
+  disabled,
+}: {
+  resetKey: string;
+  cardUrl: string;
+  onCardUrlChange: (url: string) => void;
+  onUploadingChange: (uploading: boolean) => void;
+  disabled: boolean;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const objectUrlRef = useRef<string | null>(null);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const revokeObjectUrl = useCallback(() => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+    setLocalPreview(null);
+  }, []);
+
+  useEffect(() => {
+    revokeObjectUrl();
+    setUploadError(null);
+    setUploadProgress(0);
+    setIsUploading(false);
+    onUploadingChange(false);
+  }, [resetKey, revokeObjectUrl, onUploadingChange]);
+
+  useEffect(() => () => revokeObjectUrl(), [revokeObjectUrl]);
+
+  const displaySrc = cardUrl.trim() || localPreview;
+  const busy = disabled || isUploading;
+
+  async function processFile(file: File | undefined) {
+    if (!file || busy) return;
+    setUploadError(null);
+    if (!MATCH_CARD_TYPES.has(file.type)) {
+      setUploadError("Use JPEG, PNG, or WebP only.");
+      return;
+    }
+    if (file.size > MAX_MATCH_CARD_BYTES) {
+      setUploadError("Image must be 5MB or smaller.");
+      return;
+    }
+
+    revokeObjectUrl();
+    const obj = URL.createObjectURL(file);
+    objectUrlRef.current = obj;
+    setLocalPreview(obj);
+    onCardUrlChange("");
+    setUploadProgress(0);
+    setIsUploading(true);
+    onUploadingChange(true);
+    try {
+      const url = await uploadMatchCardWithProgress(file, setUploadProgress);
+      revokeObjectUrl();
+      onCardUrlChange(url);
+      setUploadProgress(100);
+    } catch (e) {
+      revokeObjectUrl();
+      onCardUrlChange("");
+      setUploadError((e as Error).message ?? "Upload failed");
+    } finally {
+      setIsUploading(false);
+      onUploadingChange(false);
+    }
+  }
+
+  function onInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    void processFile(f);
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+    if (busy) return;
+    const f = e.dataTransfer.files?.[0];
+    void processFile(f);
+  }
+
+  return (
+    <div
+      className="rounded-2xl border bg-white p-4"
+      style={{ borderColor: "#EDE8F7" }}
+    >
+      <label
+        className="block text-[11px] font-bold uppercase tracking-widest mb-2"
+        style={{ color: SUBTLE }}
+      >
+        Upload Card Image
+      </label>
+      <p className="text-xs mb-3" style={{ color: MUTED }}>
+        Drag and drop or click to choose — JPEG, PNG, or WebP, max 5MB.
+      </p>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={MATCH_CARD_ACCEPT}
+        className="hidden"
+        disabled={busy}
+        onChange={onInputChange}
+      />
+
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!busy) setIsDragging(true);
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={onDrop}
+        className="w-full rounded-xl border-2 border-dashed px-4 py-8 text-center text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-violet-200"
+        style={{
+          borderColor: isDragging ? "#8F3A8F" : cardUrl.trim() ? "#166534" : "#C9B8D9",
+          backgroundColor: isDragging ? "#faf5ff" : "#fafafa",
+          color: MUTED,
+          cursor: busy ? "not-allowed" : "pointer",
+          opacity: busy ? 0.5 : 1,
+        }}
+      >
+        {isUploading ? "Uploading…" : displaySrc ? "Replace image" : "Choose file or drop image here"}
+      </button>
+
+      {uploadError && (
+        <p className="mt-2 text-xs font-medium text-red-600" role="alert">
+          {uploadError}
+        </p>
+      )}
+
+      {displaySrc && (
+        <div className="mt-4 relative rounded-xl overflow-hidden border bg-gray-50" style={{ borderColor: "#EDE8F7" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- remote/object URLs */}
+          <img
+            src={displaySrc}
+            alt="Match card preview"
+            className="w-full max-h-64 object-contain"
+          />
+        </div>
+      )}
+
+      {isUploading && uploadProgress === 0 && (
+        <div className="mt-3 flex items-center gap-2 text-xs font-medium" style={{ color: SUBTLE }}>
+          <Loader2 className="h-4 w-4 animate-spin shrink-0" style={{ color: "#8F3A8F" }} />
+          Starting upload…
+        </div>
+      )}
+
+      {uploadProgress > 0 && uploadProgress < 100 && (
+        <div className="mt-3">
+          <div className="h-1.5 w-full rounded-full bg-violet-100 overflow-hidden">
+            <div
+              className="h-full bg-violet-600 transition-[width] duration-150"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+          <p className="text-[11px] mt-1 font-medium flex items-center gap-1.5" style={{ color: SUBTLE }}>
+            <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" style={{ color: "#8F3A8F" }} />
+            Uploading… {uploadProgress}%
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Match phase view (State 2) ───────────────────────────────────────────────
 
 function MatchPhaseView({
@@ -925,6 +1144,7 @@ function MatchPhaseView({
   onSkip: () => void;
   onMatch: () => void;
 }) {
+  const [cardImageUploading, setCardImageUploading] = useState(false);
   const currentCandidate = candidates[candidateIndex] ?? null;
   const noResults = !loading && candidates.length === 0;
   const total = candidates.length;
@@ -984,13 +1204,14 @@ function MatchPhaseView({
               <button
                 type="button"
                 onClick={onPrev}
-                disabled={noResults || loading}
+                disabled={noResults || loading || cardImageUploading}
                 className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:bg-violet-50"
                 style={{
                   borderColor: "#C9B8D9",
                   color: MUTED,
-                  opacity: noResults || loading ? 0.4 : 1,
-                  cursor: noResults || loading ? "not-allowed" : "pointer",
+                  opacity: noResults || loading || cardImageUploading ? 0.4 : 1,
+                  cursor:
+                    noResults || loading || cardImageUploading ? "not-allowed" : "pointer",
                 }}
               >
                 <ChevronLeft size={14} />
@@ -999,13 +1220,14 @@ function MatchPhaseView({
               <button
                 type="button"
                 onClick={onSkip}
-                disabled={noResults || loading}
+                disabled={noResults || loading || cardImageUploading}
                 className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:bg-violet-50"
                 style={{
                   borderColor: "#C9B8D9",
                   color: MUTED,
-                  opacity: noResults || loading ? 0.4 : 1,
-                  cursor: noResults || loading ? "not-allowed" : "pointer",
+                  opacity: noResults || loading || cardImageUploading ? 0.4 : 1,
+                  cursor:
+                    noResults || loading || cardImageUploading ? "not-allowed" : "pointer",
                 }}
               >
                 Next
@@ -1021,26 +1243,13 @@ function MatchPhaseView({
         <>
           <PromptBox userA={userA} userB={currentCandidate} />
 
-          {/* S3 card URL input */}
-          <div
-            className="rounded-2xl border bg-white p-4"
-            style={{ borderColor: "#EDE8F7" }}
-          >
-            <label
-              className="block text-[11px] font-bold uppercase tracking-widest mb-2"
-              style={{ color: SUBTLE }}
-            >
-              Match Card Image URL (required to match)
-            </label>
-            <input
-              type="url"
-              value={s3CardUrl}
-              onChange={(e) => onS3CardUrlChange(e.target.value)}
-              placeholder="Paste S3 / CDN image URL…"
-              className="w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition focus:border-violet-400 focus:ring-1 focus:ring-violet-200"
-              style={{ borderColor: s3CardUrl.trim() ? "#166534" : "#C9B8D9", color: DARK }}
-            />
-          </div>
+          <MatchCardImageUpload
+            resetKey={`${userA.id}-${candidateIndex}`}
+            cardUrl={s3CardUrl}
+            onCardUrlChange={onS3CardUrlChange}
+            onUploadingChange={setCardImageUploading}
+            disabled={loading || noResults}
+          />
         </>
       )}
 
@@ -1064,15 +1273,17 @@ function MatchPhaseView({
         <button
           type="button"
           onClick={onMatch}
-              disabled={noResults || loading || !s3CardUrl.trim()}
+          disabled={noResults || loading || !s3CardUrl.trim() || cardImageUploading}
           className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition"
           style={{
             background:
-                  noResults || loading || !s3CardUrl.trim()
+              noResults || loading || !s3CardUrl.trim() || cardImageUploading
                 ? "#C9B8D9"
                 : "linear-gradient(135deg,#166534,#15803d)",
             cursor:
-                  noResults || loading || !s3CardUrl.trim() ? "not-allowed" : "pointer",
+              noResults || loading || !s3CardUrl.trim() || cardImageUploading
+                ? "not-allowed"
+                : "pointer",
           }}
         >
           <Check size={15} />
@@ -1226,6 +1437,7 @@ export default function MatchView({
 
   function selectUserA(user: PoolUser) {
     setUserA(user);
+    setCandidateIndex(0);
     setS3CardUrl("");
     const college = (user.college ?? "").trim();
     const defaultCandidateGenders = (user.genderPreference ?? [])
@@ -1265,6 +1477,7 @@ export default function MatchView({
   }
 
   function skip() {
+    setS3CardUrl("");
     setCandidateIndex((i) => {
       const n = candidates.length;
       if (n <= 0) return 0;
@@ -1273,6 +1486,7 @@ export default function MatchView({
   }
 
   function prev() {
+    setS3CardUrl("");
     setCandidateIndex((i) => {
       const n = candidates.length;
       if (n <= 0) return 0;
