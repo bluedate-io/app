@@ -119,8 +119,9 @@ export class AdminOnboardingReminderService {
   async sendRemindersForMatchingFilter(
     sentByUserId: string,
     q: string,
+    gender = "",
   ): Promise<{ sentCount: number }> {
-    const userIds = await this.repo.getEmailableIncompleteUserIds(q);
+    const userIds = await this.repo.getEmailableIncompleteUserIds(q, gender);
     if (userIds.length === 0) {
       throw new BadRequestError("No users with email match the current filter.");
     }
@@ -130,7 +131,7 @@ export class AdminOnboardingReminderService {
   listIncompleteUsers(
     page: number,
     pageSize: number,
-    opts: { q?: string; sort?: string } = {},
+    opts: { q?: string; sort?: string; gender?: string } = {},
   ) {
     return this.repo.listIncompleteUsers(page, pageSize, opts);
   }

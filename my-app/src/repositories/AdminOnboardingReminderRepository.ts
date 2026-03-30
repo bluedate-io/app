@@ -1,12 +1,14 @@
 // ─── AdminOnboardingReminderRepository — persistence for incomplete-onboarding reminders
 
 import { Prisma, UserRole, type PrismaClient } from "@/generated/prisma/client";
+import { ADMIN_GENDER_OPTIONS } from "@/lib/adminUserStep";
 
 const USER_SELECT_LIST = {
   id: true,
   email: true,
   createdAt: true,
   profile: { select: { fullName: true } },
+  preferences: { select: { genderIdentity: true } },
 } as const;
 
 export type IncompleteUserListRow = {
@@ -14,6 +16,7 @@ export type IncompleteUserListRow = {
   email: string | null;
   createdAt: Date;
   profile: { fullName: string | null } | null;
+  preferences: { genderIdentity: string | null } | null;
 };
 
 /** Safe user id fragment for raw SQL (cuid-style). */
@@ -26,30 +29,41 @@ function sanitizeUserIdsForStats(userIds: string[]): string[] {
 export class AdminOnboardingReminderRepository {
   constructor(private readonly db: PrismaClient) {}
 
-  private incompleteUsersWhere(search: string): Prisma.UserWhereInput {
-    const base: Prisma.UserWhereInput = {
-      role: { not: UserRole.admin },
-      onboardingCompleted: false,
-    };
-    const trimmed = search.trim();
-    if (!trimmed) return base;
-    return {
-      AND: [
-        base,
-        {
-          OR: [
-            { email: { contains: trimmed, mode: "insensitive" } },
-            { profile: { is: { fullName: { contains: trimmed, mode: "insensitive" } } } },
-          ],
-        },
-      ],
-    };
+  private isAllowedGender(g: string): g is (typeof ADMIN_GENDER_OPTIONS)[number] {
+    return ADMIN_GENDER_OPTIONS.includes(g as (typeof ADMIN_GENDER_OPTIONS)[number]);
   }
 
-  private emailableIncompleteWhere(search: string): Prisma.UserWhereInput {
+  /** Optional filter on `preferences.genderIdentity` (Woman | Man | Nonbinary). */
+  private normalizeGenderFilter(gender?: string): string | undefined {
+    const g = gender?.trim();
+    if (!g) return undefined;
+    return this.isAllowedGender(g) ? g : undefined;
+  }
+
+  private incompleteUsersWhere(search: string, gender?: string): Prisma.UserWhereInput {
+    const parts: Prisma.UserWhereInput[] = [
+      { role: { not: UserRole.admin }, onboardingCompleted: false },
+    ];
+    const g = this.normalizeGenderFilter(gender);
+    if (g) {
+      parts.push({ preferences: { is: { genderIdentity: g } } });
+    }
+    const trimmed = search.trim();
+    if (trimmed) {
+      parts.push({
+        OR: [
+          { email: { contains: trimmed, mode: "insensitive" } },
+          { profile: { is: { fullName: { contains: trimmed, mode: "insensitive" } } } },
+        ],
+      });
+    }
+    return parts.length === 1 ? parts[0]! : { AND: parts };
+  }
+
+  private emailableIncompleteWhere(search: string, gender?: string): Prisma.UserWhereInput {
     return {
       AND: [
-        this.incompleteUsersWhere(search),
+        this.incompleteUsersWhere(search, gender),
         { email: { not: null } },
         { NOT: { email: { equals: "" } } },
       ],
@@ -131,10 +145,10 @@ export class AdminOnboardingReminderRepository {
     }));
   }
 
-  async getEmailableIncompleteUserIds(q: string): Promise<string[]> {
+  async getEmailableIncompleteUserIds(q: string, gender?: string): Promise<string[]> {
     const search = q.trim();
     const rows = await this.db.user.findMany({
-      where: this.emailableIncompleteWhere(search),
+      where: this.emailableIncompleteWhere(search, gender),
       select: { id: true, email: true },
     });
     return rows.filter((r) => r.email?.trim()).map((r) => r.id);
@@ -143,9 +157,11 @@ export class AdminOnboardingReminderRepository {
   async listIncompleteUsers(
     page: number,
     pageSize: number,
-    opts: { q?: string; sort?: string } = {},
+    opts: { q?: string; sort?: string; gender?: string } = {},
   ) {
     const search = (opts.q ?? "").trim();
+    const genderParam = this.normalizeGenderFilter(opts.gender);
+    const genderEcho = genderParam ?? "";
     const rawSort = opts.sort ?? "joined_desc";
     const sort =
       rawSort === "joined_asc" ||
@@ -155,11 +171,11 @@ export class AdminOnboardingReminderRepository {
         : "joined_desc";
 
     const skip = (page - 1) * pageSize;
-    const where = this.incompleteUsersWhere(search);
+    const where = this.incompleteUsersWhere(search, genderParam);
     const [total, emailableRows] = await Promise.all([
       this.db.user.count({ where }),
       this.db.user.findMany({
-        where: this.emailableIncompleteWhere(search),
+        where: this.emailableIncompleteWhere(search, genderParam),
         select: { email: true },
       }),
     ]);
@@ -181,6 +197,13 @@ export class AdminOnboardingReminderRepository {
           ? Prisma.sql`DESC NULLS LAST`
           : Prisma.sql`ASC NULLS LAST`;
       const pattern = search ? `%${search}%` : null;
+      const genderSql =
+        genderParam != null
+          ? Prisma.sql`AND EXISTS (
+              SELECT 1 FROM preferences pr
+              WHERE pr."userId" = u.id AND pr."genderIdentity" = ${genderParam}
+            )`
+          : Prisma.sql``;
 
       type IdRow = { id: string };
       let idRows: IdRow[];
@@ -196,6 +219,7 @@ export class AdminOnboardingReminderRepository {
           ) AS counts ON true
           WHERE u.role <> 'admin'::"UserRole"
             AND u."onboardingCompleted" = false
+            ${genderSql}
             AND (
               u.email ILIKE ${pattern}
               OR EXISTS (
@@ -217,6 +241,7 @@ export class AdminOnboardingReminderRepository {
           ) AS counts ON true
           WHERE u.role <> 'admin'::"UserRole"
             AND u."onboardingCompleted" = false
+            ${genderSql}
           ORDER BY counts.rc ${rcOrder}, u."createdAt" DESC
           LIMIT ${pageSize} OFFSET ${skip}
         `;
@@ -232,6 +257,7 @@ export class AdminOnboardingReminderRepository {
           pageSize,
           q: search,
           sort,
+          gender: genderEcho,
         };
       }
 
@@ -263,6 +289,7 @@ export class AdminOnboardingReminderRepository {
       pageSize,
       q: search,
       sort,
+      gender: genderEcho,
     };
   }
 
