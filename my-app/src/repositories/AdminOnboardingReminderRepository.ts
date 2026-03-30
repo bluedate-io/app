@@ -29,14 +29,20 @@ function sanitizeUserIdsForStats(userIds: string[]): string[] {
 export class AdminOnboardingReminderRepository {
   constructor(private readonly db: PrismaClient) {}
 
+  private static readonly ONBOARDING_REMINDER_GENDER_NOT_PROVIDED =
+    "__not_provided__";
+
   private isAllowedGender(g: string): g is (typeof ADMIN_GENDER_OPTIONS)[number] {
     return ADMIN_GENDER_OPTIONS.includes(g as (typeof ADMIN_GENDER_OPTIONS)[number]);
   }
 
-  /** Optional filter on `preferences.genderIdentity` (Woman | Man | Nonbinary). */
+  /** Optional filter on `preferences.genderIdentity` (Woman | Man | Nonbinary | Not provided). */
   private normalizeGenderFilter(gender?: string): string | undefined {
     const g = gender?.trim();
     if (!g) return undefined;
+    if (g === AdminOnboardingReminderRepository.ONBOARDING_REMINDER_GENDER_NOT_PROVIDED) {
+      return g;
+    }
     return this.isAllowedGender(g) ? g : undefined;
   }
 
@@ -46,7 +52,17 @@ export class AdminOnboardingReminderRepository {
     ];
     const g = this.normalizeGenderFilter(gender);
     if (g) {
-      parts.push({ preferences: { is: { genderIdentity: g } } });
+      if (g === AdminOnboardingReminderRepository.ONBOARDING_REMINDER_GENDER_NOT_PROVIDED) {
+        // Include users where preferences row doesn't exist OR where genderIdentity is null.
+        parts.push({
+          OR: [
+            { preferences: { is: null } },
+            { preferences: { is: { genderIdentity: null } } },
+          ],
+        });
+      } else {
+        parts.push({ preferences: { is: { genderIdentity: g } } });
+      }
     }
     const trimmed = search.trim();
     if (trimmed) {
@@ -199,10 +215,20 @@ export class AdminOnboardingReminderRepository {
       const pattern = search ? `%${search}%` : null;
       const genderSql =
         genderParam != null
-          ? Prisma.sql`AND EXISTS (
-              SELECT 1 FROM preferences pr
-              WHERE pr."userId" = u.id AND pr."genderIdentity" = ${genderParam}
-            )`
+          ? genderParam === AdminOnboardingReminderRepository.ONBOARDING_REMINDER_GENDER_NOT_PROVIDED
+            ? Prisma.sql`AND (
+                NOT EXISTS (
+                  SELECT 1 FROM preferences pr WHERE pr."userId" = u.id
+                )
+                OR EXISTS (
+                  SELECT 1 FROM preferences pr
+                  WHERE pr."userId" = u.id AND pr."genderIdentity" IS NULL
+                )
+              )`
+            : Prisma.sql`AND EXISTS (
+                SELECT 1 FROM preferences pr
+                WHERE pr."userId" = u.id AND pr."genderIdentity" = ${genderParam}
+              )`
           : Prisma.sql``;
 
       type IdRow = { id: string };
