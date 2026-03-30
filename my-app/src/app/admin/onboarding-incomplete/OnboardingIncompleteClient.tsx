@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronRight, MoreVertical, X } from "lucide-react";
+import { ADMIN_GENDER_OPTIONS } from "@/lib/adminUserStep";
 
 const DARK = "#1A0A2E";
 const MUTED = "#6B5E7A";
@@ -12,6 +13,7 @@ type Row = {
   email: string | null;
   createdAt: string;
   profile: { fullName: string | null } | null;
+  preferences: { genderIdentity: string | null } | null;
   reminderCount: number;
   lastReminderSentAt: string | null;
 };
@@ -48,6 +50,7 @@ type ListPayload = {
   recentSends: RecentSend[];
   q: string;
   sort: SortOption;
+  gender: string;
 };
 type HistoryEvent = {
   id: string;
@@ -281,6 +284,7 @@ export default function OnboardingIncompleteClient() {
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
   const [searchDraft, setSearchDraft] = useState("");
   const [committedQ, setCommittedQ] = useState("");
+  const [committedGender, setCommittedGender] = useState("");
   const [sort, setSort] = useState<SortOption>("joined_desc");
 
   const toggleSendExpanded = (id: string) => {
@@ -302,6 +306,7 @@ export default function OnboardingIncompleteClient() {
         sort,
       });
       if (committedQ.trim()) params.set("q", committedQ.trim());
+      if (committedGender.trim()) params.set("gender", committedGender.trim());
       const res = await fetch(`/api/admin/onboarding-incomplete?${params.toString()}`, {
         credentials: "include",
       });
@@ -325,6 +330,7 @@ export default function OnboardingIncompleteClient() {
         emailableTotal: typeof raw.emailableTotal === "number" ? raw.emailableTotal : 0,
         q: raw.q ?? "",
         sort: sortNorm,
+        gender: typeof raw.gender === "string" ? raw.gender : "",
       };
       setData(payload);
       setSelected(new Set());
@@ -335,7 +341,7 @@ export default function OnboardingIncompleteClient() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, committedQ, sort]);
+  }, [page, pageSize, committedQ, committedGender, sort]);
 
   useEffect(() => {
     void load();
@@ -447,7 +453,11 @@ export default function OnboardingIncompleteClient() {
     setSendError(null);
     try {
       const body = selectAllMatching
-        ? { selectAllMatching: true as const, q: committedQ }
+        ? {
+            selectAllMatching: true as const,
+            q: committedQ,
+            ...(committedGender.trim() ? { gender: committedGender.trim() } : {}),
+          }
         : { userIds: [...selected] };
       const res = await fetch("/api/admin/onboarding-incomplete/send", {
         method: "POST",
@@ -515,6 +525,7 @@ export default function OnboardingIncompleteClient() {
           <p className="text-sm mt-1.5" style={{ color: "#6B5E7A" }}>
             {data.total} user{data.total === 1 ? "" : "s"}
             {committedQ.trim() ? ` matching "${committedQ.trim()}"` : null}
+            {committedGender.trim() ? ` · ${committedGender.trim()} only` : null}
           </p>
         )}
       </div>
@@ -671,25 +682,49 @@ export default function OnboardingIncompleteClient() {
             ) : null}
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <label htmlFor="onboarding-incomplete-sort" className="text-sm whitespace-nowrap" style={{ color: MUTED }}>
-            Sort by
-          </label>
-          <select
-            id="onboarding-incomplete-sort"
-            value={sort}
-            onChange={(e) => {
-              setSort(e.target.value as SortOption);
-              setPage(1);
-            }}
-            className="rounded-xl border px-3 py-2 text-sm min-w-[200px]"
-            style={{ borderColor: "#EDE8F7", color: DARK, backgroundColor: "#fff" }}
-          >
-            <option value="joined_desc">Joined (newest first)</option>
-            <option value="joined_asc">Joined (oldest first)</option>
-            <option value="reminders_desc">Reminders sent (high to low)</option>
-            <option value="reminders_asc">Reminders sent (low to high)</option>
-          </select>
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2">
+            <label htmlFor="onboarding-incomplete-gender" className="text-sm whitespace-nowrap" style={{ color: MUTED }}>
+              Gender
+            </label>
+            <select
+              id="onboarding-incomplete-gender"
+              value={committedGender}
+              onChange={(e) => {
+                setCommittedGender(e.target.value);
+                setPage(1);
+              }}
+              className="rounded-xl border px-3 py-2 text-sm min-w-[160px]"
+              style={{ borderColor: "#EDE8F7", color: DARK, backgroundColor: "#fff" }}
+            >
+              <option value="">All genders</option>
+              {ADMIN_GENDER_OPTIONS.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="onboarding-incomplete-sort" className="text-sm whitespace-nowrap" style={{ color: MUTED }}>
+              Sort by
+            </label>
+            <select
+              id="onboarding-incomplete-sort"
+              value={sort}
+              onChange={(e) => {
+                setSort(e.target.value as SortOption);
+                setPage(1);
+              }}
+              className="rounded-xl border px-3 py-2 text-sm min-w-[200px]"
+              style={{ borderColor: "#EDE8F7", color: DARK, backgroundColor: "#fff" }}
+            >
+              <option value="joined_desc">Joined (newest first)</option>
+              <option value="joined_asc">Joined (oldest first)</option>
+              <option value="reminders_desc">Reminders sent (high to low)</option>
+              <option value="reminders_asc">Reminders sent (low to high)</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -734,8 +769,9 @@ export default function OnboardingIncompleteClient() {
       {selectAllMatching && emailableTotal > 0 && (
         <p className="text-sm mb-4" style={{ color: "#6B5E7A" }}>
           All {emailableTotal} incomplete user{emailableTotal === 1 ? "" : "s"} with an email
-          {committedQ.trim() ? ` matching “${committedQ.trim()}”` : ""} will be included. Sort does not change who
-          is included.
+          {committedQ.trim() ? ` matching “${committedQ.trim()}”` : ""}
+          {committedGender.trim() ? ` · ${committedGender.trim()} only` : ""} will be included. Sort does not change
+          who is included.
         </p>
       )}
 
@@ -785,6 +821,9 @@ export default function OnboardingIncompleteClient() {
                   <th className="text-left p-3 font-semibold" style={{ color: "#1A0A2E" }}>
                     Name
                   </th>
+                  <th className="text-left p-3 font-semibold whitespace-nowrap" style={{ color: "#1A0A2E" }}>
+                    Gender
+                  </th>
                   <th className="text-left p-3 font-semibold" style={{ color: "#1A0A2E" }}>
                     Email
                   </th>
@@ -818,6 +857,9 @@ export default function OnboardingIncompleteClient() {
                       </td>
                       <td className="p-3" style={{ color: "#1A0A2E" }}>
                         {r.profile?.fullName?.trim() || "—"}
+                      </td>
+                      <td className="p-3 whitespace-nowrap" style={{ color: "#6B5E7A" }}>
+                        {r.preferences?.genderIdentity?.trim() || "—"}
                       </td>
                       <td className="p-3" style={{ color: hasEmail ? "#6B5E7A" : "#C4B8D4" }}>
                         {hasEmail ? r.email : "No email"}

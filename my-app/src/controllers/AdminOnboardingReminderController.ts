@@ -15,7 +15,11 @@ export class AdminOnboardingReminderController {
     try {
       const q = parseOnboardingIncompleteListQuery(req.nextUrl.searchParams);
       const [list, lastSend, recentSends] = await Promise.all([
-        this.service.listIncompleteUsers(q.page, q.pageSize, { q: q.q, sort: q.sort }),
+        this.service.listIncompleteUsers(q.page, q.pageSize, {
+          q: q.q,
+          sort: q.sort,
+          gender: q.gender,
+        }),
         this.service.getLastSend(),
         this.service.getRecentSendsWithRecipients(),
       ]);
@@ -31,7 +35,11 @@ export class AdminOnboardingReminderController {
       const parsed = parseOnboardingIncompleteSendBody(body);
       const result =
         parsed.kind === "selectAllMatching"
-          ? await this.service.sendRemindersForMatchingFilter(adminUserId, parsed.q)
+          ? await this.service.sendRemindersForMatchingFilter(
+              adminUserId,
+              parsed.q,
+              parsed.gender,
+            )
           : await this.service.sendReminders(adminUserId, parsed.userIds);
       return NextResponse.json({ data: result });
     } catch (e) {
