@@ -17,6 +17,7 @@ import { InviteCodeRepository } from "@/repositories/InviteCodeRepository";
 import { AdminMatchesRepository } from "@/repositories/AdminMatchesRepository";
 import { AdminMatchmakingRepository } from "@/repositories/AdminMatchmakingRepository";
 import { AdminMatchUsersRepository } from "@/repositories/AdminMatchUsersRepository";
+import { AdminOnboardingReminderRepository } from "@/repositories/AdminOnboardingReminderRepository";
 import { AdminUsersRepository } from "@/repositories/AdminUsersRepository";
 import { CollegeDomainRepository } from "@/repositories/CollegeDomainRepository";
 import { MatchRepository } from "@/repositories/MatchRepository";
@@ -51,6 +52,7 @@ const matchRepository = new MatchRepository(db);
 const adminMatchmakingRepository = new AdminMatchmakingRepository(db);
 const adminMatchUsersRepository = new AdminMatchUsersRepository(db);
 const adminUsersRepository = new AdminUsersRepository(db);
+const adminOnboardingReminderRepository = new AdminOnboardingReminderRepository(db);
 const adminMatchesRepository = new AdminMatchesRepository(db);
 const userSelfRepository = new UserSelfRepository(db);
 
@@ -85,7 +87,9 @@ const adminMatchUsersService = new AdminMatchUsersService(
   matchEmailService,
 );
 const adminUsersService = new AdminUsersService(adminUsersRepository);
-const adminOnboardingReminderService = new AdminOnboardingReminderService(db);
+const adminOnboardingReminderService = new AdminOnboardingReminderService(
+  adminOnboardingReminderRepository,
+);
 const adminMatchesService = new AdminMatchesService(adminMatchesRepository);
 const userSelfService = new UserSelfService(userSelfRepository, matchEmailService);
 const adminAuthService = new AdminAuthService(twilioService, userRepository, userSelfRepository);
@@ -116,6 +120,7 @@ export const container = {
   adminMatchUsersRepository,
   adminUsersRepository,
   adminMatchesRepository,
+  adminOnboardingReminderRepository,
   userSelfRepository,
 
   // Services

@@ -40,6 +40,7 @@ type SortOption =
 
 type ListPayload = {
   total: number;
+  emailableTotal: number;
   users: Row[];
   page: number;
   pageSize: number;
@@ -268,6 +269,7 @@ export default function OnboardingIncompleteClient() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<ListPayload | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selectAllMatching, setSelectAllMatching] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -320,11 +322,13 @@ export default function OnboardingIncompleteClient() {
         s === "joined_asc" || s === "reminders_desc" || s === "reminders_asc" ? s : "joined_desc";
       const payload: ListPayload = {
         ...raw,
+        emailableTotal: typeof raw.emailableTotal === "number" ? raw.emailableTotal : 0,
         q: raw.q ?? "",
         sort: sortNorm,
       };
       setData(payload);
       setSelected(new Set());
+      setSelectAllMatching(false);
     } catch {
       setError("Failed to load");
       setData(null);
@@ -353,8 +357,9 @@ export default function OnboardingIncompleteClient() {
   useEffect(() => {
     const el = headerCheckboxRef.current;
     if (!el) return;
-    el.indeterminate = someSelectedOnPage && !allSelectableSelected;
-  }, [someSelectedOnPage, allSelectableSelected]);
+    el.indeterminate =
+      !selectAllMatching && someSelectedOnPage && !allSelectableSelected;
+  }, [someSelectedOnPage, allSelectableSelected, selectAllMatching]);
 
   useEffect(() => {
     if (!historyForUser) {
@@ -397,6 +402,7 @@ export default function OnboardingIncompleteClient() {
 
   const toggleRow = (id: string, hasEmail: boolean) => {
     if (!hasEmail) return;
+    setSelectAllMatching(false);
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -406,6 +412,7 @@ export default function OnboardingIncompleteClient() {
   };
 
   const toggleSelectPage = () => {
+    setSelectAllMatching(false);
     if (allSelectableSelected) {
       setSelected((prev) => {
         const next = new Set(prev);
@@ -421,16 +428,32 @@ export default function OnboardingIncompleteClient() {
     }
   };
 
+  const toggleSelectAllIncomplete = () => {
+    if (selectAllMatching) {
+      setSelectAllMatching(false);
+      setSelected(new Set());
+    } else {
+      setSelectAllMatching(true);
+      setSelected(new Set());
+    }
+  };
+
+  const emailableTotal = data?.emailableTotal ?? 0;
+  const effectiveCount = selectAllMatching ? emailableTotal : selected.size;
+
   const sendReminders = async () => {
-    if (selected.size === 0) return;
+    if (effectiveCount === 0) return;
     setSending(true);
     setSendError(null);
     try {
+      const body = selectAllMatching
+        ? { selectAllMatching: true as const, q: committedQ }
+        : { userIds: [...selected] };
       const res = await fetch("/api/admin/onboarding-incomplete/send", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userIds: [...selected] }),
+        body: JSON.stringify(body),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -454,9 +477,9 @@ export default function OnboardingIncompleteClient() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8">
-      {confirmOpen && selected.size > 0 && (
+      {confirmOpen && effectiveCount > 0 && (
         <ConfirmSendModal
-          selectedCount={selected.size}
+          selectedCount={effectiveCount}
           onCancel={() => !sending && setConfirmOpen(false)}
           onConfirm={() => void sendReminders()}
           confirming={sending}
@@ -674,23 +697,32 @@ export default function OnboardingIncompleteClient() {
         <button
           type="button"
           onClick={toggleSelectPage}
-          disabled={loading || selectableIds.length === 0}
+          disabled={loading || selectableIds.length === 0 || selectAllMatching}
           className="px-4 py-2 rounded-xl text-sm font-medium transition disabled:opacity-50"
           style={{ backgroundColor: "#EDE8F7", color: "#6B5E7A" }}
         >
           {allSelectableSelected ? "Deselect page" : "Select all on page"}
         </button>
+        <button
+          type="button"
+          onClick={toggleSelectAllIncomplete}
+          disabled={loading || (!selectAllMatching && emailableTotal === 0)}
+          className="px-4 py-2 rounded-xl text-sm font-medium transition disabled:opacity-50"
+          style={{ backgroundColor: "#EDE8F7", color: "#6B5E7A" }}
+        >
+          {selectAllMatching ? "Deselect all incomplete users" : "Select all incomplete users"}
+        </button>
         <span className="text-sm" style={{ color: "#6B5E7A" }}>
-          {selected.size} selected
+          {effectiveCount} selected
         </span>
         <button
           type="button"
           onClick={() => {
-            if (selected.size === 0) return;
+            if (effectiveCount === 0) return;
             setSendError(null);
             setConfirmOpen(true);
           }}
-          disabled={sending || selected.size === 0}
+          disabled={sending || effectiveCount === 0}
           className="px-4 py-2 rounded-xl text-sm font-semibold text-white transition disabled:opacity-50"
           style={{
             background: "linear-gradient(135deg,#8F3A8F,#C060C0)",
@@ -699,6 +731,13 @@ export default function OnboardingIncompleteClient() {
           Send reminder (BCC)
         </button>
       </div>
+      {selectAllMatching && emailableTotal > 0 && (
+        <p className="text-sm mb-4" style={{ color: "#6B5E7A" }}>
+          All {emailableTotal} incomplete user{emailableTotal === 1 ? "" : "s"} with an email
+          {committedQ.trim() ? ` matching “${committedQ.trim()}”` : ""} will be included. Sort does not change who
+          is included.
+        </p>
+      )}
 
       {error && (
         <p className="text-sm text-red-600 mb-3" role="alert">
@@ -734,8 +773,11 @@ export default function OnboardingIncompleteClient() {
                     <input
                       ref={headerCheckboxRef}
                       type="checkbox"
-                      checked={allSelectableSelected && selectableIds.length > 0}
-                      disabled={loading || selectableIds.length === 0}
+                      checked={
+                        (selectAllMatching && emailableTotal > 0) ||
+                        (allSelectableSelected && selectableIds.length > 0)
+                      }
+                      disabled={loading || selectableIds.length === 0 || selectAllMatching}
                       onChange={toggleSelectPage}
                       aria-label="Select all users on this page"
                     />
@@ -761,14 +803,14 @@ export default function OnboardingIncompleteClient() {
               <tbody>
                 {rows.map((r) => {
                   const hasEmail = !!r.email?.trim();
-                  const checked = selected.has(r.id);
+                  const checked = (selectAllMatching && hasEmail) || selected.has(r.id);
                   return (
                     <tr key={r.id} style={{ borderBottom: "1px solid #F5F0FB" }}>
                       <td className="p-3 align-middle">
                         <input
                           type="checkbox"
                           checked={checked}
-                          disabled={!hasEmail}
+                          disabled={!hasEmail || selectAllMatching}
                           onChange={() => toggleRow(r.id, hasEmail)}
                           className="rounded border-gray-300"
                           aria-label={`Select ${r.profile?.fullName ?? r.email ?? r.id}`}

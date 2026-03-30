@@ -28,8 +28,11 @@ export class AdminOnboardingReminderController {
   async send(req: NextRequest, adminUserId: string) {
     try {
       const body = await req.json();
-      const { userIds } = parseOnboardingIncompleteSendBody(body);
-      const result = await this.service.sendReminders(adminUserId, userIds);
+      const parsed = parseOnboardingIncompleteSendBody(body);
+      const result =
+        parsed.kind === "selectAllMatching"
+          ? await this.service.sendRemindersForMatchingFilter(adminUserId, parsed.q)
+          : await this.service.sendReminders(adminUserId, parsed.userIds);
       return NextResponse.json({ data: result });
     } catch (e) {
       return adminRouteErrorResponse(e);
