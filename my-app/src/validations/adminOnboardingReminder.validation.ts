@@ -14,10 +14,13 @@ const sortSchema = z.enum([
 
 export type OnboardingIncompleteListSort = z.infer<typeof sortSchema>;
 
-/** Empty string = all genders; otherwise Woman | Man | Nonbinary. */
+const ONBOARDING_REMINDER_GENDER_NOT_PROVIDED = "__not_provided__";
+
+/** Empty string = all genders; otherwise Woman | Man | Nonbinary | Not provided. */
 export function normalizeOnboardingReminderGender(raw: string | null | undefined): string {
   const g = (raw ?? "").trim();
   if (g === "") return "";
+  if (g === ONBOARDING_REMINDER_GENDER_NOT_PROVIDED) return ONBOARDING_REMINDER_GENDER_NOT_PROVIDED;
   return ADMIN_GENDER_OPTIONS.includes(g as (typeof ADMIN_GENDER_OPTIONS)[number]) ? g : "";
 }
 

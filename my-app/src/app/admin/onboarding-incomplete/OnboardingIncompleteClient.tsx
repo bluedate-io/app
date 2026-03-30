@@ -287,6 +287,12 @@ export default function OnboardingIncompleteClient() {
   const [committedGender, setCommittedGender] = useState("");
   const [sort, setSort] = useState<SortOption>("joined_desc");
 
+  const ONBOARDING_REMINDER_GENDER_NOT_PROVIDED = "__not_provided__";
+  const committedGenderLabel =
+    committedGender.trim() === ONBOARDING_REMINDER_GENDER_NOT_PROVIDED
+      ? "Not provided"
+      : committedGender.trim();
+
   const toggleSendExpanded = (id: string) => {
     setExpandedSendIds((prev) => {
       const next = new Set(prev);
@@ -525,7 +531,7 @@ export default function OnboardingIncompleteClient() {
           <p className="text-sm mt-1.5" style={{ color: "#6B5E7A" }}>
             {data.total} user{data.total === 1 ? "" : "s"}
             {committedQ.trim() ? ` matching "${committedQ.trim()}"` : null}
-            {committedGender.trim() ? ` · ${committedGender.trim()} only` : null}
+            {committedGender.trim() ? ` · ${committedGenderLabel} only` : null}
           </p>
         )}
       </div>
@@ -698,6 +704,7 @@ export default function OnboardingIncompleteClient() {
               style={{ borderColor: "#EDE8F7", color: DARK, backgroundColor: "#fff" }}
             >
               <option value="">All genders</option>
+              <option value={ONBOARDING_REMINDER_GENDER_NOT_PROVIDED}>Not provided</option>
               {ADMIN_GENDER_OPTIONS.map((g) => (
                 <option key={g} value={g}>
                   {g}
@@ -770,7 +777,7 @@ export default function OnboardingIncompleteClient() {
         <p className="text-sm mb-4" style={{ color: "#6B5E7A" }}>
           All {emailableTotal} incomplete user{emailableTotal === 1 ? "" : "s"} with an email
           {committedQ.trim() ? ` matching “${committedQ.trim()}”` : ""}
-          {committedGender.trim() ? ` · ${committedGender.trim()} only` : ""} will be included. Sort does not change
+          {committedGender.trim() ? ` · ${committedGenderLabel} only` : ""} will be included. Sort does not change
           who is included.
         </p>
       )}
