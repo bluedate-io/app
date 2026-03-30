@@ -1,10 +1,10 @@
 // ─── AdminOnboardingReminderService — BCC batch reminders for incomplete onboarding
 
 import nodemailer from "nodemailer";
-import type { PrismaClient } from "@/generated/prisma/client";
-import { Prisma, UserRole } from "@/generated/prisma/client";
+import { UserRole } from "@/generated/prisma/client";
 import { config } from "@/config";
 import { logger } from "@/utils/logger";
+import type { AdminOnboardingReminderRepository } from "@/repositories/AdminOnboardingReminderRepository";
 import { BadRequestError, ForbiddenError, NotFoundError } from "@/utils/errors";
 
 const log = logger.child("AdminOnboardingReminderService");
@@ -85,17 +85,23 @@ function buildOnboardingReminderText(onboardingUrl: string): string {
 
 const RECENT_SENDS_LIMIT = 20;
 
-/** Safe user id fragment for raw SQL (cuid-style). */
-function sanitizeUserIdsForStats(userIds: string[]): string[] {
-  return [...new Set(userIds)].filter(
-    (id) => typeof id === "string" && id.length >= 10 && id.length <= 36 && /^[a-z0-9]+$/i.test(id),
-  );
+/** Safe user id fragment for stats (cuid-style). */
+function sanitizeUserIdForHistory(userId: string): string | null {
+  if (
+    typeof userId === "string" &&
+    userId.length >= 10 &&
+    userId.length <= 36 &&
+    /^[a-z0-9]+$/i.test(userId)
+  ) {
+    return userId;
+  }
+  return null;
 }
 
 export class AdminOnboardingReminderService {
   private transporter: nodemailer.Transporter | null = null;
 
-  constructor(private readonly db: PrismaClient) {
+  constructor(private readonly repo: AdminOnboardingReminderRepository) {
     if (config.email.smtpHost) {
       this.transporter = nodemailer.createTransport({
         host: config.email.smtpHost,
@@ -106,225 +112,31 @@ export class AdminOnboardingReminderService {
     }
   }
 
-  private async getReminderStatsForUserIds(
-    userIds: string[],
-  ): Promise<Map<string, { reminderCount: number; lastReminderSentAt: string | null }>> {
-    const map = new Map<string, { reminderCount: number; lastReminderSentAt: string | null }>();
-    for (const id of userIds) {
-      map.set(id, { reminderCount: 0, lastReminderSentAt: null });
-    }
-    const sanitized = sanitizeUserIdsForStats(userIds);
-    if (sanitized.length === 0) return map;
-
-    const rows = await this.db.$queryRaw<
-      { userId: string; reminderCount: number; lastReminderSentAt: Date | null }[]
-    >`
-      SELECT u.uid AS "userId",
-             COUNT(s.id)::int AS "reminderCount",
-             MAX(s."sentAt") AS "lastReminderSentAt"
-      FROM unnest(ARRAY[${Prisma.join(sanitized.map((id) => Prisma.sql`${id}`))}]::text[]) AS u(uid)
-      LEFT JOIN "admin_onboarding_reminder_sends" s ON s."recipientUserIds" @> ARRAY[u.uid]::text[]
-      GROUP BY u.uid
-    `;
-
-    for (const row of rows) {
-      map.set(row.userId, {
-        reminderCount: row.reminderCount,
-        lastReminderSentAt: row.lastReminderSentAt
-          ? row.lastReminderSentAt.toISOString()
-          : null,
-      });
-    }
-    return map;
-  }
-
   async getRecentSendsWithRecipients(limit = RECENT_SENDS_LIMIT) {
-    const rows = await this.db.adminOnboardingReminderSend.findMany({
-      orderBy: { sentAt: "desc" },
-      take: limit,
-      select: {
-        id: true,
-        sentAt: true,
-        recipientCount: true,
-        recipientUserIds: true,
-        sentBy: { select: { profile: { select: { fullName: true } } } },
-      },
-    });
-
-    const allRecipientIds = [...new Set(rows.flatMap((r) => r.recipientUserIds))];
-    const users =
-      allRecipientIds.length === 0
-        ? []
-        : await this.db.user.findMany({
-            where: { id: { in: allRecipientIds } },
-            select: {
-              id: true,
-              email: true,
-              profile: { select: { fullName: true } },
-            },
-          });
-    const byId = new Map(users.map((u) => [u.id, u]));
-
-    return rows.map((row) => ({
-      id: row.id,
-      sentAt: row.sentAt.toISOString(),
-      recipientCount: row.recipientCount,
-      sentByName: row.sentBy.profile?.fullName ?? null,
-      recipients: row.recipientUserIds.map((userId) => {
-        const u = byId.get(userId);
-        return {
-          userId,
-          fullName: u?.profile?.fullName ?? null,
-          email: u?.email ?? null,
-        };
-      }),
-    }));
+    return this.repo.findRecentSendsWithRecipients(limit);
   }
 
-  private incompleteUsersWhere(search: string): Prisma.UserWhereInput {
-    const base: Prisma.UserWhereInput = {
-      role: { not: UserRole.admin },
-      onboardingCompleted: false,
-    };
-    const trimmed = search.trim();
-    if (!trimmed) return base;
-    return {
-      AND: [
-        base,
-        {
-          OR: [
-            { email: { contains: trimmed, mode: "insensitive" } },
-            { profile: { is: { fullName: { contains: trimmed, mode: "insensitive" } } } },
-          ],
-        },
-      ],
-    };
+  async sendRemindersForMatchingFilter(
+    sentByUserId: string,
+    q: string,
+  ): Promise<{ sentCount: number }> {
+    const userIds = await this.repo.getEmailableIncompleteUserIds(q);
+    if (userIds.length === 0) {
+      throw new BadRequestError("No users with email match the current filter.");
+    }
+    return this.sendReminders(sentByUserId, userIds);
   }
 
-  async listIncompleteUsers(
+  listIncompleteUsers(
     page: number,
     pageSize: number,
     opts: { q?: string; sort?: string } = {},
   ) {
-    const search = (opts.q ?? "").trim();
-    const rawSort = opts.sort ?? "joined_desc";
-    const sort =
-      rawSort === "joined_asc" ||
-      rawSort === "reminders_desc" ||
-      rawSort === "reminders_asc"
-        ? rawSort
-        : "joined_desc";
-
-    const skip = (page - 1) * pageSize;
-    const where = this.incompleteUsersWhere(search);
-    const total = await this.db.user.count({ where });
-
-    const userSelect = {
-      id: true,
-      email: true,
-      createdAt: true,
-      profile: { select: { fullName: true } },
-    } as const;
-
-    type ListUserRow = {
-      id: string;
-      email: string | null;
-      createdAt: Date;
-      profile: { fullName: string | null } | null;
-    };
-
-    let orderedUsers: ListUserRow[];
-
-    if (sort === "joined_desc" || sort === "joined_asc") {
-      orderedUsers = await this.db.user.findMany({
-        where,
-        skip,
-        take: pageSize,
-        orderBy: { createdAt: sort === "joined_desc" ? "desc" : "asc" },
-        select: userSelect,
-      });
-    } else {
-      const rcOrder =
-        sort === "reminders_desc"
-          ? Prisma.sql`DESC NULLS LAST`
-          : Prisma.sql`ASC NULLS LAST`;
-      const pattern = search ? `%${search}%` : null;
-
-      type IdRow = { id: string };
-      let idRows: IdRow[];
-
-      if (pattern) {
-        idRows = await this.db.$queryRaw<IdRow[]>`
-          SELECT u.id
-          FROM users u
-          LEFT JOIN LATERAL (
-            SELECT COUNT(*)::int AS rc
-            FROM "admin_onboarding_reminder_sends" s
-            WHERE s."recipientUserIds" @> ARRAY[u.id]::text[]
-          ) AS counts ON true
-          WHERE u.role <> 'admin'::"UserRole"
-            AND u."onboardingCompleted" = false
-            AND (
-              u.email ILIKE ${pattern}
-              OR EXISTS (
-                SELECT 1 FROM profiles p
-                WHERE p."userId" = u.id AND p."fullName" ILIKE ${pattern}
-              )
-            )
-          ORDER BY counts.rc ${rcOrder}, u."createdAt" DESC
-          LIMIT ${pageSize} OFFSET ${skip}
-        `;
-      } else {
-        idRows = await this.db.$queryRaw<IdRow[]>`
-          SELECT u.id
-          FROM users u
-          LEFT JOIN LATERAL (
-            SELECT COUNT(*)::int AS rc
-            FROM "admin_onboarding_reminder_sends" s
-            WHERE s."recipientUserIds" @> ARRAY[u.id]::text[]
-          ) AS counts ON true
-          WHERE u.role <> 'admin'::"UserRole"
-            AND u."onboardingCompleted" = false
-          ORDER BY counts.rc ${rcOrder}, u."createdAt" DESC
-          LIMIT ${pageSize} OFFSET ${skip}
-        `;
-      }
-
-      const ids = idRows.map((r) => r.id);
-      if (ids.length === 0) {
-        return { total, users: [], page, pageSize, q: search, sort };
-      }
-
-      const users = await this.db.user.findMany({
-        where: { id: { in: ids } },
-        select: userSelect,
-      });
-      const orderMap = new Map(ids.map((id, i) => [id, i]));
-      orderedUsers = [...users].sort(
-        (a, b) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0),
-      );
-    }
-
-    const stats = await this.getReminderStatsForUserIds(orderedUsers.map((u) => u.id));
-    const usersWithReminders = orderedUsers.map((u) => {
-      const s = stats.get(u.id) ?? { reminderCount: 0, lastReminderSentAt: null };
-      return {
-        ...u,
-        reminderCount: s.reminderCount,
-        lastReminderSentAt: s.lastReminderSentAt,
-      };
-    });
-
-    return { total, users: usersWithReminders, page, pageSize, q: search, sort };
+    return this.repo.listIncompleteUsers(page, pageSize, opts);
   }
 
   async getLastSend() {
-    const row = await this.db.adminOnboardingReminderSend.findFirst({
-      orderBy: { sentAt: "desc" },
-      include: {
-        sentBy: { select: { profile: { select: { fullName: true } } } },
-      },
-    });
+    const row = await this.repo.findLastSend();
     if (!row) return null;
     return {
       sentAt: row.sentAt.toISOString(),
@@ -338,35 +150,18 @@ export class AdminOnboardingReminderService {
    * User must exist and not be an admin.
    */
   async getReminderHistoryForUser(userId: string) {
-    const sanitized = sanitizeUserIdsForStats([userId]);
-    if (sanitized.length !== 1) {
+    const sanitized = sanitizeUserIdForHistory(userId);
+    if (!sanitized) {
       throw new BadRequestError("Invalid user id.");
     }
 
-    const user = await this.db.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        profile: { select: { fullName: true } },
-      },
-    });
+    const user = await this.repo.findUserForReminderHistory(userId);
     if (!user) throw new NotFoundError("User", userId);
     if (user.role === UserRole.admin) {
       throw new ForbiddenError();
     }
 
-    const sends = await this.db.adminOnboardingReminderSend.findMany({
-      where: { recipientUserIds: { has: userId } },
-      orderBy: { sentAt: "desc" },
-      select: {
-        id: true,
-        sentAt: true,
-        recipientCount: true,
-        sentBy: { select: { profile: { select: { fullName: true } } } },
-      },
-    });
+    const sends = await this.repo.findSendsHavingRecipient(userId);
 
     return {
       user: {
@@ -388,15 +183,7 @@ export class AdminOnboardingReminderService {
       throw new BadRequestError("Select at least one user.");
     }
 
-    const users = await this.db.user.findMany({
-      where: { id: { in: userIds } },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        onboardingCompleted: true,
-      },
-    });
+    const users = await this.repo.findUsersForReminderSend(userIds);
 
     if (users.length !== userIds.length) {
       throw new BadRequestError("One or more users were not found.");
@@ -453,12 +240,10 @@ export class AdminOnboardingReminderService {
       throw new BadRequestError("Failed to send email. Check SMTP configuration and try again.");
     }
 
-    await this.db.adminOnboardingReminderSend.create({
-      data: {
-        sentByUserId,
-        recipientCount,
-        recipientUserIds,
-      },
+    await this.repo.createReminderSend({
+      sentByUserId,
+      recipientCount,
+      recipientUserIds,
     });
 
     log.info("Onboarding reminder batch sent", {

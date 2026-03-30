@@ -30,11 +30,24 @@ export function parseOnboardingIncompleteListQuery(searchParams: URLSearchParams
   return { page, pageSize, q, sort };
 }
 
-const sendSchema = z.object({
+const sendByIdsSchema = z.object({
   userIds: z.array(z.string().min(1)).min(1, "Select at least one user."),
 });
 
-export function parseOnboardingIncompleteSendBody(body: unknown) {
-  const parsed = sendSchema.parse(body);
-  return { userIds: [...new Set(parsed.userIds)] };
+const sendAllMatchingSchema = z.object({
+  selectAllMatching: z.literal(true),
+  q: z.string().max(SEARCH_MAX).optional(),
+});
+
+/** Normalizes POST body: either legacy `{ userIds }` or `{ selectAllMatching, q? }`. */
+export function parseOnboardingIncompleteSendBody(body: unknown):
+  | { kind: "userIds"; userIds: string[] }
+  | { kind: "selectAllMatching"; q: string } {
+  const raw = body as Record<string, unknown> | null;
+  if (raw && raw.selectAllMatching === true) {
+    const parsed = sendAllMatchingSchema.parse(raw);
+    return { kind: "selectAllMatching", q: (parsed.q ?? "").trim().slice(0, SEARCH_MAX) };
+  }
+  const parsed = sendByIdsSchema.parse(body);
+  return { kind: "userIds", userIds: [...new Set(parsed.userIds)] };
 }
