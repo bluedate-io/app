@@ -92,7 +92,7 @@ const adminOnboardingReminderService = new AdminOnboardingReminderService(
 );
 const adminMatchesService = new AdminMatchesService(adminMatchesRepository);
 const userSelfService = new UserSelfService(userSelfRepository, matchEmailService);
-const adminAuthService = new AdminAuthService(twilioService, userRepository, userSelfRepository);
+const adminAuthService = new AdminAuthService(emailService, userRepository, userSelfRepository);
 
 // ─── Controllers ──────────────────────────────────────────────────────────────
 const authController = new AuthController(authService, userRepository, collegeDomainRepository);
@@ -105,7 +105,7 @@ const adminOnboardingReminderController = new AdminOnboardingReminderController(
   adminOnboardingReminderService,
 );
 const adminMatchesController = new AdminMatchesController(adminMatchesService);
-const adminAuthController = new AdminAuthController(twilioService, adminAuthService);
+const adminAuthController = new AdminAuthController(adminAuthService);
 const matchController = new MatchController(matchService);
 
 export const container = {

@@ -1,29 +1,45 @@
 import jwt from "jsonwebtoken";
 import { config } from "@/config";
-import { TwilioService } from "@/services/TwilioService";
+import type { IEmailService } from "@/services/EmailService";
 import { UserRepository } from "@/repositories/UserRepository";
 import { UserSelfRepository } from "@/repositories/UserSelfRepository";
-import { ForbiddenError } from "@/utils/errors";
+import { BadRequestError } from "@/utils/errors";
 
 export class AdminAuthService {
   constructor(
-    private readonly twilioService: TwilioService,
+    private readonly emailService: IEmailService,
     private readonly userRepository: UserRepository,
     private readonly userSelfRepository: UserSelfRepository,
   ) {}
 
-  async verifyOtp(phone: string, code: string) {
-    if (!phone || phone.replace(/\D/g, "") !== config.admin.phone) {
-      throw new ForbiddenError("Unauthorized");
+  private normalizeEmail(email: unknown): string {
+    return typeof email === "string" ? email.trim().toLowerCase() : "";
+  }
+
+  private assertValidAdminEmail(email: string) {
+    const allowedAdminEmail = config.admin.email.trim().toLowerCase();
+    if (email !== allowedAdminEmail) {
+      throw new BadRequestError("Invalid admin email");
     }
-    const fullPhone = `+91${config.admin.phone}`;
-    await this.twilioService.checkVerification(fullPhone, code);
-    const { user } = await this.userRepository.findOrCreate(fullPhone);
+  }
+
+  async sendOtp(email: string) {
+    const normalizedEmail = this.normalizeEmail(email);
+    this.assertValidAdminEmail(normalizedEmail);
+    await this.emailService.sendOtp(normalizedEmail);
+    return { message: "OTP sent", expiresInMinutes: config.auth.otpTtlMinutes };
+  }
+
+  async verifyOtp(email: string, code: string) {
+    const normalizedEmail = this.normalizeEmail(email);
+    this.assertValidAdminEmail(normalizedEmail);
+    await this.emailService.verifyOtp(normalizedEmail, code);
+    const { user } = await this.userRepository.findOrCreateByEmail(normalizedEmail, "");
     if (user.role !== "admin") {
       await this.userSelfRepository.ensureUserRoleAdmin(user.id);
     }
     const token = jwt.sign(
-      { sub: user.id, phone: user.phone, role: "admin", onboardingCompleted: true },
+      { sub: user.id, email: user.email, role: "admin", onboardingCompleted: true },
       config.auth.jwtSecret,
       { expiresIn: "24h" },
     );

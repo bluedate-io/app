@@ -8,7 +8,7 @@ function hasAdminToken(): boolean {
   return document.cookie.includes("admin_token=");
 }
 
-type Step = "phone" | "otp";
+type Step = "email" | "otp";
 
 function InlineWarning({ message }: { message: string }) {
   return (
@@ -43,9 +43,10 @@ const FabIcon = ({ disabled }: { disabled?: boolean }) => (
   </span>
 );
 
-export default function AdminLoginForm({ phone: ADMIN_PHONE }: { phone: string }) {
+export default function AdminLoginForm() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("phone");
+  const [step, setStep] = useState<Step>("email");
+  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,15 +56,14 @@ export default function AdminLoginForm({ phone: ADMIN_PHONE }: { phone: string }
     if (hasAdminToken()) router.replace("/admin/users");
   }, [router]);
 
-  const sendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const requestOtp = async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/admin/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: ADMIN_PHONE }),
+        body: JSON.stringify({ email }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message ?? "Failed to send OTP");
@@ -83,7 +83,7 @@ export default function AdminLoginForm({ phone: ADMIN_PHONE }: { phone: string }
       const res = await fetch("/api/admin/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: ADMIN_PHONE, code: otp }),
+        body: JSON.stringify({ email, code: otp }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message ?? "Invalid OTP");
@@ -126,8 +126,14 @@ export default function AdminLoginForm({ phone: ADMIN_PHONE }: { phone: string }
         </div>
       </div>
 
-      {step === "phone" ? (
-        <form onSubmit={sendOtp} className="flex flex-col flex-1">
+      {step === "email" ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            requestOtp();
+          }}
+          className="flex flex-col flex-1"
+        >
           <h1
             className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 leading-tight"
             style={{ fontFamily: "var(--font-playfair), Georgia, serif" }}
@@ -135,14 +141,21 @@ export default function AdminLoginForm({ phone: ADMIN_PHONE }: { phone: string }
             Admin access
           </h1>
           <p className="text-sm text-gray-500 mb-8">
-            Restricted to authorised numbers only.
+            Restricted to authorised email only.
           </p>
 
           {error && <InlineWarning message={error} />}
 
-          <div className="flex items-center gap-3 pb-2 border-b-2 border-gray-800 mb-8">
-            <span className="text-gray-500 text-base">+91</span>
-            <span className="text-gray-900 text-base tracking-widest">{ADMIN_PHONE}</span>
+          <div className="pb-2 border-b-2 border-gray-800 mb-8">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+              className="w-full bg-transparent text-gray-900 text-base focus:outline-none"
+              placeholder="Enter admin email"
+            />
           </div>
 
           <div className="mt-auto pt-8 flex items-end justify-end">
@@ -164,10 +177,10 @@ export default function AdminLoginForm({ phone: ADMIN_PHONE }: { phone: string }
             Enter verification code
           </h1>
           <p className="text-sm text-gray-500 mb-6">
-            Sent to +91 {ADMIN_PHONE}.{" "}
+            OTP sent to {email}.{" "}
             <button
               type="button"
-              onClick={() => { setStep("phone"); setOtp(""); setError(null); }}
+              onClick={() => { setStep("email"); setOtp(""); setError(null); }}
               className="font-medium hover:underline"
               style={{ color: "#8F3A8F" }}
             >
@@ -196,7 +209,7 @@ export default function AdminLoginForm({ phone: ADMIN_PHONE }: { phone: string }
           <div className="mt-auto pt-8 flex items-end justify-between">
             <button
               type="button"
-              onClick={() => { setError(null); sendOtp({ preventDefault: () => {} } as React.FormEvent); }}
+              onClick={() => { setError(null); requestOtp(); }}
               disabled={loading}
               className="text-sm hover:underline disabled:opacity-50"
               style={{ color: "#8F3A8F" }}
