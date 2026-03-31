@@ -29,6 +29,21 @@ import {
   type AdminUserSort,
   type AdminUsersFilterTab,
 } from "@/lib/adminUserStep";
+import {
+  ADMIN_BTN_NEUTRAL_SM,
+  ADMIN_BTN_PRIMARY_BLOCK,
+  ADMIN_BTN_PRIMARY_SM,
+  ADMIN_BTN_SECONDARY,
+  ADMIN_BTN_SECONDARY_COMPACT,
+  ADMIN_FILTER_PANEL,
+  ADMIN_MENU_ITEM_HOVER,
+  ADMIN_SEARCH_SHELL,
+  ADMIN_SELECT,
+  ADMIN_SELECT_ACTIVE,
+  ADMIN_TABLE_FRAME,
+  ADMIN_TOOLBAR,
+} from "@/lib/adminChrome";
+import { adminTheme } from "@/lib/adminTheme";
 
 type UserRow = {
   id: string;
@@ -76,12 +91,12 @@ const STEP_COLORS: Record<string, string> = {
   New: "#9ca3af",
 };
 
-const HEADER_BG = "#F3F4F6";
-const HEADER_TEXT = "#374151";
-/** Active filter: underline + label (admin purple, matches Search / Reset) */
-const FILTER_ACTIVE_BAR = "#6B2F7A";
+const HEADER_BG = adminTheme.tableHeader;
+const HEADER_TEXT = adminTheme.ink;
+/** Active filter: underline + label */
+const FILTER_ACTIVE_BAR = adminTheme.orange;
 /** Chip behind filtered column title */
-const HEADER_FILTER_ACTIVE_BG = "#EDE8F7";
+const HEADER_FILTER_ACTIVE_BG = adminTheme.accentMutedBg;
 
 /** Visually emphasize column title when that column’s filter/sort is applied */
 function headerFilterLabelStyle(active: boolean): CSSProperties {
@@ -91,6 +106,10 @@ function headerFilterLabelStyle(active: boolean): CSSProperties {
     backgroundColor: HEADER_FILTER_ACTIVE_BG,
     fontWeight: 700,
   };
+}
+
+function tableStripeBackground(index: number): string {
+  return index % 2 === 0 ? adminTheme.tableRow : adminTheme.tableRowAlt;
 }
 
 function parseAppliedCsv(csv: string): Set<string> {
@@ -132,11 +151,11 @@ function pageHref(
 function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
   if (value == null || value === "") return null;
   return (
-    <div className="flex flex-col gap-0.5 py-2 border-b last:border-b-0" style={{ borderColor: "#F0EBFA" }}>
-      <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#9B87B0" }}>
+    <div className="flex flex-col gap-0.5 py-2 border-b last:border-b-0" style={{ borderColor: adminTheme.borderSoft }}>
+      <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: adminTheme.mutedLabel }}>
         {label}
       </span>
-      <span className="text-sm" style={{ color: "#1A0A2E" }}>
+      <span className="text-sm" style={{ color: adminTheme.ink }}>
         {value}
       </span>
     </div>
@@ -196,28 +215,28 @@ function UserDetailSheet({
       />
       <aside
         className="fixed top-0 right-0 z-50 h-full w-full max-w-md shadow-2xl flex flex-col overflow-hidden"
-        style={{ backgroundColor: "#fff", borderLeft: "1px solid #EDE8F7" }}
+        style={{ backgroundColor: "#fff", borderLeft: `1px solid ${adminTheme.accentMutedBg}` }}
       >
         <div
           className="flex items-center justify-between px-4 py-3 border-b shrink-0"
-          style={{ borderColor: "#F0EBFA" }}
+          style={{ borderColor: adminTheme.borderSoft }}
         >
-          <span className="text-sm font-semibold" style={{ color: "#1A0A2E" }}>
+          <span className="text-sm font-semibold" style={{ color: adminTheme.ink }}>
             User details
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-violet-50 transition"
+            className="rounded-lg p-2 transition hover:bg-bd-table-hover"
             aria-label="Close"
           >
-            <X size={18} style={{ color: "#6B5E7A" }} />
+            <X size={18} style={{ color: adminTheme.textSecondary }} />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4">
           {loading && (
-            <p className="text-sm" style={{ color: "#9B87B0" }}>
+            <p className="text-sm" style={{ color: adminTheme.mutedLabel }}>
               Loading…
             </p>
           )}
@@ -226,7 +245,7 @@ function UserDetailSheet({
             <>
               <div
                 className="relative w-full rounded-xl overflow-hidden mb-4"
-                style={{ aspectRatio: "4/3", backgroundColor: "#F5F0FB" }}
+                style={{ aspectRatio: "4/3", backgroundColor: adminTheme.pageBg }}
               >
                 {data.photoUrl ? (
                   <Image
@@ -238,37 +257,37 @@ function UserDetailSheet({
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <User size={48} strokeWidth={1} style={{ color: "#C060C0" }} />
+                    <User size={48} strokeWidth={1} style={{ color: adminTheme.orange }} />
                   </div>
                 )}
               </div>
 
-              <p className="text-lg font-bold" style={{ color: "#1A0A2E" }}>
+              <p className="text-lg font-bold" style={{ color: adminTheme.ink }}>
                 {data.name ?? "—"}
                 {data.age != null && (
-                  <span className="font-normal text-sm" style={{ color: "#6B5E7A" }}>
+                  <span className="font-normal text-sm" style={{ color: adminTheme.textSecondary }}>
                     , {data.age} yrs
                   </span>
                 )}
               </p>
-              <p className="text-xs mt-0.5" style={{ color: "#9B87B0" }}>
+              <p className="text-xs mt-0.5" style={{ color: adminTheme.mutedLabel }}>
                 {[data.gender, data.city].filter(Boolean).join(" · ") || "—"}
               </p>
               {data.email && (
-                <p className="text-xs font-mono mt-1 break-all" style={{ color: "#6B5E7A" }}>
+                <p className="text-xs font-mono mt-1 break-all" style={{ color: adminTheme.textSecondary }}>
                   {data.email}
                 </p>
               )}
 
-              <p className="text-[10px] font-bold uppercase tracking-wide mt-6 mb-2" style={{ color: "#9B87B0" }}>
+              <p className="text-[10px] font-bold uppercase tracking-wide mt-6 mb-2" style={{ color: adminTheme.mutedLabel }}>
                 Profile
               </p>
               {data.interests.length > 0 && (
-                <div className="py-2 border-b last:border-b-0" style={{ borderColor: "#F0EBFA" }}>
-                  <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#9B87B0" }}>
+                <div className="py-2 border-b last:border-b-0" style={{ borderColor: adminTheme.borderSoft }}>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: adminTheme.mutedLabel }}>
                     Interests
                   </span>
-                  <p className="text-sm mt-1" style={{ color: "#1A0A2E" }}>
+                  <p className="text-sm mt-1" style={{ color: adminTheme.ink }}>
                     {data.interests.join(", ")}
                   </p>
                 </div>
@@ -276,7 +295,7 @@ function UserDetailSheet({
               <DetailRow label="Looking for" value={data.lookingFor ?? null} />
               <DetailRow label="Height" value={data.heightCm != null ? `${data.heightCm} cm` : null} />
 
-              <p className="text-[10px] font-bold uppercase tracking-wide mt-6 mb-2" style={{ color: "#9B87B0" }}>
+              <p className="text-[10px] font-bold uppercase tracking-wide mt-6 mb-2" style={{ color: adminTheme.mutedLabel }}>
                 Lifestyle
               </p>
               <DetailRow label="Smoking habit" value={data.smokingHabit ?? null} />
@@ -307,12 +326,7 @@ function ResetFilterButton({
       onClick={onClick}
       aria-label={ariaLabel}
       title="Reset this filter to default (clears column filter)"
-      className="inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold transition-colors hover:border-violet-400 hover:bg-violet-50"
-      style={{
-        borderColor: "#C9B8D9",
-        color: "#6B2F7A",
-        backgroundColor: "#FAF5FC",
-      }}
+      className={ADMIN_BTN_SECONDARY_COMPACT}
     >
       <RotateCcw size={12} strokeWidth={2.25} className="shrink-0 opacity-90" aria-hidden />
       Reset
@@ -597,11 +611,8 @@ export default function UsersTable({
 
   const plainThClass = "text-left px-4 py-3 text-xs font-semibold uppercase tracking-wide align-middle";
   const filterBtnClass =
-    "inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide rounded-md px-1 py-0.5 -mx-1 hover:bg-black/5";
+    "inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide rounded-md px-1 py-0.5 -mx-1 hover:bg-bd-table-hover";
 
-  const panelClass =
-    "absolute left-0 top-full z-50 mt-1 min-w-[260px] max-w-[min(320px,calc(100vw-2rem))] rounded-lg border bg-white px-3 py-2 shadow-lg";
-  const panelStyle = { borderColor: "#EDE8F7" } as const;
   const panelListClass =
     "flex flex-col gap-1 max-h-52 overflow-y-auto py-1.5 px-1 mb-2 rounded-md";
 
@@ -616,7 +627,9 @@ export default function UsersTable({
         <UserDetailSheet userId={detailUserId} onClose={() => setDetailUserId(null)} />
       )}
 
-      <div className="mb-3 flex w-full min-w-0 flex-row flex-nowrap items-center justify-between gap-3 overflow-x-auto">
+      <div
+        className={`${ADMIN_TOOLBAR} mb-5 flex w-full min-w-0 flex-row flex-nowrap items-center justify-between gap-3 overflow-x-auto`}
+      >
         <form
           className="flex min-w-0 flex-1 flex-row flex-nowrap items-center gap-2"
           role="search"
@@ -626,15 +639,12 @@ export default function UsersTable({
             applySearch();
           }}
         >
-          <div
-            className="relative flex min-h-10 min-w-[min(100%,14rem)] flex-1 items-center overflow-hidden rounded-xl border bg-white pr-1 transition focus-within:border-violet-400 focus-within:ring-1 focus-within:ring-violet-200"
-            style={{ borderColor: "#C9B8D9" }}
-          >
+          <div className={ADMIN_SEARCH_SHELL}>
             <Search
               className="pointer-events-none absolute left-3 top-1/2 z-0 -translate-y-1/2"
               size={16}
               strokeWidth={2.25}
-              color="#9B87B0"
+              color={adminTheme.mutedLabel}
               aria-hidden
             />
             <input
@@ -648,7 +658,7 @@ export default function UsersTable({
               className={`box-border min-h-10 min-w-0 flex-1 border-0 bg-transparent py-2 pl-9 text-sm outline-none ring-0 focus:ring-0 ${
                 searchDraft.trim().length > 0 || searchActive ? "pr-1" : "pr-3"
               }`}
-              style={{ color: "#1A0A2E" }}
+              style={{ color: adminTheme.ink }}
               autoComplete="off"
             />
             {searchDraft.trim().length > 0 || searchActive ? (
@@ -656,19 +666,15 @@ export default function UsersTable({
                 type="button"
                 aria-label="Clear search"
                 title="Clear search"
-                className="inline-flex h-9 w-9 px-2 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-[#EDE8F7]"
-                style={{ color: "#6B2F7A" }}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg px-2 transition-colors hover:bg-bd-table-hover"
+                style={{ color: adminTheme.orange }}
                 onClick={() => clearSearch()}
               >
                 <X size={16} strokeWidth={2.25} aria-hidden />
               </button>
             ) : null}
           </div>
-          <button
-            type="submit"
-            className="shrink-0 rounded-xl border px-4 py-2 text-sm font-semibold transition hover:border-violet-400 hover:bg-violet-50"
-            style={{ borderColor: "#C9B8D9", color: "#6B2F7A", backgroundColor: "#FAF5FC" }}
-          >
+          <button type="submit" className={ADMIN_BTN_PRIMARY_SM}>
             Search
           </button>
         </form>
@@ -676,12 +682,7 @@ export default function UsersTable({
           value={optInStatus}
           onChange={(e) => applyOptInStatus(e.target.value as AdminOptInStatusFilter)}
           aria-label="Filter by opt-in status"
-          className="shrink-0 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:border-violet-400 hover:bg-violet-50 cursor-pointer"
-          style={{
-            borderColor: optInStatus !== "all" ? "#6B2F7A" : "#C9B8D9",
-            color: optInStatus !== "all" ? "#6B2F7A" : "#6B5E7A",
-            backgroundColor: optInStatus !== "all" ? "#EDE8F7" : "#FAF5FC",
-          }}
+          className={`${ADMIN_SELECT} ${optInStatus !== "all" ? ADMIN_SELECT_ACTIVE : ""}`}
         >
           <option value="all">Opt-in: All</option>
           <option value="opted_in">Opted in</option>
@@ -698,24 +699,14 @@ export default function UsersTable({
             optInStatus,
           })}
           download
-          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-2 text-xs font-semibold transition-colors hover:border-violet-400 hover:bg-violet-50"
-          style={{
-            borderColor: "#C9B8D9",
-            color: "#6B2F7A",
-            backgroundColor: "#FAF5FC",
-          }}
+          className={ADMIN_BTN_SECONDARY}
           title="Download CSV of all users matching current filters (includes all profile data and photo URLs)"
         >
           ↓ Download CSV
         </a>
         <a
           href={resetAllFiltersHref}
-          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-3 py-2 text-xs font-semibold transition-colors hover:border-violet-400 hover:bg-violet-50"
-          style={{
-            borderColor: "#C9B8D9",
-            color: "#6B2F7A",
-            backgroundColor: "#FAF5FC",
-          }}
+          className={ADMIN_BTN_SECONDARY}
           title="Clear search, domain, gender, and sort filters (table + toolbar); keeps All / Completed / Incomplete tab"
         >
           <RotateCcw size={14} strokeWidth={2.25} className="shrink-0 opacity-90" aria-hidden />
@@ -723,10 +714,10 @@ export default function UsersTable({
         </a>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border bg-white shadow-sm" style={{ borderColor: "#EDE8F7" }}>
+      <div className={ADMIN_TABLE_FRAME}>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b" style={{ borderColor: "#E5E7EB", backgroundColor: HEADER_BG }}>
+            <tr className="border-b-2" style={{ borderColor: adminTheme.borderMuted, backgroundColor: HEADER_BG }}>
               <th className={plainThClass} style={{ color: HEADER_TEXT }}>
                 Name
               </th>
@@ -766,22 +757,22 @@ export default function UsersTable({
                   />
                 )}
                 {openFilter === "email" && (
-                  <div className={panelClass} style={panelStyle}>
+                  <div className={ADMIN_FILTER_PANEL}>
                     <div className="flex items-center justify-between gap-2 mb-1.5 pr-0.5">
-                      <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#9B87B0" }}>
+                      <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: adminTheme.mutedLabel }}>
                         College domains
                       </p>
                       <ResetFilterButton onClick={clearDomainFilter} aria-label="Reset domain filter" />
                     </div>
                     {collegeDomains.length === 0 ? (
-                      <p className="text-xs py-2" style={{ color: "#6B5E7A" }}>
+                      <p className="text-xs py-2" style={{ color: adminTheme.textSecondary }}>
                         No domains in database.
                       </p>
                     ) : (
                       <div className={panelListClass}>
                         <label
                           className="flex items-center gap-2 text-xs cursor-pointer py-1.5 px-1.5 rounded-md border-b font-semibold"
-                          style={{ color: "#1A0A2E", borderColor: "#F0EBFA" }}
+                          style={{ color: adminTheme.ink, borderColor: adminTheme.borderSoft }}
                         >
                           <input
                             ref={allDomainsSelectRef}
@@ -798,8 +789,8 @@ export default function UsersTable({
                           return (
                             <label
                               key={cd.domain}
-                              className="flex items-start gap-2 text-xs cursor-pointer py-1 px-1.5 rounded-md hover:bg-violet-50/60"
-                              style={{ color: "#1A0A2E" }}
+                              className={`flex cursor-pointer items-start gap-2 rounded-md px-1.5 py-1 text-xs ${ADMIN_MENU_ITEM_HOVER}`}
+                              style={{ color: adminTheme.ink }}
                             >
                               <input
                                 type="checkbox"
@@ -809,7 +800,7 @@ export default function UsersTable({
                               />
                               <span>
                                 <span className="font-medium">{cd.collegeName}</span>
-                                <span className="block" style={{ color: "#9B87B0" }}>
+                                <span className="block" style={{ color: adminTheme.mutedLabel }}>
                                   {cd.domain}
                                 </span>
                               </span>
@@ -818,12 +809,7 @@ export default function UsersTable({
                         })}
                       </div>
                     )}
-                    <button
-                      type="button"
-                      onClick={applyFromDraft}
-                      className="w-full py-2 rounded-md text-xs font-semibold text-white"
-                      style={{ background: "linear-gradient(135deg,#8F3A8F,#C060C0)" }}
-                    >
+                    <button type="button" onClick={applyFromDraft} className={ADMIN_BTN_PRIMARY_BLOCK}>
                       Apply
                     </button>
                   </div>
@@ -868,9 +854,9 @@ export default function UsersTable({
                   />
                 )}
                 {openFilter === "gender" && (
-                  <div className={panelClass} style={panelStyle}>
+                  <div className={ADMIN_FILTER_PANEL}>
                     <div className="flex items-center justify-between gap-2 mb-1.5 pr-0.5">
-                      <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#9B87B0" }}>
+                      <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: adminTheme.mutedLabel }}>
                         Gender
                       </p>
                       <ResetFilterButton onClick={clearGenderFilter} aria-label="Reset gender filter" />
@@ -878,7 +864,7 @@ export default function UsersTable({
                     <div className={panelListClass}>
                       <label
                         className="flex items-center gap-2 text-xs cursor-pointer py-1.5 px-1.5 rounded-md border-b font-semibold"
-                        style={{ color: "#1A0A2E", borderColor: "#F0EBFA" }}
+                        style={{ color: adminTheme.ink, borderColor: adminTheme.borderSoft }}
                       >
                         <input
                           ref={allGendersSelectRef}
@@ -894,8 +880,8 @@ export default function UsersTable({
                         return (
                           <label
                             key={g}
-                            className="flex items-center gap-2 text-xs cursor-pointer py-1.5 px-1.5 rounded-md hover:bg-violet-50/60"
-                            style={{ color: "#1A0A2E" }}
+                            className={`flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1.5 text-xs ${ADMIN_MENU_ITEM_HOVER}`}
+                            style={{ color: adminTheme.ink }}
                           >
                             <input
                               type="checkbox"
@@ -908,12 +894,7 @@ export default function UsersTable({
                         );
                       })}
                     </div>
-                    <button
-                      type="button"
-                      onClick={applyFromDraft}
-                      className="w-full py-2 rounded-md text-xs font-semibold text-white"
-                      style={{ background: "linear-gradient(135deg,#8F3A8F,#C060C0)" }}
-                    >
+                    <button type="button" onClick={applyFromDraft} className={ADMIN_BTN_PRIMARY_BLOCK}>
                       Apply
                     </button>
                   </div>
@@ -955,9 +936,9 @@ export default function UsersTable({
                   />
                 )}
                 {openFilter === "step" && (
-                  <div className={panelClass} style={panelStyle}>
+                  <div className={ADMIN_FILTER_PANEL}>
                     <div className="flex items-center justify-between gap-2 mb-1.5 pr-0.5">
-                      <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#9B87B0" }}>
+                      <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: adminTheme.mutedLabel }}>
                         Sort list by
                       </p>
                       <ResetFilterButton
@@ -976,8 +957,8 @@ export default function UsersTable({
                       ).map(([value, label]) => (
                         <label
                           key={value}
-                          className="flex items-center gap-2 text-xs cursor-pointer py-1.5 px-1.5 rounded-md hover:bg-violet-50/60"
-                          style={{ color: "#1A0A2E" }}
+                          className={`flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1.5 text-xs ${ADMIN_MENU_ITEM_HOVER}`}
+                          style={{ color: adminTheme.ink }}
                         >
                           <input
                             type="radio"
@@ -990,12 +971,7 @@ export default function UsersTable({
                         </label>
                       ))}
                     </div>
-                    <button
-                      type="button"
-                      onClick={applyFromDraft}
-                      className="w-full py-2 rounded-md text-xs font-semibold text-white"
-                      style={{ background: "linear-gradient(135deg,#8F3A8F,#C060C0)" }}
-                    >
+                    <button type="button" onClick={applyFromDraft} className={ADMIN_BTN_PRIMARY_BLOCK}>
                       Apply
                     </button>
                   </div>
@@ -1012,8 +988,8 @@ export default function UsersTable({
           </thead>
           <tbody>
             {users.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="px-4 py-16 text-center text-sm" style={{ color: "#9B87B0" }}>
+              <tr style={{ backgroundColor: adminTheme.tableSurface }}>
+                <td colSpan={8} className="px-4 py-16 text-center text-sm" style={{ color: adminTheme.mutedLabel }}>
                   No users found.
                 </td>
               </tr>
@@ -1021,27 +997,28 @@ export default function UsersTable({
               users.map((u, i) => (
                 <tr
                   key={u.id}
-                  className="transition-colors"
+                  className="transition-colors duration-150"
                   style={{
-                    borderBottom: i < users.length - 1 ? "1px solid #F9F6FE" : "none",
+                    backgroundColor: tableStripeBackground(i),
+                    borderBottom: i < users.length - 1 ? `1px solid ${adminTheme.borderSoft}` : "none",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#FAF8FF";
+                    e.currentTarget.style.backgroundColor = adminTheme.tableRowHover;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "";
+                    e.currentTarget.style.backgroundColor = tableStripeBackground(i);
                   }}
                 >
-                  <td className="px-4 py-3 font-medium" style={{ color: "#1A0A2E" }}>
+                  <td className="px-4 py-3 font-medium" style={{ color: adminTheme.ink }}>
                     {u.name}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs" style={{ color: "#9B87B0" }}>
+                  <td className="px-4 py-3 font-mono text-xs" style={{ color: adminTheme.mutedLabel }}>
                     {u.email ?? u.phone ?? "—"}
                   </td>
-                  <td className="px-4 py-3" style={{ color: "#6B5E7A" }}>
+                  <td className="px-4 py-3" style={{ color: adminTheme.textSecondary }}>
                     {u.city}
                   </td>
-                  <td className="px-4 py-3" style={{ color: "#6B5E7A" }}>
+                  <td className="px-4 py-3" style={{ color: adminTheme.textSecondary }}>
                     {u.gender}
                   </td>
                   <td className="px-4 py-3">
@@ -1070,15 +1047,15 @@ export default function UsersTable({
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3" style={{ color: "#9B87B0" }}>
+                  <td className="px-4 py-3" style={{ color: adminTheme.mutedLabel }}>
                     {formatDate(u.joinedAt)}
                   </td>
                   <td className="px-2 py-3 text-right">
                     <button
                       type="button"
                       aria-label="Open user details"
-                      className="inline-flex p-2 rounded-lg hover:bg-violet-100 transition"
-                      style={{ color: "#6B5E7A" }}
+                      className="inline-flex rounded-lg p-2 transition hover:bg-bd-table-hover"
+                      style={{ color: adminTheme.textSecondary }}
                       onClick={(e) => {
                         e.stopPropagation();
                         setDetailUserId(u.id);
@@ -1096,23 +1073,19 @@ export default function UsersTable({
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4 px-1">
-          <span className="text-xs" style={{ color: "#9B87B0" }}>
+          <span className="text-xs" style={{ color: adminTheme.mutedLabel }}>
             Page {page} of {totalPages}
           </span>
           <div className="flex gap-2">
             {page > 1 ? (
               <a
                 href={pageHref(page - 1, filter, domainsCsv, gendersCsv, sortProp, q, optInStatus)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition"
-                style={{ borderColor: "#EDE8F7", color: "#6B5E7A", backgroundColor: "#fff" }}
+                className={ADMIN_BTN_NEUTRAL_SM}
               >
                 <ChevronLeft size={13} /> Prev
               </a>
             ) : (
-              <span
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border opacity-40"
-                style={{ borderColor: "#EDE8F7", color: "#6B5E7A" }}
-              >
+              <span className={`${ADMIN_BTN_NEUTRAL_SM} pointer-events-none opacity-40`}>
                 <ChevronLeft size={13} /> Prev
               </span>
             )}
@@ -1120,16 +1093,12 @@ export default function UsersTable({
             {page < totalPages ? (
               <a
                 href={pageHref(page + 1, filter, domainsCsv, gendersCsv, sortProp, q, optInStatus)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition"
-                style={{ borderColor: "#EDE8F7", color: "#6B5E7A", backgroundColor: "#fff" }}
+                className={ADMIN_BTN_NEUTRAL_SM}
               >
                 Next <ChevronRight size={13} />
               </a>
             ) : (
-              <span
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border opacity-40"
-                style={{ borderColor: "#EDE8F7", color: "#6B5E7A" }}
-              >
+              <span className={`${ADMIN_BTN_NEUTRAL_SM} pointer-events-none opacity-40`}>
                 Next <ChevronRight size={13} />
               </span>
             )}

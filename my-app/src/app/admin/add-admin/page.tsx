@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import jwt from "jsonwebtoken";
 import { config } from "@/config";
 import AdminShell from "../AdminShell";
+import { adminTheme } from "@/lib/adminTheme";
 
 export default async function AddAdminPage() {
   const cookieStore = await cookies();
@@ -17,8 +18,13 @@ export default async function AddAdminPage() {
 
   return (
     <AdminShell>
-      <div className="flex flex-col items-center justify-center min-h-full py-32" style={{ color: "#9B87B0" }}>
-        <p className="text-lg font-semibold mb-2" style={{ color: "#1A0A2E" }}>Add Admin</p>
+      <div
+        className="flex min-h-full flex-col items-center justify-center py-32"
+        style={{ color: adminTheme.mutedLabel }}
+      >
+        <p className="mb-2 text-lg font-semibold" style={{ color: adminTheme.ink }}>
+          Add Admin
+        </p>
         <p className="text-sm">Coming soon.</p>
       </div>
     </AdminShell>

@@ -3,6 +3,37 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Bluedate admin — mirrors adminTheme.ts */
+  --bd-cream: #fefcf0;
+  --bd-cream-alt: #fdfcf0;
+  --bd-ink: #2d1a0e;
+  --bd-ink-dark: #23120b;
+  --bd-orange: #ef6820;
+  --bd-orange-bright: #ff6b2c;
+  --bd-terracotta: #d9774a;
+  --bd-pink: #e84e89;
+  --bd-muted: #6b7280;
+  --bd-muted-label: #9b9b9b;
+  --bd-border-soft: #e8e0d4;
+  --bd-border-muted: #c9b8a8;
+  --bd-navy: #0a1b44;
+  --bd-navy-deep: #041644;
+  --bd-sky: #3b82f6;
+  --bd-page: #fefcf0;
+  --bd-main-canvas: #eae2d4;
+  --bd-table-surface: #fff9f2;
+  --bd-table-header: #d9cfc2;
+  --bd-table-row: #fff9f2;
+  --bd-table-row-alt: #f2e9dd;
+  --bd-table-hover: #ffe4d0;
+  --bd-elevated: #fffcf7;
+  --bd-sidebar-top: #fffdf9;
+  --bd-sidebar-bottom: #f3ebe0;
+  --bd-card: #ffffff;
+  --bd-accent-muted-bg: #fff0e8;
+  --bd-text-secondary: #6b5e55;
+  --bd-shadow-ink: #23120b;
 }
 
 @theme inline {
@@ -11,6 +42,38 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-playfair: var(--font-playfair);
+  --font-bd-display: var(--font-bd-display);
+  --font-bd-script: var(--font-bd-script);
+
+  --color-bd-cream: var(--bd-cream);
+  --color-bd-cream-alt: var(--bd-cream-alt);
+  --color-bd-ink: var(--bd-ink);
+  --color-bd-ink-dark: var(--bd-ink-dark);
+  --color-bd-orange: var(--bd-orange);
+  --color-bd-orange-bright: var(--bd-orange-bright);
+  --color-bd-terracotta: var(--bd-terracotta);
+  --color-bd-pink: var(--bd-pink);
+  --color-bd-muted: var(--bd-muted);
+  --color-bd-muted-label: var(--bd-muted-label);
+  --color-bd-border-soft: var(--bd-border-soft);
+  --color-bd-border-muted: var(--bd-border-muted);
+  --color-bd-navy: var(--bd-navy);
+  --color-bd-navy-deep: var(--bd-navy-deep);
+  --color-bd-sky: var(--bd-sky);
+  --color-bd-page: var(--bd-page);
+  --color-bd-main-canvas: var(--bd-main-canvas);
+  --color-bd-table-surface: var(--bd-table-surface);
+  --color-bd-table-header: var(--bd-table-header);
+  --color-bd-table-row: var(--bd-table-row);
+  --color-bd-table-row-alt: var(--bd-table-row-alt);
+  --color-bd-table-hover: var(--bd-table-hover);
+  --color-bd-elevated: var(--bd-elevated);
+  --color-bd-sidebar-top: var(--bd-sidebar-top);
+  --color-bd-sidebar-bottom: var(--bd-sidebar-bottom);
+  --color-bd-card: var(--bd-card);
+  --color-bd-accent-muted-bg: var(--bd-accent-muted-bg);
+  --color-bd-text-secondary: var(--bd-text-secondary);
+  --color-bd-shadow-ink: var(--bd-shadow-ink);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,5 +86,5 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }

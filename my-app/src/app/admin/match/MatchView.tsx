@@ -13,6 +13,23 @@ import {
   RotateCcw,
   X,
 } from "lucide-react";
+import {
+  ADMIN_BTN_NEUTRAL,
+  ADMIN_BTN_NEUTRAL_SM,
+  ADMIN_BTN_PRIMARY_SM,
+  ADMIN_BTN_SECONDARY,
+  ADMIN_CARD_INTERACTIVE,
+  ADMIN_DROPDOWN_PANEL,
+  ADMIN_INPUT,
+  ADMIN_INNER_INPUT,
+  ADMIN_MENU_ITEM_HOVER,
+  ADMIN_MULTI_TRIGGER,
+  ADMIN_MULTI_TRIGGER_ACTIVE,
+  ADMIN_SELECT,
+  ADMIN_SELECT_ACTIVE,
+  ADMIN_TOOLBAR,
+} from "@/lib/adminChrome";
+import { adminTheme } from "@/lib/adminTheme";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -85,14 +102,14 @@ type MatchUser = {
 
 type PoolUser = MatchUser & { candidateCount: number };
 
-// ─── Palette ──────────────────────────────────────────────────────────────────
+// ─── Palette (Bluedate admin tokens) ─────────────────────────────────────────
 
-const P = "#8F3A8F";
-const P_LIGHT = "#EDE8F7";
-const DARK = "#1A0A2E";
-const MUTED = "#6B5E7A";
-const SUBTLE = "#9B87B0";
-const BG = "#F5F0FB";
+const P = adminTheme.orange;
+const P_LIGHT = adminTheme.accentMutedBg;
+const DARK = adminTheme.ink;
+const MUTED = adminTheme.textSecondary;
+const SUBTLE = adminTheme.mutedLabel;
+const BG = adminTheme.mainCanvas;
 
 // ─── Multi-select dropdown ────────────────────────────────────────────────────
 
@@ -138,12 +155,7 @@ function MultiSelectDropdown({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-10 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition whitespace-nowrap"
-        style={{
-          borderColor: isActive ? P : "#C9B8D9",
-          color: isActive ? P : MUTED,
-          backgroundColor: isActive ? P_LIGHT : "#FAF5FC",
-        }}
+        className={`${ADMIN_MULTI_TRIGGER} ${isActive ? ADMIN_MULTI_TRIGGER_ACTIVE : ""}`}
       >
         {label}
         {isActive ? ` (${selected.length})` : ""}
@@ -154,10 +166,7 @@ function MultiSelectDropdown({
         />
       </button>
       {open && (
-        <div
-          className="absolute left-0 top-full z-50 mt-1 min-w-[200px] rounded-xl border bg-white shadow-xl p-2"
-          style={{ borderColor: "#EDE8F7" }}
-        >
+        <div className={`${ADMIN_DROPDOWN_PANEL} p-2`}>
           <div className="max-h-52 overflow-y-auto flex flex-col gap-0.5">
             {options.length === 0 ? (
               <p className="text-xs py-2 px-1" style={{ color: MUTED }}>
@@ -167,7 +176,7 @@ function MultiSelectDropdown({
               options.map((opt) => (
                 <label
                   key={opt}
-                  className="flex items-center gap-2 text-xs cursor-pointer px-2 py-1.5 rounded-lg hover:bg-violet-50"
+                  className={`flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs ${ADMIN_MENU_ITEM_HOVER}`}
                 >
                   <input
                     type="checkbox"
@@ -184,7 +193,7 @@ function MultiSelectDropdown({
             <button
               type="button"
               onClick={() => onChange([])}
-              className="mt-1 w-full text-xs py-1.5 rounded-lg font-semibold hover:bg-violet-50"
+              className={`mt-1 w-full rounded-lg py-1.5 text-xs font-semibold ${ADMIN_MENU_ITEM_HOVER}`}
               style={{ color: P }}
             >
               Clear all
@@ -233,10 +242,8 @@ function FilterBar({
   const intentLabel = showCandidateGender ? "B intent" : "A intent";
 
   return (
-    <div
-      className="shrink-0 border-b bg-white px-6 py-3.5"
-      style={{ borderColor: "#EDE8F7" }}
-    >
+    <div className="shrink-0 px-6 pb-2 pt-4">
+      <div className={`${ADMIN_TOOLBAR} flex flex-col gap-3`}>
       {/* Row 1: filters + actions — single baseline, consistent control height (h-10) */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5">
         <div
@@ -263,12 +270,7 @@ function FilterBar({
           <select
             value={draft.gender}
             onChange={(e) => onDraftChange({ ...draft, gender: e.target.value })}
-            className="h-10 shrink-0 rounded-xl border px-3 text-xs font-semibold cursor-pointer"
-            style={{
-              borderColor: applied.gender ? P : "#C9B8D9",
-              color: applied.gender ? P : MUTED,
-              backgroundColor: applied.gender ? P_LIGHT : "#FAF5FC",
-            }}
+            className={`${ADMIN_SELECT} ${applied.gender ? ADMIN_SELECT_ACTIVE : ""}`}
           >
             <option value="">User A: All genders</option>
             <option value="Woman">Woman</option>
@@ -288,11 +290,9 @@ function FilterBar({
         )}
 
         <div
-          className="flex h-10 min-w-0 max-w-[min(100%,14rem)] shrink-0 items-center gap-2 rounded-xl border px-2.5"
-          style={{
-            borderColor: applied.relationshipIntent ? P : "#C9B8D9",
-            backgroundColor: applied.relationshipIntent ? P_LIGHT : "#FAF5FC",
-          }}
+          className={`flex h-10 min-w-0 max-w-[min(100%,14rem)] shrink-0 items-center gap-2 rounded-xl border-2 border-bd-ink-dark bg-bd-accent-muted-bg px-2.5 shadow-[2px_2px_0px_0px_var(--bd-shadow-ink)] ${
+            applied.relationshipIntent ? "border-bd-orange bg-bd-accent-muted-bg" : ""
+          }`}
         >
           <span
             className="hidden shrink-0 text-[10px] font-bold uppercase tracking-wide sm:inline"
@@ -324,11 +324,9 @@ function FilterBar({
         />
 
         <div
-          className="flex h-10 shrink-0 items-center gap-2 rounded-xl border px-2.5"
-          style={{
-            borderColor: ageApplied ? P : "#C9B8D9",
-            backgroundColor: ageApplied ? P_LIGHT : "#FFFFFF",
-          }}
+          className={`flex h-10 shrink-0 items-center gap-2 rounded-xl border-2 border-bd-ink-dark bg-bd-card px-2.5 shadow-[2px_2px_0px_0px_var(--bd-shadow-ink)] ${
+            ageApplied ? "border-bd-orange bg-bd-accent-muted-bg" : ""
+          }`}
         >
           <span
             className="text-[10px] font-bold uppercase tracking-wide"
@@ -344,11 +342,10 @@ function FilterBar({
             title="Minimum age"
             value={draft.ageMin}
             onChange={(e) => onDraftChange({ ...draft, ageMin: e.target.value })}
-            className="w-13 shrink-0 rounded-lg border px-1.5 py-1 text-center text-xs tabular-nums"
+            className={ADMIN_INNER_INPUT}
             style={{
-              borderColor: applied.ageMin ? P : "#E5DCF0",
+              ...(applied.ageMin ? { borderColor: P, backgroundColor: P_LIGHT } : {}),
               color: DARK,
-              backgroundColor: applied.ageMin ? P_LIGHT : "#FFFFFF",
             }}
             min={18}
             max={99}
@@ -364,28 +361,22 @@ function FilterBar({
             title="Maximum age"
             value={draft.ageMax}
             onChange={(e) => onDraftChange({ ...draft, ageMax: e.target.value })}
-            className="w-13 shrink-0 rounded-lg border px-1.5 py-1 text-center text-xs tabular-nums"
+            className={ADMIN_INNER_INPUT}
             style={{
-              borderColor: applied.ageMax ? P : "#E5DCF0",
+              ...(applied.ageMax ? { borderColor: P, backgroundColor: P_LIGHT } : {}),
               color: DARK,
-              backgroundColor: applied.ageMax ? P_LIGHT : "#FFFFFF",
             }}
             min={18}
             max={99}
           />
         </div>
 
-        <div className="mx-0.5 hidden h-6 w-px self-center sm:block" style={{ backgroundColor: "#E8DEF5" }} />
+        <div className="mx-0.5 hidden h-6 w-px self-center sm:block" style={{ backgroundColor: adminTheme.borderSoft }} />
 
         <button
           type="button"
           onClick={onApply}
-          className="flex h-10 items-center gap-1.5 rounded-xl border px-4 text-xs font-semibold transition hover:opacity-90"
-          style={{
-            borderColor: P,
-            color: P,
-            backgroundColor: "#FAF5FC",
-          }}
+          className={`${ADMIN_BTN_PRIMARY_SM} h-10 px-4 text-xs`}
         >
           Apply
           <Check size={12} strokeWidth={2.5} />
@@ -394,12 +385,7 @@ function FilterBar({
         <button
           type="button"
           onClick={onClear}
-          className="flex h-10 items-center gap-1.5 rounded-xl border px-4 text-xs font-semibold transition hover:opacity-90"
-          style={{
-            borderColor: appliedHasAny ? P : "#C9B8D9",
-            color: appliedHasAny ? P : MUTED,
-            backgroundColor: appliedHasAny ? P_LIGHT : "#FAF5FC",
-          }}
+          className={`h-10 ${appliedHasAny ? `${ADMIN_BTN_SECONDARY}` : `${ADMIN_BTN_NEUTRAL_SM} px-4`}`}
         >
           <RotateCcw size={12} strokeWidth={2} />
           Clear
@@ -424,13 +410,10 @@ function FilterBar({
           value={draft.search}
           maxLength={120}
           onChange={(e) => onDraftChange({ ...draft, search: e.target.value })}
-          className="h-10 min-w-0 flex-1 rounded-xl border px-3 text-sm"
-          style={{
-            borderColor: applied.search.trim() ? P : "#C9B8D9",
-            color: DARK,
-            backgroundColor: applied.search.trim() ? P_LIGHT : "#FFFFFF",
-          }}
+          className={`${ADMIN_INPUT} min-h-10 min-w-0 flex-1 py-2 ${applied.search.trim() ? "border-bd-orange bg-bd-accent-muted-bg" : ""}`}
+          style={{ color: DARK }}
         />
+      </div>
       </div>
     </div>
   );
@@ -440,19 +423,12 @@ function FilterBar({
 
 function PoolCard({ user, onClick }: { user: PoolUser; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="text-left rounded-2xl border bg-white p-4 transition hover:shadow-md"
-      style={{ borderColor: "#EDE8F7" }}
-      onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#C060C0")}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#EDE8F7")}
-    >
+    <button type="button" onClick={onClick} className={`${ADMIN_CARD_INTERACTIVE} w-full`}>
       <div className="flex gap-3 items-start">
         {/* Photo */}
         <div
           className="rounded-xl overflow-hidden shrink-0 flex items-center justify-center"
-          style={{ width: 56, height: 56, backgroundColor: "#F5F0FB" }}
+          style={{ width: 56, height: 56, backgroundColor: BG }}
         >
           {user.photos[0] ? (
             <Image
@@ -519,13 +495,13 @@ function ProfilePanel({
 }) {
   return (
     <div
-      className="flex flex-col rounded-2xl border bg-white overflow-hidden"
-      style={{ borderColor: "#EDE8F7" }}
+      className="flex flex-col overflow-hidden rounded-2xl border-2 bg-white shadow-[4px_4px_0px_0px_var(--bd-shadow-ink)]"
+      style={{ borderColor: adminTheme.borderMuted }}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between gap-3 px-4 py-2.5 border-b shrink-0"
-        style={{ borderColor: "#F0EBFA", backgroundColor: `${labelColor}10` }}
+        className="flex shrink-0 items-center justify-between gap-3 border-b-2 px-4 py-2.5"
+        style={{ borderColor: adminTheme.borderSoft, backgroundColor: adminTheme.accentMutedBg }}
       >
         <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: labelColor }}>
           {label}
@@ -602,7 +578,7 @@ function ProfilePanel({
         {(() => {
           const desc = user.weeklyOptIns?.find((w) => w.description)?.description;
           return desc ? (
-            <div className="px-4 py-3 border-b" style={{ borderColor: "#F0EBFA" }}>
+            <div className="border-b px-4 py-3" style={{ borderColor: adminTheme.borderSoft }}>
               <p
                 className="text-[10px] font-bold uppercase tracking-widest mb-1"
                 style={{ color: SUBTLE }}
@@ -690,19 +666,14 @@ function PromptBox({ userA, userB }: { userA: MatchUser; userB: MatchUser }) {
 
   return (
     <div
-      className="rounded-2xl border bg-white p-4"
-      style={{ borderColor: "#EDE8F7" }}
+      className="rounded-2xl border-2 bg-white p-4 shadow-[4px_4px_0px_0px_var(--bd-shadow-ink)]"
+      style={{ borderColor: adminTheme.inkDark }}
     >
-      <div className="flex items-center justify-between mb-2">
+      <div className="mb-2 flex items-center justify-between">
         <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: SUBTLE }}>
           Prompt
         </p>
-        <button
-          type="button"
-          onClick={copy}
-          className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition hover:bg-violet-50"
-          style={{ borderColor: "#C9B8D9", color: P }}
-        >
+        <button type="button" onClick={copy} className={ADMIN_BTN_SECONDARY}>
           {copied ? <Check size={12} /> : <Copy size={12} />}
           {copied ? "Copied!" : "Copy to Clipboard"}
         </button>
@@ -711,8 +682,7 @@ function PromptBox({ userA, userB }: { userA: MatchUser; userB: MatchUser }) {
         readOnly
         value={prompt}
         rows={12}
-        className="w-full resize-none rounded-xl border bg-gray-50 p-3 text-xs font-mono leading-relaxed outline-none"
-        style={{ borderColor: "#EDE8F7", color: DARK }}
+        className="w-full resize-none rounded-xl border-2 border-bd-ink-dark bg-bd-table-row-alt p-3 font-mono text-xs leading-relaxed text-bd-ink shadow-[2px_2px_0px_0px_var(--bd-shadow-ink)] outline-none focus-visible:ring-2 focus-visible:ring-bd-orange/20"
       />
     </div>
   );
@@ -741,10 +711,7 @@ function ConfirmModal({
         aria-label="Close"
         onClick={onCancel}
       />
-      <div
-        className="relative z-10 w-full max-w-sm rounded-2xl border bg-white shadow-2xl p-6"
-        style={{ borderColor: "#EDE8F7" }}
-      >
+      <div className="relative z-10 w-full max-w-sm rounded-2xl border-2 border-bd-ink-dark bg-white p-6 shadow-[6px_6px_0px_0px_var(--bd-shadow-ink)]">
         <p className="text-base font-bold mb-1" style={{ color: DARK }}>
           Confirm Match
         </p>
@@ -766,27 +733,10 @@ function ConfirmModal({
         </ul>
 
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={confirming}
-            className="flex-1 rounded-xl border py-2.5 text-sm font-semibold transition hover:bg-gray-50"
-            style={{ borderColor: "#C9B8D9", color: MUTED }}
-          >
+          <button type="button" onClick={onCancel} disabled={confirming} className={`${ADMIN_BTN_NEUTRAL} flex-1 py-2.5`}>
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={confirming}
-            className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition"
-            style={{
-              background: confirming
-                ? SUBTLE
-                : "linear-gradient(135deg,#8F3A8F,#C060C0)",
-              opacity: confirming ? 0.7 : 1,
-            }}
-          >
+          <button type="button" onClick={onConfirm} disabled={confirming} className={`${ADMIN_BTN_PRIMARY_SM} flex-1 py-2.5`}>
             {confirming ? "Matching…" : "Confirm Match"}
           </button>
         </div>
@@ -813,12 +763,10 @@ function Toast({
 
   return (
     <div
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border px-4 py-3 shadow-xl text-sm font-medium"
+      className="fixed bottom-6 right-6 z-50 flex max-w-[360px] items-center gap-3 rounded-xl border-2 border-bd-ink-dark px-4 py-3 text-sm font-medium shadow-[4px_4px_0px_0px_var(--bd-shadow-ink)]"
       style={{
         backgroundColor: type === "success" ? "#f0fdf4" : "#fef2f2",
-        borderColor: type === "success" ? "#166534" : "#dc2626",
         color: type === "success" ? "#166534" : "#dc2626",
-        maxWidth: 360,
       }}
     >
       <span className="flex-1">{message}</span>
@@ -866,7 +814,7 @@ function PoolView({
             type="checkbox"
             checked={showUnmatchable}
             onChange={onToggleUnmatchable}
-            className="rounded border-gray-300"
+            className="h-4 w-4 rounded border-2 border-bd-ink-dark text-bd-orange focus:ring-bd-orange/30"
           />
           <span className="text-xs font-medium" style={{ color: MUTED }}>
             Show unmatchable users
@@ -1033,11 +981,11 @@ function MatchCardImageUpload({
 
   return (
     <div
-      className="rounded-2xl border bg-white p-4"
-      style={{ borderColor: "#EDE8F7" }}
+      className="rounded-2xl border-2 bg-white p-4 shadow-[4px_4px_0px_0px_var(--bd-shadow-ink)]"
+      style={{ borderColor: adminTheme.inkDark }}
     >
       <label
-        className="block text-[11px] font-bold uppercase tracking-widest mb-2"
+        className="mb-2 block text-[11px] font-bold uppercase tracking-widest"
         style={{ color: SUBTLE }}
       >
         Upload Card Image
@@ -1065,11 +1013,10 @@ function MatchCardImageUpload({
         }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={onDrop}
-        className="w-full rounded-xl border-2 border-dashed px-4 py-8 text-center text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-violet-200"
+        className="w-full rounded-xl border-2 border-dashed px-4 py-8 text-center text-sm font-medium text-bd-text-secondary outline-none transition focus-visible:ring-2 focus-visible:ring-bd-orange/30"
         style={{
-          borderColor: isDragging ? "#8F3A8F" : cardUrl.trim() ? "#166534" : "#C9B8D9",
-          backgroundColor: isDragging ? "#faf5ff" : "#fafafa",
-          color: MUTED,
+          borderColor: isDragging ? P : cardUrl.trim() ? "#166534" : adminTheme.borderMuted,
+          backgroundColor: isDragging ? adminTheme.accentMutedBg : adminTheme.elevated,
           cursor: busy ? "not-allowed" : "pointer",
           opacity: busy ? 0.5 : 1,
         }}
@@ -1084,7 +1031,7 @@ function MatchCardImageUpload({
       )}
 
       {displaySrc && (
-        <div className="mt-4 relative rounded-xl overflow-hidden border bg-gray-50" style={{ borderColor: "#EDE8F7" }}>
+        <div className="mt-4 relative rounded-xl overflow-hidden border bg-gray-50" style={{ borderColor: P_LIGHT }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- remote/object URLs */}
           <img
             src={displaySrc}
@@ -1096,21 +1043,21 @@ function MatchCardImageUpload({
 
       {isUploading && uploadProgress === 0 && (
         <div className="mt-3 flex items-center gap-2 text-xs font-medium" style={{ color: SUBTLE }}>
-          <Loader2 className="h-4 w-4 animate-spin shrink-0" style={{ color: "#8F3A8F" }} />
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin" style={{ color: P }} />
           Starting upload…
         </div>
       )}
 
       {uploadProgress > 0 && uploadProgress < 100 && (
         <div className="mt-3">
-          <div className="h-1.5 w-full rounded-full bg-violet-100 overflow-hidden">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-orange-100">
             <div
-              className="h-full bg-violet-600 transition-[width] duration-150"
+              className="h-full bg-bd-orange transition-[width] duration-150"
               style={{ width: `${uploadProgress}%` }}
             />
           </div>
           <p className="text-[11px] mt-1 font-medium flex items-center gap-1.5" style={{ color: SUBTLE }}>
-            <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" style={{ color: "#8F3A8F" }} />
+            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" style={{ color: P }} />
             Uploading… {uploadProgress}%
           </p>
         </div>
@@ -1161,7 +1108,7 @@ function MatchPhaseView({
         {loading ? (
           <div
             className="rounded-2xl border bg-white flex items-center justify-center"
-            style={{ borderColor: "#EDE8F7" }}
+            style={{ borderColor: P_LIGHT }}
           >
             <p className="text-sm" style={{ color: SUBTLE }}>
               Loading candidates…
@@ -1170,7 +1117,7 @@ function MatchPhaseView({
         ) : noResults ? (
           <div
             className="rounded-2xl border bg-white flex flex-col items-center justify-center gap-2 p-6"
-            style={{ borderColor: "#EDE8F7" }}
+            style={{ borderColor: P_LIGHT }}
           >
             <span className="text-3xl">🔍</span>
             <p className="text-sm font-semibold text-center" style={{ color: DARK }}>
@@ -1195,41 +1142,17 @@ function MatchPhaseView({
           <div />
           <div
             className="flex items-center justify-between rounded-2xl border bg-white px-4 py-3"
-            style={{ borderColor: "#EDE8F7" }}
+            style={{ borderColor: P_LIGHT }}
           >
             <span className="text-sm font-semibold" style={{ color: SUBTLE }}>
               {total > 0 ? `${position}/${total}` : "—"}
             </span>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onPrev}
-                disabled={noResults || loading || cardImageUploading}
-                className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:bg-violet-50"
-                style={{
-                  borderColor: "#C9B8D9",
-                  color: MUTED,
-                  opacity: noResults || loading || cardImageUploading ? 0.4 : 1,
-                  cursor:
-                    noResults || loading || cardImageUploading ? "not-allowed" : "pointer",
-                }}
-              >
+              <button type="button" onClick={onPrev} disabled={noResults || loading || cardImageUploading} className={ADMIN_BTN_NEUTRAL_SM}>
                 <ChevronLeft size={14} />
                 Prev
               </button>
-              <button
-                type="button"
-                onClick={onSkip}
-                disabled={noResults || loading || cardImageUploading}
-                className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:bg-violet-50"
-                style={{
-                  borderColor: "#C9B8D9",
-                  color: MUTED,
-                  opacity: noResults || loading || cardImageUploading ? 0.4 : 1,
-                  cursor:
-                    noResults || loading || cardImageUploading ? "not-allowed" : "pointer",
-                }}
-              >
+              <button type="button" onClick={onSkip} disabled={noResults || loading || cardImageUploading} className={ADMIN_BTN_NEUTRAL_SM}>
                 Next
                 <ChevronRight size={14} />
               </button>
@@ -1256,35 +1179,19 @@ function MatchPhaseView({
       {/* Action bar */}
       <div
         className="flex items-center justify-between rounded-2xl border bg-white px-5 py-4 shrink-0"
-        style={{ borderColor: "#EDE8F7" }}
+        style={{ borderColor: P_LIGHT }}
       >
         {/* Back */}
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition hover:bg-violet-50"
-          style={{ borderColor: "#C9B8D9", color: MUTED }}
-        >
+        <button type="button" onClick={onBack} className={`${ADMIN_BTN_NEUTRAL} gap-2 px-4 py-2.5`}>
           <ArrowLeft size={15} />
           Back to Pool
         </button>
 
-        {/* Match button */}
         <button
           type="button"
           onClick={onMatch}
           disabled={noResults || loading || !s3CardUrl.trim() || cardImageUploading}
-          className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition"
-          style={{
-            background:
-              noResults || loading || !s3CardUrl.trim() || cardImageUploading
-                ? "#C9B8D9"
-                : "linear-gradient(135deg,#166534,#15803d)",
-            cursor:
-              noResults || loading || !s3CardUrl.trim() || cardImageUploading
-                ? "not-allowed"
-                : "pointer",
-          }}
+          className={`${ADMIN_BTN_PRIMARY_SM} gap-2 px-5 py-2.5 text-base font-bold`}
         >
           <Check size={15} />
           Match
@@ -1574,11 +1481,11 @@ export default function MatchView({
       />
 
       {/* Page header */}
-      <div className="flex items-center gap-3 px-6 pt-5 pb-1 shrink-0">
+      <div className="flex shrink-0 items-center gap-3 px-6 pb-1 pt-5">
         <div>
           <h1
-            className="text-2xl font-bold"
-            style={{ fontFamily: "var(--font-playfair), Georgia, serif", color: DARK }}
+            className="text-2xl font-bold tracking-tight"
+            style={{ fontFamily: "var(--font-bd-display), Georgia, serif", color: DARK }}
           >
             {userA ? `Matching: ${userA.name}` : "Matchmaking"}
           </h1>
