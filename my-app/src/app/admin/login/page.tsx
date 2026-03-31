@@ -23,7 +23,7 @@ export default async function AdminLoginPage() {
       className="min-h-screen flex flex-col p-6"
       style={{ backgroundColor: "#FBF8F6" }}
     >
-      <AdminLoginForm phone={config.admin.phone} />
+      <AdminLoginForm />
     </main>
   );
 }

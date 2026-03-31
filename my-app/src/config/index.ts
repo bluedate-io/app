@@ -61,6 +61,7 @@ export const config = {
 
   admin: {
     phone: optionalEnv("ADMIN_PHONE", "8309671828"),
+    email: optionalEnv("ADMIN_EMAIL", "bluedate.io@gmail.com"),
   },
 
   email: {
