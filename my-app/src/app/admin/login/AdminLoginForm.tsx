@@ -2,7 +2,12 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import BdButton from "@/components/admin-bd/BdButton";
+import BdCard from "@/components/admin-bd/BdCard";
+import BdInput from "@/components/admin-bd/BdInput";
+import { adminTheme } from "@/lib/adminTheme";
+
 function hasAdminToken(): boolean {
   if (typeof document === "undefined") return false;
   return document.cookie.includes("admin_token=");
@@ -13,35 +18,15 @@ type Step = "email" | "otp";
 function InlineWarning({ message }: { message: string }) {
   return (
     <div
-      className="flex items-start gap-2 text-sm mb-4"
-      style={{ color: "#C0392B" }}
+      className="mb-4 flex items-start gap-2 text-sm"
+      style={{ color: adminTheme.error }}
       role="alert"
     >
-      <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+      <AlertTriangle size={16} className="mt-0.5 shrink-0" />
       <span>{message}</span>
     </div>
   );
 }
-
-const FabIcon = ({ disabled }: { disabled?: boolean }) => (
-  <span
-    className={`flex items-center justify-center shrink-0 rounded-full transition ${disabled ? "opacity-50" : ""}`}
-    style={{ width: 52, height: 52, backgroundColor: "#E0E0E0" }}
-  >
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 20 20"
-      fill="none"
-      stroke="#2d2d2d"
-      strokeWidth="2.25"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M8 6l6 4-6 4" />
-    </svg>
-  </span>
-);
 
 export default function AdminLoginForm() {
   const router = useRouter();
@@ -119,113 +104,109 @@ export default function AdminLoginForm() {
   };
 
   return (
-    <div className="flex flex-col flex-1 max-w-md mx-auto w-full">
-      <div className="flex justify-start mb-6">
-        <div className="w-14 h-14 rounded-full border-2 border-gray-900 flex items-center justify-center shrink-0">
-          <ShieldCheck size={28} strokeWidth={1.5} className="text-gray-900" />
-        </div>
-      </div>
-
+    <BdCard className="mx-auto w-full max-w-md text-left shadow-[8px_8px_0px_0px_var(--bd-shadow-ink)]">
       {step === "email" ? (
         <form
           onSubmit={(e) => {
             e.preventDefault();
             requestOtp();
           }}
-          className="flex flex-col flex-1"
+          className="flex flex-col gap-6"
         >
-          <h1
-            className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 leading-tight"
-            style={{ fontFamily: "var(--font-playfair), Georgia, serif" }}
-          >
-            Admin access
-          </h1>
-          <p className="text-sm text-gray-500 mb-8">
-            Restricted to authorised email only.
-          </p>
+          <div>
+            <h2
+              className="text-2xl font-black leading-tight text-bd-ink md:text-3xl"
+              style={{ fontFamily: "var(--font-bd-display), Georgia, serif" }}
+            >
+              Sign in to admin
+            </h2>
+            <p className="mt-2 text-sm text-bd-text-secondary">Restricted to authorised email only.</p>
+          </div>
 
           {error && <InlineWarning message={error} />}
 
-          <div className="pb-2 border-b-2 border-gray-800 mb-8">
-            <input
+          <div>
+            <label htmlFor="admin-email" className="sr-only">
+              Admin email
+            </label>
+            <BdInput
+              id="admin-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               required
-              className="w-full bg-transparent text-gray-900 text-base focus:outline-none"
               placeholder="Enter admin email"
             />
           </div>
 
-          <div className="mt-auto pt-8 flex items-end justify-end">
-            <button
-              type="submit"
-              disabled={loading}
-              className="focus:outline-none rounded-full p-0 border-0 cursor-pointer"
-            >
-              <FabIcon disabled={loading} />
-            </button>
-          </div>
+          <BdButton type="submit" disabled={loading} className="w-full sm:w-auto">
+            {loading ? "Sending…" : "Continue"}
+          </BdButton>
         </form>
       ) : (
-        <form onSubmit={verifyOtp} className="flex flex-col flex-1">
-          <h1
-            className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 leading-tight"
-            style={{ fontFamily: "var(--font-playfair), Georgia, serif" }}
-          >
-            Enter verification code
-          </h1>
-          <p className="text-sm text-gray-500 mb-6">
-            OTP sent to {email}.{" "}
-            <button
-              type="button"
-              onClick={() => { setStep("email"); setOtp(""); setError(null); }}
-              className="font-medium hover:underline"
-              style={{ color: "#8F3A8F" }}
+        <form onSubmit={verifyOtp} className="flex flex-col gap-6">
+          <div>
+            <h2
+              className="text-2xl font-black leading-tight text-bd-ink md:text-3xl"
+              style={{ fontFamily: "var(--font-bd-display), Georgia, serif" }}
             >
-              Edit
-            </button>
-          </p>
+              Enter verification code
+            </h2>
+            <p className="mt-2 text-sm text-bd-text-secondary">
+              OTP sent to {email}.{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("email");
+                  setOtp("");
+                  setError(null);
+                }}
+                className="font-semibold text-bd-orange hover:underline"
+              >
+                Edit
+              </button>
+            </p>
+          </div>
 
-          <div className="flex gap-3 justify-center mb-6" onPaste={handleOtpPaste}>
+          <div className="flex justify-center gap-2 sm:gap-3" onPaste={handleOtpPaste}>
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <input
                 key={i}
-                ref={(el) => { otpRefs.current[i] = el; }}
+                ref={(el) => {
+                  otpRefs.current[i] = el;
+                }}
                 type="text"
                 inputMode="numeric"
                 maxLength={1}
                 value={otp[i] ?? ""}
                 onChange={(e) => handleOtpChange(i, e.target.value)}
                 onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                className="w-10 h-12 text-center text-xl font-medium bg-transparent border-b-2 border-gray-800 text-gray-900 focus:outline-none focus:border-gray-900"
+                className="h-12 w-9 rounded-xl border-2 border-bd-ink bg-bd-card text-center text-xl font-semibold text-bd-ink focus:outline-none focus:ring-2 focus:ring-bd-orange focus:ring-offset-2 focus:ring-offset-bd-card sm:w-10"
               />
             ))}
           </div>
 
           {error && <InlineWarning message={error} />}
 
-          <div className="mt-auto pt-8 flex items-end justify-between">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
-              onClick={() => { setError(null); requestOtp(); }}
+              onClick={() => {
+                setError(null);
+                requestOtp();
+              }}
               disabled={loading}
-              className="text-sm hover:underline disabled:opacity-50"
-              style={{ color: "#8F3A8F" }}
+              className="text-sm font-medium text-bd-orange hover:underline disabled:opacity-50"
             >
               Didn&apos;t get a code?
             </button>
-            <button
-              type="submit"
-              disabled={loading || otp.length !== 6}
-              className="focus:outline-none rounded-full p-0 border-0 cursor-pointer disabled:opacity-50"
-            >
-              <FabIcon disabled={loading || otp.length !== 6} />
-            </button>
+            <BdButton type="submit" disabled={loading || otp.length !== 6}>
+              {loading ? "Checking…" : "Sign in"}
+            </BdButton>
           </div>
         </form>
       )}
-    </div>
+    </BdCard>
   );
 }

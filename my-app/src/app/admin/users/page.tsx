@@ -15,6 +15,8 @@ import {
 } from "@/lib/adminUserStep";
 import UsersTable from "./UsersTable";
 import AdminShell from "../AdminShell";
+import { ADMIN_ELEVATED_PANEL } from "@/lib/adminChrome";
+import { adminTheme } from "@/lib/adminTheme";
 
 const PAGE_SIZE = 20;
 
@@ -202,34 +204,44 @@ export default async function AdminUsersPage({
 
   return (
     <AdminShell>
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        <div className="mb-6">
-          <h1
-            className="text-2xl font-bold mb-0.5"
-            style={{ fontFamily: "var(--font-playfair), Georgia, serif", color: "#1A0A2E" }}
-          >
-            Users
-          </h1>
-          <p className="text-sm" style={{ color: "#9B87B0" }}>
-            {total} total
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2 mb-5">
-          {(["all", "completed", "incomplete"] as const).map((f) => (
-            <a
-              key={f}
-              href={tabHref(f)}
-              className="px-4 py-1.5 rounded-full text-sm font-medium transition"
-              style={
-                filter === f
-                  ? { background: "linear-gradient(135deg,#8F3A8F,#C060C0)", color: "#fff" }
-                  : { backgroundColor: "#EDE8F7", color: "#6B5E7A" }
-              }
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        <div className={`${ADMIN_ELEVATED_PANEL} mb-8`}>
+          <div className="mb-5 border-b-2 border-dashed pb-5" style={{ borderColor: adminTheme.borderSoft }}>
+            <h1
+              className="text-3xl font-bold tracking-tight"
+              style={{ fontFamily: "var(--font-bd-display), Georgia, serif", color: adminTheme.ink }}
             >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-            </a>
-          ))}
+              Users
+            </h1>
+            <p className="mt-1 text-sm" style={{ color: adminTheme.mutedLabel }}>
+              {total} total
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {(["all", "completed", "incomplete"] as const).map((f) => (
+              <a
+                key={f}
+                href={tabHref(f)}
+                className="rounded-full px-4 py-2 text-sm font-semibold transition-all duration-150"
+                style={
+                  filter === f
+                    ? {
+                        background: `linear-gradient(135deg, ${adminTheme.orange}, ${adminTheme.orangeBright})`,
+                        color: "#fff",
+                        boxShadow: "2px 2px 0 0 var(--bd-shadow-ink)",
+                      }
+                    : {
+                        backgroundColor: adminTheme.white,
+                        color: adminTheme.textSecondary,
+                        boxShadow: `inset 0 0 0 1.5px ${adminTheme.borderMuted}`,
+                      }
+                }
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </a>
+            ))}
+          </div>
         </div>
 
         <UsersTable

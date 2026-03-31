@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Trash2, User } from "lucide-react";
+import { ADMIN_BTN_DANGER_SM, ADMIN_BTN_NEUTRAL_SM, ADMIN_BTN_SECONDARY } from "@/lib/adminChrome";
+import { adminTheme } from "@/lib/adminTheme";
 
 type MatchRow = {
   id: string;
@@ -26,8 +28,11 @@ function Avatar({ url, name }: { url: string | null; name: string }) {
     /* eslint-disable-next-line @next/next/no-img-element */
     <img src={url} alt={name} className="rounded-full object-cover shrink-0" style={{ width: 40, height: 40 }} />
   ) : (
-    <div className="rounded-full shrink-0 flex items-center justify-center" style={{ width: 40, height: 40, backgroundColor: "#F0EBFA" }}>
-      <User size={18} style={{ color: "#C060C0" }} strokeWidth={1.5} />
+    <div
+      className="flex shrink-0 items-center justify-center rounded-full"
+      style={{ width: 40, height: 40, backgroundColor: adminTheme.accentMutedBg }}
+    >
+      <User size={18} style={{ color: adminTheme.orange }} strokeWidth={1.5} />
     </div>
   );
 }
@@ -64,7 +69,11 @@ export default function MatchesView() {
     return (
       <div className="space-y-3">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="rounded-2xl border animate-pulse" style={{ height: 80, borderColor: "#EDE8F7", backgroundColor: "#FAF8FF" }} />
+          <div
+            key={i}
+            className="animate-pulse rounded-2xl border"
+            style={{ height: 80, borderColor: adminTheme.accentMutedBg, backgroundColor: adminTheme.pageBg }}
+          />
         ))}
       </div>
     );
@@ -74,16 +83,25 @@ export default function MatchesView() {
     return (
       <div className="flex flex-col items-center py-24">
         <p className="text-sm mb-3" style={{ color: "#DC2626" }}>Failed to load matches.</p>
-        <button onClick={load} className="px-4 py-2 rounded-xl text-sm border" style={{ borderColor: "#EDE8F7", color: "#6B5E7A" }}>Retry</button>
+        <button onClick={load} className={`${ADMIN_BTN_SECONDARY} text-sm`}>
+          Retry
+        </button>
       </div>
     );
   }
 
   if (state.matches.length === 0) {
     return (
-      <div className="flex flex-col items-center py-32 rounded-2xl border" style={{ borderColor: "#EDE8F7", backgroundColor: "#fff" }}>
-        <p className="text-base font-semibold" style={{ color: "#1A0A2E" }}>No matches yet</p>
-        <p className="text-sm mt-1" style={{ color: "#9B87B0" }}>Matches you create will appear here.</p>
+      <div
+        className="flex flex-col items-center rounded-2xl border py-32"
+        style={{ borderColor: adminTheme.accentMutedBg, backgroundColor: "#fff" }}
+      >
+        <p className="text-base font-semibold" style={{ color: adminTheme.ink }}>
+          No matches yet
+        </p>
+        <p className="mt-1 text-sm" style={{ color: adminTheme.mutedLabel }}>
+          Matches you create will appear here.
+        </p>
       </div>
     );
   }
@@ -96,34 +114,46 @@ export default function MatchesView() {
         <div
           key={m.id}
           className="rounded-2xl border bg-white overflow-hidden"
-          style={{ borderColor: "#EDE8F7" }}
+          style={{ borderColor: adminTheme.accentMutedBg }}
         >
           <div className="flex items-start gap-4 px-5 py-4">
             {/* Woman */}
             <div className="flex items-center gap-2.5 flex-1 min-w-0">
               <Avatar url={m.woman.photoUrl} name={m.woman.name} />
               <div className="min-w-0">
-                <p className="text-sm font-semibold truncate" style={{ color: "#1A0A2E" }}>
+                <p className="truncate text-sm font-semibold" style={{ color: adminTheme.ink }}>
                   {m.woman.name}{m.woman.age ? `, ${m.woman.age}` : ""}
                 </p>
-                {m.woman.city && <p className="text-xs truncate" style={{ color: "#9B87B0" }}>{m.woman.city}</p>}
+                {m.woman.city && (
+                  <p className="truncate text-xs" style={{ color: adminTheme.mutedLabel }}>
+                    {m.woman.city}
+                  </p>
+                )}
               </div>
             </div>
 
             {/* Connector */}
             <div className="shrink-0 flex flex-col items-center gap-0.5 pt-1">
-              <span className="text-xs font-medium" style={{ color: "#C060C0" }}>♥</span>
-              <span className="text-xs" style={{ color: "#9B87B0" }}>{formatDate(m.matchedAt)}</span>
+              <span className="text-xs font-medium" style={{ color: adminTheme.orange }}>
+                ♥
+              </span>
+              <span className="text-xs" style={{ color: adminTheme.mutedLabel }}>
+                {formatDate(m.matchedAt)}
+              </span>
             </div>
 
             {/* Man */}
             <div className="flex items-center gap-2.5 flex-1 min-w-0 flex-row-reverse">
               <Avatar url={m.man.photoUrl} name={m.man.name} />
               <div className="min-w-0 text-right">
-                <p className="text-sm font-semibold truncate" style={{ color: "#1A0A2E" }}>
+                <p className="truncate text-sm font-semibold" style={{ color: adminTheme.ink }}>
                   {m.man.name}{m.man.age ? `, ${m.man.age}` : ""}
                 </p>
-                {m.man.city && <p className="text-xs truncate" style={{ color: "#9B87B0" }}>{m.man.city}</p>}
+                {m.man.city && (
+                  <p className="truncate text-xs" style={{ color: adminTheme.mutedLabel }}>
+                    {m.man.city}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -131,18 +161,13 @@ export default function MatchesView() {
             <div className="shrink-0 pl-2">
               {confirmId === m.id ? (
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setConfirmId(null)}
-                    className="text-xs px-2.5 py-1 rounded-lg border"
-                    style={{ borderColor: "#EDE8F7", color: "#6B5E7A" }}
-                  >
+                  <button onClick={() => setConfirmId(null)} className={ADMIN_BTN_NEUTRAL_SM}>
                     Cancel
                   </button>
                   <button
                     onClick={() => deleteMatch(m.id)}
                     disabled={deletingId === m.id}
-                    className="text-xs px-2.5 py-1 rounded-lg font-medium text-white disabled:opacity-50"
-                    style={{ backgroundColor: "#DC2626" }}
+                    className={ADMIN_BTN_DANGER_SM}
                   >
                     {deletingId === m.id ? "Deleting…" : "Confirm"}
                   </button>
@@ -165,23 +190,31 @@ export default function MatchesView() {
               <div
                 className="relative rounded-2xl overflow-hidden"
                 style={{
-                  background: "linear-gradient(135deg, #F5F0FB 0%, #FDF3FF 50%, #F0EBFA 100%)",
-                  border: "1px solid #E8DEFF",
+                  background: `linear-gradient(135deg, ${adminTheme.pageBg} 0%, #FFF8F0 50%, ${adminTheme.accentMutedBg} 100%)`,
+                  border: `1px solid ${adminTheme.borderSoft}`,
                 }}
               >
                 <div
-                  className="absolute top-0 left-0 right-0 z-1"
-                  style={{ height: 3, background: "linear-gradient(90deg, #8F3A8F, #C060C0, #E080A0)" }}
+                  className="absolute left-0 right-0 top-0 z-1"
+                  style={{
+                    height: 3,
+                    background: `linear-gradient(90deg, ${adminTheme.orange}, ${adminTheme.orangeBright}, ${adminTheme.terracotta})`,
+                  }}
                 />
-                <div className="px-5 pt-5 pb-4">
-                  <div className="flex items-center gap-1.5 mb-3">
+                <div className="px-5 pb-4 pt-5">
+                  <div className="mb-3 flex items-center gap-1.5">
                     <div
-                      className="w-4 h-4 rounded-full flex items-center justify-center"
-                      style={{ background: "linear-gradient(135deg,#8F3A8F,#C060C0)" }}
+                      className="flex h-4 w-4 items-center justify-center rounded-full"
+                      style={{
+                        background: `linear-gradient(135deg, ${adminTheme.orange}, ${adminTheme.orangeBright})`,
+                      }}
                     >
                       <span style={{ fontSize: 8, color: "#fff", lineHeight: 1 }}>✦</span>
                     </div>
-                    <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#8F3A8F" }}>
+                    <span
+                      className="text-xs font-semibold uppercase tracking-widest"
+                      style={{ color: adminTheme.orange }}
+                    >
                       Match card
                     </span>
                   </div>
@@ -189,8 +222,8 @@ export default function MatchesView() {
                   <img
                     src={m.cardImageUrl}
                     alt="Match card"
-                    className="w-full rounded-xl object-contain max-h-[280px] bg-white/50"
-                    style={{ border: "1px solid #E8DEFF" }}
+                    className="max-h-[280px] w-full rounded-xl bg-white/50 object-contain"
+                    style={{ border: `1px solid ${adminTheme.borderSoft}` }}
                   />
                 </div>
               </div>
@@ -203,26 +236,34 @@ export default function MatchesView() {
               <div
                 className="relative rounded-2xl overflow-hidden"
                 style={{
-                  background: "linear-gradient(135deg, #F5F0FB 0%, #FDF3FF 50%, #F0EBFA 100%)",
-                  border: "1px solid #E8DEFF",
+                  background: `linear-gradient(135deg, ${adminTheme.pageBg} 0%, #FFF8F0 50%, ${adminTheme.accentMutedBg} 100%)`,
+                  border: `1px solid ${adminTheme.borderSoft}`,
                 }}
               >
                 {/* Top accent line */}
                 <div
-                  className="absolute top-0 left-0 right-0"
-                  style={{ height: 3, background: "linear-gradient(90deg, #8F3A8F, #C060C0, #E080A0)" }}
+                  className="absolute left-0 right-0 top-0"
+                  style={{
+                    height: 3,
+                    background: `linear-gradient(90deg, ${adminTheme.orange}, ${adminTheme.orangeBright}, ${adminTheme.terracotta})`,
+                  }}
                 />
 
-                <div className="px-5 pt-5 pb-4">
+                <div className="px-5 pb-4 pt-5">
                   {/* Label */}
-                  <div className="flex items-center gap-1.5 mb-3">
+                  <div className="mb-3 flex items-center gap-1.5">
                     <div
-                      className="w-4 h-4 rounded-full flex items-center justify-center"
-                      style={{ background: "linear-gradient(135deg,#8F3A8F,#C060C0)" }}
+                      className="flex h-4 w-4 items-center justify-center rounded-full"
+                      style={{
+                        background: `linear-gradient(135deg, ${adminTheme.orange}, ${adminTheme.orangeBright})`,
+                      }}
                     >
                       <span style={{ fontSize: 8, color: "#fff", lineHeight: 1 }}>✦</span>
                     </div>
-                    <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#8F3A8F" }}>
+                    <span
+                      className="text-xs font-semibold uppercase tracking-widest"
+                      style={{ color: adminTheme.orange }}
+                    >
                       Match Note
                     </span>
                   </div>
@@ -231,8 +272,8 @@ export default function MatchesView() {
                   <p
                     className="text-sm leading-relaxed"
                     style={{
-                      color: "#3B2056",
-                      fontFamily: "var(--font-playfair), Georgia, serif",
+                      color: adminTheme.ink,
+                      fontFamily: "var(--font-bd-display), Georgia, serif",
                       fontStyle: "italic",
                     }}
                   >

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import { Caveat, Fraunces, Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
@@ -16,6 +16,18 @@ const geistMono = Geist_Mono({
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
+});
+
+const fraunces = Fraunces({
+  variable: "--font-bd-display",
+  subsets: ["latin"],
+  weight: ["400", "600", "700", "800", "900"],
+});
+
+const caveat = Caveat({
+  variable: "--font-bd-script",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const APP_URL = "https://bluedate.io";
@@ -90,7 +102,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#EDE8D5",
+  themeColor: "#FEFCF0",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -105,7 +117,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${fraunces.variable} ${caveat.variable} antialiased`}
       >
         {children}
         <Analytics />

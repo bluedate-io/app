@@ -3,10 +3,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronRight, MoreVertical, X } from "lucide-react";
 import { ADMIN_GENDER_OPTIONS } from "@/lib/adminUserStep";
+import {
+  ADMIN_BTN_NEUTRAL,
+  ADMIN_BTN_PRIMARY_SM,
+  ADMIN_BTN_SECONDARY,
+  ADMIN_ELEVATED_PANEL,
+  ADMIN_INPUT,
+  ADMIN_SELECT_LG,
+  ADMIN_TABLE_FRAME,
+  ADMIN_TOOLBAR,
+} from "@/lib/adminChrome";
+import { adminTheme } from "@/lib/adminTheme";
 
-const DARK = "#1A0A2E";
-const MUTED = "#6B5E7A";
-const SUBTLE = "#9B87B0";
+const DARK = adminTheme.ink;
+const MUTED = adminTheme.textSecondary;
+const SUBTLE = adminTheme.mutedLabel;
 
 type Row = {
   id: string;
@@ -117,14 +128,14 @@ function ReminderHistorySheet({
       />
       <aside
         className="relative z-[61] flex h-full w-full max-w-md flex-col border-l bg-white shadow-2xl"
-        style={{ borderColor: "#EDE8F7" }}
+        style={{ borderColor: adminTheme.accentMutedBg }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="reminder-history-title"
       >
         <div
           className="flex items-start justify-between gap-3 border-b px-5 py-4"
-          style={{ borderColor: "#EDE8F7", backgroundColor: "#FAF8FC" }}
+          style={{ borderColor: adminTheme.accentMutedBg, backgroundColor: adminTheme.accentMutedBg }}
         >
           <div className="min-w-0">
             <h2 id="reminder-history-title" className="text-base font-bold truncate" style={{ color: DARK }}>
@@ -137,7 +148,7 @@ function ReminderHistorySheet({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 hover:bg-violet-100/60 transition shrink-0"
+            className="shrink-0 rounded-lg p-2 transition hover:bg-bd-table-hover"
             aria-label="Close"
           >
             <X size={20} style={{ color: MUTED }} />
@@ -162,7 +173,7 @@ function ReminderHistorySheet({
                 <li
                   key={ev.id}
                   className="rounded-xl border px-4 py-3"
-                  style={{ borderColor: "#EDE8F7" }}
+                  style={{ borderColor: adminTheme.accentMutedBg }}
                 >
                   <p className="text-xs font-semibold mb-1" style={{ color: SUBTLE }}>
                     #{data.events.length - i}
@@ -207,7 +218,7 @@ function ConfirmSendModal({
       />
       <div
         className="relative z-10 w-full max-w-sm rounded-2xl border bg-white shadow-2xl p-6"
-        style={{ borderColor: "#EDE8F7" }}
+        style={{ borderColor: adminTheme.accentMutedBg }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="onboarding-reminder-confirm-title"
@@ -242,8 +253,7 @@ function ConfirmSendModal({
             type="button"
             onClick={onCancel}
             disabled={confirming}
-            className="flex-1 rounded-xl border py-2.5 text-sm font-semibold transition hover:bg-gray-50"
-            style={{ borderColor: "#C9B8D9", color: MUTED }}
+            className={`${ADMIN_BTN_NEUTRAL} flex-1 py-2.5`}
           >
             Cancel
           </button>
@@ -251,11 +261,7 @@ function ConfirmSendModal({
             type="button"
             onClick={onConfirm}
             disabled={confirming}
-            className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition"
-            style={{
-              background: confirming ? SUBTLE : "linear-gradient(135deg,#8F3A8F,#C060C0)",
-              opacity: confirming ? 0.85 : 1,
-            }}
+            className={`${ADMIN_BTN_PRIMARY_SM} flex-1`}
           >
             {confirming ? "Sending…" : "Send reminder"}
           </button>
@@ -492,7 +498,7 @@ export default function OnboardingIncompleteClient() {
   const rangeEnd = data ? Math.min(page * data.pageSize, data.total) : 0;
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
+    <div className="mx-auto max-w-6xl px-6 py-8">
       {confirmOpen && effectiveCount > 0 && (
         <ConfirmSendModal
           selectedCount={effectiveCount}
@@ -517,52 +523,58 @@ export default function OnboardingIncompleteClient() {
         data={historyData}
       />
 
-      <div className="mb-6">
-        <h1
-          className="text-2xl font-bold mb-0.5"
-          style={{ fontFamily: "var(--font-playfair), Georgia, serif", color: "#1A0A2E" }}
-        >
-          Onboarding reminders
-        </h1>
-        <p className="text-sm" style={{ color: "#9B87B0" }}>
-          Users who have not completed onboarding. Select rows and send one BCC email.
-        </p>
-        {data != null && (
-          <p className="text-sm mt-1.5" style={{ color: "#6B5E7A" }}>
-            {data.total} user{data.total === 1 ? "" : "s"}
-            {committedQ.trim() ? ` matching "${committedQ.trim()}"` : null}
-            {committedGender.trim() ? ` · ${committedGenderLabel} only` : null}
+      <div className={`${ADMIN_ELEVATED_PANEL} mb-8 space-y-5`}>
+        <div>
+          <h1
+            className="mb-0.5 text-3xl font-bold tracking-tight"
+            style={{ fontFamily: "var(--font-bd-display), Georgia, serif", color: DARK }}
+          >
+            Onboarding reminders
+          </h1>
+          <p className="text-sm" style={{ color: SUBTLE }}>
+            Users who have not completed onboarding. Select rows and send one BCC email.
           </p>
-        )}
-      </div>
+          {data != null && (
+            <p className="mt-1.5 text-sm" style={{ color: MUTED }}>
+              {data.total} user{data.total === 1 ? "" : "s"}
+              {committedQ.trim() ? ` matching "${committedQ.trim()}"` : null}
+              {committedGender.trim() ? ` · ${committedGenderLabel} only` : null}
+            </p>
+          )}
+        </div>
 
-      <div
-        className="mb-5 rounded-xl border px-4 py-3 text-sm"
-        style={{ borderColor: "#EDE8F7", backgroundColor: "#fff" }}
-      >
-        {lastSend ? (
-          <p style={{ color: "#6B5E7A", margin: 0 }}>
-            <span className="font-medium" style={{ color: "#1A0A2E" }}>
-              Last sent:
-            </span>{" "}
-            {formatDate(lastSend.sentAt)}
-            {" · "}
-            {lastSend.recipientCount} BCC recipient{lastSend.recipientCount === 1 ? "" : "s"}
-            {lastSend.sentByName != null && lastSend.sentByName !== ""
-              ? ` · by ${lastSend.sentByName}`
-              : ""}
-          </p>
-        ) : (
-          <p style={{ color: "#9B87B0", margin: 0 }}>No reminder emails have been sent yet.</p>
-        )}
+        <div
+          className="border-t-2 border-dashed pt-5 text-sm"
+          style={{ borderColor: adminTheme.borderSoft }}
+        >
+          {lastSend ? (
+            <p className="m-0" style={{ color: MUTED }}>
+              <span className="font-semibold" style={{ color: DARK }}>
+                Last sent:
+              </span>{" "}
+              {formatDate(lastSend.sentAt)}
+              {" · "}
+              {lastSend.recipientCount} BCC recipient{lastSend.recipientCount === 1 ? "" : "s"}
+              {lastSend.sentByName != null && lastSend.sentByName !== ""
+                ? ` · by ${lastSend.sentByName}`
+                : ""}
+            </p>
+          ) : (
+            <p className="m-0" style={{ color: SUBTLE }}>
+              No reminder emails have been sent yet.
+            </p>
+          )}
+        </div>
       </div>
 
       {recentSends.length > 0 && (
         <div
-          className="mb-6 rounded-xl border overflow-hidden"
-          style={{ borderColor: "#EDE8F7", backgroundColor: "#fff" }}
+          className="mb-8 overflow-hidden rounded-3xl border-2 border-bd-ink-dark bg-bd-elevated shadow-[5px_5px_0px_0px_var(--bd-shadow-ink)]"
         >
-          <div className="px-4 py-3 border-b" style={{ borderColor: "#EDE8F7", backgroundColor: "#FAF8FC" }}>
+          <div
+            className="border-b-2 px-4 py-3 md:px-5"
+            style={{ borderColor: adminTheme.borderSoft, backgroundColor: adminTheme.tableHeader }}
+          >
             <h2 className="text-sm font-semibold" style={{ color: DARK }}>
               Recent sends
             </h2>
@@ -570,7 +582,7 @@ export default function OnboardingIncompleteClient() {
               Who was included in each batch (newest first).
             </p>
           </div>
-          <ul className="divide-y" style={{ borderColor: "#F5F0FB" }}>
+          <ul className="divide-y" style={{ borderColor: adminTheme.borderSoft }}>
             {recentSends.map((send) => {
               const open = expandedSendIds.has(send.id);
               const list = send.recipients;
@@ -581,7 +593,7 @@ export default function OnboardingIncompleteClient() {
                   <button
                     type="button"
                     onClick={() => toggleSendExpanded(send.id)}
-                    className="w-full flex items-start gap-2 px-4 py-3 text-left hover:bg-violet-50/50 transition"
+                    className="flex w-full items-start gap-2 px-4 py-3 text-left transition hover:bg-bd-table-hover md:px-5"
                   >
                     {open ? (
                       <ChevronDown size={18} className="shrink-0 mt-0.5" style={{ color: MUTED }} />
@@ -637,8 +649,7 @@ export default function OnboardingIncompleteClient() {
       )}
 
       <div
-        className="mb-4 flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:flex-wrap sm:items-end"
-        style={{ borderColor: "#EDE8F7", backgroundColor: "#fff" }}
+        className={`${ADMIN_TOOLBAR} mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end`}
       >
         <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
           <label className="sr-only" htmlFor="onboarding-incomplete-search">
@@ -657,8 +668,7 @@ export default function OnboardingIncompleteClient() {
               }
             }}
             placeholder="Search name or email"
-            className="w-full min-w-0 rounded-xl border px-3 py-2 text-sm sm:max-w-md"
-            style={{ borderColor: "#EDE8F7", color: DARK }}
+            className={`${ADMIN_INPUT} w-full min-w-0 sm:max-w-md`}
           />
           <div className="flex shrink-0 flex-wrap gap-2">
             <button
@@ -667,8 +677,7 @@ export default function OnboardingIncompleteClient() {
                 setCommittedQ(searchDraft.trim());
                 setPage(1);
               }}
-              className="rounded-xl px-4 py-2 text-sm font-medium text-white"
-              style={{ background: "linear-gradient(135deg,#8F3A8F,#C060C0)" }}
+              className={ADMIN_BTN_PRIMARY_SM}
             >
               Search
             </button>
@@ -680,8 +689,7 @@ export default function OnboardingIncompleteClient() {
                   setCommittedQ("");
                   setPage(1);
                 }}
-                className="rounded-xl border px-4 py-2 text-sm font-medium"
-                style={{ borderColor: "#C9B8D9", color: MUTED }}
+                className={ADMIN_BTN_SECONDARY}
               >
                 Clear
               </button>
@@ -700,8 +708,7 @@ export default function OnboardingIncompleteClient() {
                 setCommittedGender(e.target.value);
                 setPage(1);
               }}
-              className="rounded-xl border px-3 py-2 text-sm min-w-[160px]"
-              style={{ borderColor: "#EDE8F7", color: DARK, backgroundColor: "#fff" }}
+              className={`${ADMIN_SELECT_LG} min-w-[160px]`}
             >
               <option value="">All genders</option>
               <option value={ONBOARDING_REMINDER_GENDER_NOT_PROVIDED}>Not provided</option>
@@ -723,8 +730,7 @@ export default function OnboardingIncompleteClient() {
                 setSort(e.target.value as SortOption);
                 setPage(1);
               }}
-              className="rounded-xl border px-3 py-2 text-sm min-w-[200px]"
-              style={{ borderColor: "#EDE8F7", color: DARK, backgroundColor: "#fff" }}
+              className={`${ADMIN_SELECT_LG} min-w-[200px]`}
             >
               <option value="joined_desc">Joined (newest first)</option>
               <option value="joined_asc">Joined (oldest first)</option>
@@ -740,8 +746,7 @@ export default function OnboardingIncompleteClient() {
           type="button"
           onClick={toggleSelectPage}
           disabled={loading || selectableIds.length === 0 || selectAllMatching}
-          className="px-4 py-2 rounded-xl text-sm font-medium transition disabled:opacity-50"
-          style={{ backgroundColor: "#EDE8F7", color: "#6B5E7A" }}
+          className={ADMIN_BTN_NEUTRAL}
         >
           {allSelectableSelected ? "Deselect page" : "Select all on page"}
         </button>
@@ -749,12 +754,11 @@ export default function OnboardingIncompleteClient() {
           type="button"
           onClick={toggleSelectAllIncomplete}
           disabled={loading || (!selectAllMatching && emailableTotal === 0)}
-          className="px-4 py-2 rounded-xl text-sm font-medium transition disabled:opacity-50"
-          style={{ backgroundColor: "#EDE8F7", color: "#6B5E7A" }}
+          className={ADMIN_BTN_NEUTRAL}
         >
           {selectAllMatching ? "Deselect all incomplete users" : "Select all incomplete users"}
         </button>
-        <span className="text-sm" style={{ color: "#6B5E7A" }}>
+        <span className="text-sm" style={{ color: MUTED }}>
           {effectiveCount} selected
         </span>
         <button
@@ -765,16 +769,13 @@ export default function OnboardingIncompleteClient() {
             setConfirmOpen(true);
           }}
           disabled={sending || effectiveCount === 0}
-          className="px-4 py-2 rounded-xl text-sm font-semibold text-white transition disabled:opacity-50"
-          style={{
-            background: "linear-gradient(135deg,#8F3A8F,#C060C0)",
-          }}
+          className={ADMIN_BTN_PRIMARY_SM}
         >
           Send reminder (BCC)
         </button>
       </div>
       {selectAllMatching && emailableTotal > 0 && (
-        <p className="text-sm mb-4" style={{ color: "#6B5E7A" }}>
+        <p className="text-sm mb-4" style={{ color: MUTED }}>
           All {emailableTotal} incomplete user{emailableTotal === 1 ? "" : "s"} with an email
           {committedQ.trim() ? ` matching “${committedQ.trim()}”` : ""}
           {committedGender.trim() ? ` · ${committedGenderLabel} only` : ""} will be included. Sort does not change
@@ -793,16 +794,13 @@ export default function OnboardingIncompleteClient() {
         </p>
       )}
 
-      <div
-        className="rounded-xl border overflow-hidden"
-        style={{ borderColor: "#EDE8F7", backgroundColor: "#fff" }}
-      >
+      <div className={ADMIN_TABLE_FRAME}>
         {loading ? (
-          <p className="p-6 text-sm" style={{ color: "#9B87B0" }}>
+          <p className="p-6 text-sm" style={{ color: SUBTLE }}>
             Loading…
           </p>
         ) : rows.length === 0 ? (
-          <p className="p-6 text-sm" style={{ color: "#9B87B0" }}>
+          <p className="p-6 text-sm" style={{ color: SUBTLE }}>
             {committedQ.trim()
               ? "No users match your search."
               : "No users with incomplete onboarding."}
@@ -811,7 +809,13 @@ export default function OnboardingIncompleteClient() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ borderBottom: "1px solid #EDE8F7", backgroundColor: "#FAF8FC" }}>
+                <tr
+                  className="border-b-2"
+                  style={{
+                    borderColor: adminTheme.inkDark,
+                    backgroundColor: adminTheme.tableHeader,
+                  }}
+                >
                   <th className="p-3 w-10 align-middle">
                     <input
                       ref={headerCheckboxRef}
@@ -825,33 +829,38 @@ export default function OnboardingIncompleteClient() {
                       aria-label="Select all users on this page"
                     />
                   </th>
-                  <th className="text-left p-3 font-semibold" style={{ color: "#1A0A2E" }}>
+                  <th className="text-left p-3 font-semibold" style={{ color: DARK }}>
                     Name
                   </th>
-                  <th className="text-left p-3 font-semibold whitespace-nowrap" style={{ color: "#1A0A2E" }}>
+                  <th className="text-left p-3 font-semibold whitespace-nowrap" style={{ color: DARK }}>
                     Gender
                   </th>
-                  <th className="text-left p-3 font-semibold" style={{ color: "#1A0A2E" }}>
+                  <th className="text-left p-3 font-semibold" style={{ color: DARK }}>
                     Email
                   </th>
-                  <th className="text-left p-3 font-semibold" style={{ color: "#1A0A2E" }}>
+                  <th className="text-left p-3 font-semibold" style={{ color: DARK }}>
                     Joined
                   </th>
-                  <th className="text-left p-3 font-semibold whitespace-nowrap" style={{ color: "#1A0A2E" }}>
+                  <th className="text-left p-3 font-semibold whitespace-nowrap" style={{ color: DARK }}>
                     Reminders sent
                   </th>
-                  <th className="text-left p-3 font-semibold whitespace-nowrap" style={{ color: "#1A0A2E" }}>
+                  <th className="text-left p-3 font-semibold whitespace-nowrap" style={{ color: DARK }}>
                     Last reminder
                   </th>
                   <th className="p-3 w-12 text-right align-middle" aria-label="Actions" />
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => {
+                {rows.map((r, rowIndex) => {
                   const hasEmail = !!r.email?.trim();
                   const checked = (selectAllMatching && hasEmail) || selected.has(r.id);
                   return (
-                    <tr key={r.id} style={{ borderBottom: "1px solid #F5F0FB" }}>
+                    <tr
+                      key={r.id}
+                      className={`border-b border-bd-border-soft transition-colors hover:bg-bd-table-hover ${
+                        rowIndex % 2 === 0 ? "bg-bd-table-row" : "bg-bd-table-row-alt"
+                      }`}
+                    >
                       <td className="p-3 align-middle">
                         <input
                           type="checkbox"
@@ -862,29 +871,29 @@ export default function OnboardingIncompleteClient() {
                           aria-label={`Select ${r.profile?.fullName ?? r.email ?? r.id}`}
                         />
                       </td>
-                      <td className="p-3" style={{ color: "#1A0A2E" }}>
+                      <td className="p-3" style={{ color: DARK }}>
                         {r.profile?.fullName?.trim() || "—"}
                       </td>
-                      <td className="p-3 whitespace-nowrap" style={{ color: "#6B5E7A" }}>
+                      <td className="p-3 whitespace-nowrap" style={{ color: MUTED }}>
                         {r.preferences?.genderIdentity?.trim() || "—"}
                       </td>
-                      <td className="p-3" style={{ color: hasEmail ? "#6B5E7A" : "#C4B8D4" }}>
+                      <td className="p-3" style={{ color: hasEmail ? MUTED : adminTheme.borderMuted }}>
                         {hasEmail ? r.email : "No email"}
                       </td>
-                      <td className="p-3 whitespace-nowrap" style={{ color: "#6B5E7A" }}>
+                      <td className="p-3 whitespace-nowrap" style={{ color: MUTED }}>
                         {formatDate(r.createdAt)}
                       </td>
-                      <td className="p-3 whitespace-nowrap tabular-nums" style={{ color: "#6B5E7A" }}>
+                      <td className="p-3 whitespace-nowrap tabular-nums" style={{ color: MUTED }}>
                         {r.reminderCount ?? 0}
                       </td>
-                      <td className="p-3 whitespace-nowrap" style={{ color: "#6B5E7A" }}>
+                      <td className="p-3 whitespace-nowrap" style={{ color: MUTED }}>
                         {r.lastReminderSentAt ? formatDate(r.lastReminderSentAt) : "—"}
                       </td>
                       <td className="p-3 align-middle text-right">
                         <button
                           type="button"
                           onClick={() => setHistoryForUser(r)}
-                          className="inline-flex rounded-lg p-2 hover:bg-violet-100/60 transition"
+                          className="inline-flex rounded-lg p-2 transition hover:bg-bd-table-hover"
                           aria-label={`Reminder history for ${r.profile?.fullName ?? r.email ?? r.id}`}
                         >
                           <MoreVertical size={18} style={{ color: MUTED }} />
@@ -901,7 +910,7 @@ export default function OnboardingIncompleteClient() {
 
       {data && data.total > 0 && (
         <div className="flex flex-col items-center gap-2 mt-6 sm:flex-row sm:justify-center sm:gap-4">
-          <p className="text-sm order-2 sm:order-1" style={{ color: "#6B5E7A" }}>
+          <p className="text-sm order-2 sm:order-1" style={{ color: MUTED }}>
             Showing {rangeStart}–{rangeEnd} of {data.total}
           </p>
           <div className="flex justify-center gap-2 order-1 sm:order-2">
@@ -909,20 +918,18 @@ export default function OnboardingIncompleteClient() {
               type="button"
               disabled={page <= 1 || loading}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
-              style={{ backgroundColor: "#EDE8F7", color: "#6B5E7A" }}
+              className={ADMIN_BTN_NEUTRAL}
             >
               Previous
             </button>
-            <span className="px-3 py-2 text-sm" style={{ color: "#6B5E7A" }}>
+            <span className="px-3 py-2 text-sm" style={{ color: MUTED }}>
               Page {page} of {totalPages}
             </span>
             <button
               type="button"
               disabled={page >= totalPages || loading}
               onClick={() => setPage((p) => p + 1)}
-              className="px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
-              style={{ backgroundColor: "#EDE8F7", color: "#6B5E7A" }}
+              className={ADMIN_BTN_NEUTRAL}
             >
               Next
             </button>
