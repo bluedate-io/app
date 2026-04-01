@@ -94,8 +94,12 @@ export const config = {
   },
 } as const;
 
-// Eagerly validate critical secrets at startup in production
-if (config.isProd) {
+// Eagerly validate critical secrets in production at runtime — not during `next build`.
+// Vercel/CI builds import this module; Preview builds may omit some secrets. Runtime still enforces.
+const isNextProductionBuild =
+  process.env.npm_lifecycle_event === "build" || process.env.NEXT_PHASE === "phase-production-build";
+
+if (config.isProd && !isNextProductionBuild) {
   requireEnv("JWT_SECRET");
   requireEnv("DATABASE_URL");
   requireEnv("TWILIO_ACCOUNT_SID");
