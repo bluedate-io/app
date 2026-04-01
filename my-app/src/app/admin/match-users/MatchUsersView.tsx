@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Heart, ChevronLeft, ChevronRight, User, Star } from "lucide-react";
+import { Heart, ChevronLeft, ChevronRight, MoreVertical, User, Star } from "lucide-react";
+import UserDetailSheet from "@/components/admin-bd/UserDetailSheet";
 import {
   ADMIN_BTN_NEUTRAL_SM,
   ADMIN_BTN_PRIMARY_SM,
@@ -66,6 +67,7 @@ type ModalState =
 export default function MatchUsersView() {
   const [phase, setPhase] = useState<"list" | "match">("list");
   const [selectedUser, setSelectedUser] = useState<SelectedUser | null>(null);
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
 
   function handleSelect(user: SelectedUser) {
     setSelectedUser(user);
@@ -73,20 +75,42 @@ export default function MatchUsersView() {
   }
 
   if (phase === "list" || !selectedUser) {
-    return <OptedInList onSelect={handleSelect} />;
+    return (
+      <>
+        {detailUserId ? (
+          <UserDetailSheet userId={detailUserId} onClose={() => setDetailUserId(null)} />
+        ) : null}
+        <OptedInList onSelect={handleSelect} onOpenDetails={setDetailUserId} />
+      </>
+    );
   }
 
   return (
-    <MatchPhase
-      selectedUser={selectedUser}
-      onBack={() => { setPhase("list"); setSelectedUser(null); }}
-    />
+    <>
+      {detailUserId ? (
+        <UserDetailSheet userId={detailUserId} onClose={() => setDetailUserId(null)} />
+      ) : null}
+      <MatchPhase
+        selectedUser={selectedUser}
+        onOpenDetails={setDetailUserId}
+        onBack={() => {
+          setPhase("list");
+          setSelectedUser(null);
+        }}
+      />
+    </>
   );
 }
 
 // ─── Opted-in list ────────────────────────────────────────────────────────────
 
-function OptedInList({ onSelect }: { onSelect: (u: SelectedUser) => void }) {
+function OptedInList({
+  onSelect,
+  onOpenDetails,
+}: {
+  onSelect: (u: SelectedUser) => void;
+  onOpenDetails: (userId: string) => void;
+}) {
   const [users, setUsers] = useState<OptedInUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -128,7 +152,7 @@ function OptedInList({ onSelect }: { onSelect: (u: SelectedUser) => void }) {
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
             {users.map((u) => (
-              <OptedInCard key={u.userId} user={u} onSelect={onSelect} />
+              <OptedInCard key={u.userId} user={u} onSelect={onSelect} onOpenDetails={onOpenDetails} />
             ))}
           </div>
 
@@ -158,7 +182,15 @@ function OptedInList({ onSelect }: { onSelect: (u: SelectedUser) => void }) {
   );
 }
 
-function OptedInCard({ user, onSelect }: { user: OptedInUser; onSelect: (u: SelectedUser) => void }) {
+function OptedInCard({
+  user,
+  onSelect,
+  onOpenDetails,
+}: {
+  user: OptedInUser;
+  onSelect: (u: SelectedUser) => void;
+  onOpenDetails: (userId: string) => void;
+}) {
   async function handleClick() {
     // Fetch full profile for this user by calling suggestions (which returns selectedUser)
     const res = await fetch(`/api/admin/match-users/suggestions?userId=${user.userId}`);
@@ -192,6 +224,18 @@ function OptedInCard({ user, onSelect }: { user: OptedInUser; onSelect: (u: Sele
         >
           {user.mode === "bff" ? "BFF" : "Date"}
         </span>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onOpenDetails(user.userId);
+          }}
+          className="absolute right-2 top-2 rounded-lg bg-white/80 p-1.5 backdrop-blur-sm transition hover:bg-bd-table-hover"
+          aria-label={`Open details for ${user.name}`}
+        >
+          <MoreVertical size={15} style={{ color: adminTheme.textSecondary }} />
+        </button>
       </div>
       <div className="px-3 py-3">
         <p className="text-sm font-semibold truncate" style={{ color: adminTheme.ink }}>
@@ -213,7 +257,15 @@ function OptedInCard({ user, onSelect }: { user: OptedInUser; onSelect: (u: Sele
 
 // ─── Match phase ──────────────────────────────────────────────────────────────
 
-function MatchPhase({ selectedUser, onBack }: { selectedUser: SelectedUser; onBack: () => void }) {
+function MatchPhase({
+  selectedUser,
+  onBack,
+  onOpenDetails,
+}: {
+  selectedUser: SelectedUser;
+  onBack: () => void;
+  onOpenDetails: (userId: string) => void;
+}) {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [idx, setIdx] = useState(0);
@@ -288,7 +340,7 @@ function MatchPhase({ selectedUser, onBack }: { selectedUser: SelectedUser; onBa
           {/* Selected user (fixed) */}
           <div>
             <p className="text-xs font-semibold mb-2 px-1" style={{ color: adminTheme.mutedLabel }}>SELECTED USER</p>
-            <FullProfileCard user={selectedUser} />
+            <FullProfileCard user={selectedUser} onOpenDetails={onOpenDetails} />
           </div>
 
           {/* Candidate */}
@@ -317,7 +369,12 @@ function MatchPhase({ selectedUser, onBack }: { selectedUser: SelectedUser; onBa
 
             {candidate && (
               <>
-                <FullProfileCard user={candidate} score={candidate.score} breakdown={candidate.scoreBreakdown} />
+                <FullProfileCard
+                  user={candidate}
+                  score={candidate.score}
+                  breakdown={candidate.scoreBreakdown}
+                  onOpenDetails={onOpenDetails}
+                />
 
                 {/* Actions */}
                 <div className="flex gap-3 mt-3">
@@ -392,10 +449,12 @@ function FullProfileCard({
   user,
   score,
   breakdown,
+  onOpenDetails,
 }: {
   user: SelectedUser | Candidate;
   score?: number;
   breakdown?: { label: string; pts: number }[];
+  onOpenDetails: (userId: string) => void;
 }) {
   return (
     <div
@@ -426,13 +485,21 @@ function FullProfileCard({
         </span>
         {score !== undefined && (
           <span
-            className="absolute top-3 right-3 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
+            className="absolute right-12 top-3 flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold"
             style={{ backgroundColor: "#FFF7ED", color: "#C2410C", border: "1px solid #FED7AA" }}
           >
             <Star size={10} fill="#C2410C" />
             {score}
           </span>
         )}
+        <button
+          type="button"
+          onClick={() => onOpenDetails(user.userId)}
+          className="absolute right-3 top-3 rounded-lg bg-white/80 p-1.5 backdrop-blur-sm transition hover:bg-bd-table-hover"
+          aria-label={`Open details for ${user.name}`}
+        >
+          <MoreVertical size={15} style={{ color: adminTheme.textSecondary }} />
+        </button>
       </div>
 
       <div className="px-4 py-4">

@@ -8,7 +8,6 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ChevronDown,
@@ -17,9 +16,9 @@ import {
   MoreVertical,
   RotateCcw,
   Search,
-  User,
   X,
 } from "lucide-react";
+import UserDetailSheet from "@/components/admin-bd/UserDetailSheet";
 import {
   ADMIN_GENDER_OPTIONS,
   buildAdminUsersExportHref,
@@ -59,27 +58,6 @@ type UserRow = {
 };
 
 type CollegeDomainRow = { collegeName: string; domain: string };
-
-type DetailPayload = {
-  id: string;
-  email: string | null;
-  phone: string | null;
-  collegeName: string | null;
-  photoUrl: string | null;
-  name: string | null;
-  nickname: string | null;
-  city: string | null;
-  age: number | null;
-  gender: string | null;
-  interests: string[];
-  lookingFor: string | null;
-  heightCm: number | null;
-  smokingHabit: string | null;
-  drinkingHabit: string | null;
-  religion: string | null;
-  familyPlans: string | null;
-  kidsPreference: string | null;
-};
 
 const STEP_COLORS: Record<string, string> = {
   Complete: "#166534",
@@ -146,169 +124,6 @@ function pageHref(
     q: q.trim() || undefined,
     optInStatus,
   });
-}
-
-function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
-  if (value == null || value === "") return null;
-  return (
-    <div className="flex flex-col gap-0.5 py-2 border-b last:border-b-0" style={{ borderColor: adminTheme.borderSoft }}>
-      <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: adminTheme.mutedLabel }}>
-        {label}
-      </span>
-      <span className="text-sm" style={{ color: adminTheme.ink }}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function UserDetailSheet({
-  userId,
-  onClose,
-}: {
-  userId: string;
-  onClose: () => void;
-}) {
-  const [data, setData] = useState<DetailPayload | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/admin/users/${userId}`, { credentials: "include" });
-      const json = await res.json();
-      if (!res.ok) {
-        setError(json?.error?.message ?? "Failed to load");
-        setData(null);
-        return;
-      }
-      setData(json.data as DetailPayload);
-    } catch {
-      setError("Failed to load");
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  return (
-    <>
-      <button
-        type="button"
-        aria-label="Close panel"
-        className="fixed inset-0 z-40 bg-black/30"
-        onClick={onClose}
-      />
-      <aside
-        className="fixed top-0 right-0 z-50 h-full w-full max-w-md shadow-2xl flex flex-col overflow-hidden"
-        style={{ backgroundColor: "#fff", borderLeft: `1px solid ${adminTheme.accentMutedBg}` }}
-      >
-        <div
-          className="flex items-center justify-between px-4 py-3 border-b shrink-0"
-          style={{ borderColor: adminTheme.borderSoft }}
-        >
-          <span className="text-sm font-semibold" style={{ color: adminTheme.ink }}>
-            User details
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-2 transition hover:bg-bd-table-hover"
-            aria-label="Close"
-          >
-            <X size={18} style={{ color: adminTheme.textSecondary }} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          {loading && (
-            <p className="text-sm" style={{ color: adminTheme.mutedLabel }}>
-              Loading…
-            </p>
-          )}
-          {error && !loading && <p className="text-sm text-red-600">{error}</p>}
-          {data && !loading && (
-            <>
-              <div
-                className="relative w-full rounded-xl overflow-hidden mb-4"
-                style={{ aspectRatio: "4/3", backgroundColor: adminTheme.pageBg }}
-              >
-                {data.photoUrl ? (
-                  <Image
-                    src={data.photoUrl}
-                    alt={data.name ?? "User"}
-                    fill
-                    className="object-cover"
-                    sizes="400px"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <User size={48} strokeWidth={1} style={{ color: adminTheme.orange }} />
-                  </div>
-                )}
-              </div>
-
-              <p className="text-lg font-bold" style={{ color: adminTheme.ink }}>
-                {data.name ?? "—"}
-                {data.age != null && (
-                  <span className="font-normal text-sm" style={{ color: adminTheme.textSecondary }}>
-                    , {data.age} yrs
-                  </span>
-                )}
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: adminTheme.mutedLabel }}>
-                {[data.gender, data.city].filter(Boolean).join(" · ") || "—"}
-              </p>
-              {data.email && (
-                <p className="text-xs font-mono mt-1 break-all" style={{ color: adminTheme.textSecondary }}>
-                  {data.email}
-                </p>
-              )}
-
-              <p className="text-[10px] font-bold uppercase tracking-wide mt-6 mb-2" style={{ color: adminTheme.mutedLabel }}>
-                Profile
-              </p>
-              {data.interests.length > 0 && (
-                <div className="py-2 border-b last:border-b-0" style={{ borderColor: adminTheme.borderSoft }}>
-                  <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: adminTheme.mutedLabel }}>
-                    Interests
-                  </span>
-                  <p className="text-sm mt-1" style={{ color: adminTheme.ink }}>
-                    {data.interests.join(", ")}
-                  </p>
-                </div>
-              )}
-              <DetailRow label="Looking for" value={data.lookingFor ?? null} />
-              <DetailRow label="Height" value={data.heightCm != null ? `${data.heightCm} cm` : null} />
-
-              <p className="text-[10px] font-bold uppercase tracking-wide mt-6 mb-2" style={{ color: adminTheme.mutedLabel }}>
-                Lifestyle
-              </p>
-              <DetailRow label="Smoking habit" value={data.smokingHabit ?? null} />
-              <DetailRow label="Drinking habit" value={data.drinkingHabit ?? null} />
-              <DetailRow label="Religion" value={data.religion ?? null} />
-              <DetailRow label="Family plans" value={data.familyPlans ?? null} />
-              <DetailRow label="Kids preference" value={data.kidsPreference ?? null} />
-            </>
-          )}
-        </div>
-      </aside>
-    </>
-  );
 }
 
 type OpenFilter = "email" | "gender" | "step" | null;

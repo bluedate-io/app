@@ -6,6 +6,7 @@ import { adminRouteErrorResponse } from "@/utils/adminApiRoute";
 import {
   parseAdminMatchCandidatesQuery,
   parseAdminMatchCreateBody,
+  parseAdminMatchDeleteCardBody,
   parseAdminMatchPoolQuery,
 } from "@/validations/adminMatch.validation";
 
@@ -56,6 +57,22 @@ export class AdminMatchmakingController {
         return NextResponse.json({ error: { message: "Field 'file' must be a file" } }, { status: 400 });
       }
       const data = await this.adminMatchmakingService.uploadMatchCardImage(adminId, file);
+      return NextResponse.json({ data });
+    } catch (e) {
+      return adminRouteErrorResponse(e);
+    }
+  }
+
+  async deleteMatchCard(req: NextRequest, adminId: string) {
+    try {
+      let raw: unknown;
+      try {
+        raw = await req.json();
+      } catch {
+        return NextResponse.json({ error: { message: "Invalid JSON" } }, { status: 400 });
+      }
+      const body = parseAdminMatchDeleteCardBody(raw);
+      const data = await this.adminMatchmakingService.deleteMatchCardImage(adminId, body.url);
       return NextResponse.json({ data });
     } catch (e) {
       return adminRouteErrorResponse(e);

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Trash2, User } from "lucide-react";
+import { MoreVertical, Trash2, User } from "lucide-react";
+import UserDetailSheet from "@/components/admin-bd/UserDetailSheet";
 import { ADMIN_BTN_DANGER_SM, ADMIN_BTN_NEUTRAL_SM, ADMIN_BTN_SECONDARY } from "@/lib/adminChrome";
 import { adminTheme } from "@/lib/adminTheme";
 
@@ -10,8 +11,8 @@ type MatchRow = {
   matchedAt: string;
   blurb: string | null;
   cardImageUrl: string | null;
-  woman: { name: string; age: number | null; city: string | null; photoUrl: string | null };
-  man:   { name: string; age: number | null; city: string | null; photoUrl: string | null };
+  woman: { id: string; name: string; age: number | null; city: string | null; photoUrl: string | null };
+  man:   { id: string; name: string; age: number | null; city: string | null; photoUrl: string | null };
 };
 
 type State =
@@ -40,6 +41,7 @@ function Avatar({ url, name }: { url: string | null; name: string }) {
 export default function MatchesView() {
   const [state, setState] = useState<State>({ status: "loading" });
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setState({ status: "loading" });
@@ -110,6 +112,9 @@ export default function MatchesView() {
 
   return (
     <div className="space-y-3">
+      {detailUserId ? (
+        <UserDetailSheet userId={detailUserId} onClose={() => setDetailUserId(null)} />
+      ) : null}
       {matches.map((m) => (
         <div
           key={m.id}
@@ -130,6 +135,14 @@ export default function MatchesView() {
                   </p>
                 )}
               </div>
+              <button
+                type="button"
+                onClick={() => setDetailUserId(m.woman.id)}
+                className="rounded-lg p-1.5 transition hover:bg-bd-table-hover"
+                aria-label={`Open details for ${m.woman.name}`}
+              >
+                <MoreVertical size={15} style={{ color: adminTheme.textSecondary }} />
+              </button>
             </div>
 
             {/* Connector */}
@@ -155,6 +168,14 @@ export default function MatchesView() {
                   </p>
                 )}
               </div>
+              <button
+                type="button"
+                onClick={() => setDetailUserId(m.man.id)}
+                className="rounded-lg p-1.5 transition hover:bg-bd-table-hover"
+                aria-label={`Open details for ${m.man.name}`}
+              >
+                <MoreVertical size={15} style={{ color: adminTheme.textSecondary }} />
+              </button>
             </div>
 
             {/* Delete */}

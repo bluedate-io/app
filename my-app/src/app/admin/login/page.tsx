@@ -2,12 +2,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import jwt from "jsonwebtoken";
 import { config } from "@/config";
-import FaqSection from "@/components/admin-bd/landing/FaqSection";
-import HowItWorks from "@/components/admin-bd/landing/HowItWorks";
-import LandingFooter from "@/components/admin-bd/landing/LandingFooter";
-import LandingHero from "@/components/admin-bd/landing/LandingHero";
-import LandingNav from "@/components/admin-bd/landing/LandingNav";
-import TrustStrip from "@/components/admin-bd/landing/TrustStrip";
 import AdminLoginForm from "./AdminLoginForm";
 
 export const dynamic = "force-dynamic";
@@ -25,17 +19,10 @@ export default async function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bd-page text-bd-ink">
-      <LandingNav />
-      <main>
-        <LandingHero>
-          <AdminLoginForm />
-        </LandingHero>
-        <TrustStrip />
-        <HowItWorks />
-        <FaqSection />
+    <div className="min-h-screen bg-bd-page px-4 py-10 text-bd-ink sm:px-6">
+      <main className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-5xl items-center justify-center">
+        <AdminLoginForm />
       </main>
-      <LandingFooter />
     </div>
   );
 }
