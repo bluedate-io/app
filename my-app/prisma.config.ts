@@ -23,7 +23,8 @@ export default defineConfig({
   },
 
   datasource: {
-    // Direct connection (port 5432) — required for schema push and migrations
-    url: process.env.DIRECT_URL,
+    // Prefer DIRECT_URL (Supabase direct :5432) for migrations. On Vercel, some projects
+    // only set DATABASE_URL — fall back so `prisma migrate deploy` in `npm run build` does not fail.
+    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
   },
 });
