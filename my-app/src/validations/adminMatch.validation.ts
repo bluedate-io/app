@@ -93,3 +93,17 @@ export type AdminMatchCreateBody = z.infer<typeof adminMatchCreateBodySchema>;
 export function parseAdminMatchCreateBody(body: unknown): AdminMatchCreateBody {
   return adminMatchCreateBodySchema.parse(body);
 }
+
+export const adminMatchDeleteCardBodySchema = z.object({
+  url: z
+    .string()
+    .trim()
+    .min(1, "Image URL is required")
+    .pipe(z.string().url("Image URL must be valid")),
+});
+
+export type AdminMatchDeleteCardBody = z.infer<typeof adminMatchDeleteCardBodySchema>;
+
+export function parseAdminMatchDeleteCardBody(body: unknown): AdminMatchDeleteCardBody {
+  return adminMatchDeleteCardBodySchema.parse(body);
+}

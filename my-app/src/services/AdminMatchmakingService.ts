@@ -77,6 +77,47 @@ export class AdminMatchmakingService {
     return { url: data.publicUrl };
   }
 
+  async deleteMatchCardImage(adminId: string, url: string): Promise<{ deleted: boolean }> {
+    if (!config.supabase.url?.trim() || !config.supabase.anonKey?.trim()) {
+      throw new BadRequestError("Image storage is not configured.");
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new BadRequestError("Invalid image URL.");
+    }
+
+    const expectedOrigin = new URL(config.supabase.url).origin;
+    if (parsed.origin !== expectedOrigin) {
+      throw new BadRequestError("Image URL host is not allowed.");
+    }
+
+    const marker = `/storage/v1/object/public/${encodeURIComponent(config.supabase.photoBucket)}/`;
+    const idx = parsed.pathname.indexOf(marker);
+    if (idx === -1) {
+      throw new BadRequestError("Image URL must be from the configured photo bucket.");
+    }
+
+    const encodedPath = parsed.pathname.slice(idx + marker.length);
+    const objectPath = decodeURIComponent(encodedPath);
+    const expectedPrefix = `match-cards/${adminId}/`;
+    if (!objectPath.startsWith(expectedPrefix)) {
+      throw new BadRequestError("You can only delete your own uploaded match card images.");
+    }
+
+    const storage = getSupabaseStorage();
+    const { error } = await storage.from(config.supabase.photoBucket).remove([objectPath]);
+    if (error) {
+      log.warn("Match card delete failed", { adminId, objectPath, message: error.message });
+      throw new BadRequestError(`Delete failed: ${error.message}`);
+    }
+
+    log.info("Match card deleted", { adminId, objectPath });
+    return { deleted: true };
+  }
+
   private async buildCollegeDomainMap(): Promise<Map<string, string>> {
     const collegeRows = await this.repo.findCollegeDomains();
     const collegeByDomain = new Map<string, string>();

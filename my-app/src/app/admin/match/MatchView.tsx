@@ -10,9 +10,11 @@ import {
   Check,
   Copy,
   Loader2,
+  MoreVertical,
   RotateCcw,
   X,
 } from "lucide-react";
+import UserDetailSheet from "@/components/admin-bd/UserDetailSheet";
 import {
   ADMIN_BTN_NEUTRAL,
   ADMIN_BTN_NEUTRAL_SM,
@@ -888,6 +890,19 @@ function uploadMatchCardWithProgress(
   });
 }
 
+async function deleteMatchCardFromStorage(url: string): Promise<void> {
+  const res = await fetch("/api/admin/match/delete-card", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+  if (!res.ok) {
+    const json = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+    throw new Error(json.error?.message ?? "Failed to delete uploaded image");
+  }
+}
+
 function MatchCardImageUpload({
   resetKey,
   cardUrl,
@@ -929,6 +944,16 @@ function MatchCardImageUpload({
 
   const displaySrc = cardUrl.trim() || localPreview;
   const busy = disabled || isUploading;
+
+  function resetUploaderState() {
+    revokeObjectUrl();
+    onCardUrlChange("");
+    setUploadError(null);
+    setUploadProgress(0);
+    setIsUploading(false);
+    setIsDragging(false);
+    onUploadingChange(false);
+  }
 
   async function processFile(file: File | undefined) {
     if (!file || busy) return;
@@ -979,6 +1004,18 @@ function MatchCardImageUpload({
     void processFile(f);
   }
 
+  async function handleRemoveImage() {
+    if (busy) return;
+    const remoteUrl = cardUrl.trim();
+    resetUploaderState();
+    if (!remoteUrl) return;
+    try {
+      await deleteMatchCardFromStorage(remoteUrl);
+    } catch (e) {
+      setUploadError((e as Error).message ?? "Image removed locally but storage cleanup failed.");
+    }
+  }
+
   return (
     <div
       className="rounded-2xl border-2 bg-white p-4 shadow-[4px_4px_0px_0px_var(--bd-shadow-ink)]"
@@ -1003,26 +1040,28 @@ function MatchCardImageUpload({
         onChange={onInputChange}
       />
 
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => inputRef.current?.click()}
-        onDragOver={(e) => {
-          e.preventDefault();
-          if (!busy) setIsDragging(true);
-        }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={onDrop}
-        className="w-full rounded-xl border-2 border-dashed px-4 py-8 text-center text-sm font-medium text-bd-text-secondary outline-none transition focus-visible:ring-2 focus-visible:ring-bd-orange/30"
-        style={{
-          borderColor: isDragging ? P : cardUrl.trim() ? "#166534" : adminTheme.borderMuted,
-          backgroundColor: isDragging ? adminTheme.accentMutedBg : adminTheme.elevated,
-          cursor: busy ? "not-allowed" : "pointer",
-          opacity: busy ? 0.5 : 1,
-        }}
-      >
-        {isUploading ? "Uploading…" : displaySrc ? "Replace image" : "Choose file or drop image here"}
-      </button>
+      {!displaySrc && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => inputRef.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (!busy) setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={onDrop}
+          className="w-full rounded-xl border-2 border-dashed px-4 py-8 text-center text-sm font-medium text-bd-text-secondary outline-none transition focus-visible:ring-2 focus-visible:ring-bd-orange/30"
+          style={{
+            borderColor: isDragging ? P : adminTheme.borderMuted,
+            backgroundColor: isDragging ? adminTheme.accentMutedBg : adminTheme.elevated,
+            cursor: busy ? "not-allowed" : "pointer",
+            opacity: busy ? 0.5 : 1,
+          }}
+        >
+          {isUploading ? "Uploading…" : "Choose file or drop image here"}
+        </button>
+      )}
 
       {uploadError && (
         <p className="mt-2 text-xs font-medium text-red-600" role="alert">
@@ -1032,6 +1071,16 @@ function MatchCardImageUpload({
 
       {displaySrc && (
         <div className="mt-4 relative rounded-xl overflow-hidden border bg-gray-50" style={{ borderColor: P_LIGHT }}>
+          <button
+            type="button"
+            onClick={() => void handleRemoveImage()}
+            disabled={busy}
+            className="absolute right-2 top-2 z-10 rounded-md bg-black/70 p-1 text-white transition hover:bg-black/85 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label="Remove uploaded image"
+            title="Remove image"
+          >
+            <X size={14} />
+          </button>
           {/* eslint-disable-next-line @next/next/no-img-element -- remote/object URLs */}
           <img
             src={displaySrc}
@@ -1079,6 +1128,7 @@ function MatchPhaseView({
   onPrev,
   onSkip,
   onMatch,
+  onOpenUserDetails,
 }: {
   userA: PoolUser;
   candidates: MatchUser[];
@@ -1090,6 +1140,7 @@ function MatchPhaseView({
   onPrev: () => void;
   onSkip: () => void;
   onMatch: () => void;
+  onOpenUserDetails: (userId: string) => void;
 }) {
   const [cardImageUploading, setCardImageUploading] = useState(false);
   const currentCandidate = candidates[candidateIndex] ?? null;
@@ -1102,7 +1153,21 @@ function MatchPhaseView({
       {/* Two panels */}
       <div className="grid grid-cols-2 gap-4" style={{ minHeight: 480 }}>
         {/* User A — locked left */}
-        <ProfilePanel user={userA} label="User A (locked)" labelColor={P} />
+        <ProfilePanel
+          user={userA}
+          label="User A (locked)"
+          labelColor={P}
+          headerRight={
+            <button
+              type="button"
+              onClick={() => onOpenUserDetails(userA.id)}
+              className="rounded-lg p-1.5 transition hover:bg-bd-table-hover"
+              aria-label={`Open details for ${userA.name}`}
+            >
+              <MoreVertical size={16} style={{ color: MUTED }} />
+            </button>
+          }
+        />
 
         {/* User B — cycling right */}
         {loading ? (
@@ -1132,6 +1197,16 @@ function MatchPhaseView({
             user={currentCandidate}
             label="User B"
             labelColor="#166534"
+            headerRight={
+              <button
+                type="button"
+                onClick={() => onOpenUserDetails(currentCandidate.id)}
+                className="rounded-lg p-1.5 transition hover:bg-bd-table-hover"
+                aria-label={`Open details for ${currentCandidate.name}`}
+              >
+                <MoreVertical size={16} style={{ color: MUTED }} />
+              </button>
+            }
           />
         ) : null}
       </div>
@@ -1246,6 +1321,7 @@ export default function MatchView({
   const [matching, setMatching] = useState(false);
 
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
 
   // ── Fetch pool ───────────────────────────────────────────────────────────────
 
@@ -1451,6 +1527,9 @@ export default function MatchView({
 
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: BG }}>
+      {detailUserId ? (
+        <UserDetailSheet userId={detailUserId} onClose={() => setDetailUserId(null)} />
+      ) : null}
       {/* Toast */}
       {toast && (
         <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />
@@ -1519,6 +1598,7 @@ export default function MatchView({
             onPrev={prev}
             onSkip={skip}
             onMatch={() => setShowModal(true)}
+            onOpenUserDetails={setDetailUserId}
           />
         )}
       </div>

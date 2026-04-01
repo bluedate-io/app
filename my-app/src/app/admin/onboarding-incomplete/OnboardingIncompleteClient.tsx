@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronRight, MoreVertical, X } from "lucide-react";
+import UserDetailSheet from "@/components/admin-bd/UserDetailSheet";
 import { ADMIN_GENDER_OPTIONS } from "@/lib/adminUserStep";
 import {
   ADMIN_BTN_NEUTRAL,
@@ -119,7 +120,7 @@ function ReminderHistorySheet({
     (data ? `User ${data.user.id.slice(0, 8)}…` : "User");
 
   return (
-    <div className="fixed inset-0 z-[60] flex justify-end">
+    <div className="fixed inset-0 z-60 flex justify-end">
       <button
         type="button"
         className="absolute inset-0 bg-black/40"
@@ -127,7 +128,7 @@ function ReminderHistorySheet({
         onClick={onClose}
       />
       <aside
-        className="relative z-[61] flex h-full w-full max-w-md flex-col border-l bg-white shadow-2xl"
+        className="relative z-61 flex h-full w-full max-w-md flex-col border-l bg-white shadow-2xl"
         style={{ borderColor: adminTheme.accentMutedBg }}
         role="dialog"
         aria-modal="true"
@@ -284,6 +285,8 @@ export default function OnboardingIncompleteClient() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [expandedSendIds, setExpandedSendIds] = useState<Set<string>>(new Set());
   const [historyForUser, setHistoryForUser] = useState<Row | null>(null);
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
+  const [actionMenuUserId, setActionMenuUserId] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [historyData, setHistoryData] = useState<ReminderHistoryPayload | null>(null);
@@ -522,6 +525,9 @@ export default function OnboardingIncompleteClient() {
         error={historyError}
         data={historyData}
       />
+      {detailUserId ? (
+        <UserDetailSheet userId={detailUserId} onClose={() => setDetailUserId(null)} />
+      ) : null}
 
       <div className={`${ADMIN_ELEVATED_PANEL} mb-8 space-y-5`}>
         <div>
@@ -889,15 +895,44 @@ export default function OnboardingIncompleteClient() {
                       <td className="p-3 whitespace-nowrap" style={{ color: MUTED }}>
                         {r.lastReminderSentAt ? formatDate(r.lastReminderSentAt) : "—"}
                       </td>
-                      <td className="p-3 align-middle text-right">
+                      <td className="relative p-3 align-middle text-right">
                         <button
                           type="button"
-                          onClick={() => setHistoryForUser(r)}
+                          onClick={() => setActionMenuUserId((prev) => (prev === r.id ? null : r.id))}
                           className="inline-flex rounded-lg p-2 transition hover:bg-bd-table-hover"
-                          aria-label={`Reminder history for ${r.profile?.fullName ?? r.email ?? r.id}`}
+                          aria-label={`Open actions for ${r.profile?.fullName ?? r.email ?? r.id}`}
                         >
                           <MoreVertical size={18} style={{ color: MUTED }} />
                         </button>
+                        {actionMenuUserId === r.id ? (
+                          <div
+                            className="absolute right-3 top-11 z-20 w-44 overflow-hidden rounded-xl border-2 bg-white shadow-[4px_4px_0px_0px_var(--bd-shadow-ink)]"
+                            style={{ borderColor: adminTheme.inkDark }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActionMenuUserId(null);
+                                setDetailUserId(r.id);
+                              }}
+                              className="w-full px-3 py-2 text-left text-xs font-semibold transition hover:bg-bd-table-hover"
+                              style={{ color: DARK }}
+                            >
+                              View user details
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActionMenuUserId(null);
+                                setHistoryForUser(r);
+                              }}
+                              className="w-full border-t px-3 py-2 text-left text-xs font-semibold transition hover:bg-bd-table-hover"
+                              style={{ color: DARK, borderColor: adminTheme.borderSoft }}
+                            >
+                              Reminder history
+                            </button>
+                          </div>
+                        ) : null}
                       </td>
                     </tr>
                   );
