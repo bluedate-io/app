@@ -151,6 +151,9 @@ export default function UserDetailSheet({ userId, onClose }: { userId: string; o
               <p className="mt-0.5 text-xs" style={{ color: adminTheme.mutedLabel }}>
                 {[data.gender, data.city].filter(Boolean).join(" · ") || "—"}
               </p>
+              <p className="mt-1 break-all font-mono text-xs" style={{ color: adminTheme.textSecondary }}>
+                Phone: {data.phone?.trim() ? data.phone : "not exist"}
+              </p>
               {data.email && (
                 <p className="mt-1 break-all font-mono text-xs" style={{ color: adminTheme.textSecondary }}>
                   {data.email}
