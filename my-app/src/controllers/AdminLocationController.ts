@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { ILocationRepository } from "@/repositories/LocationRepository";
 import { adminRouteErrorResponse } from "@/utils/adminApiRoute";
 import { NotFoundError } from "@/utils/errors";
+import { db } from "@/lib/db";
 
 const createSchema = z.object({
   city: z.string().trim().min(1, "City is required"),
@@ -45,8 +46,10 @@ export class AdminLocationController {
 
       if (body.renameCity && existing.city !== body.city) {
         // Rename city on all sub-area rows, then update this row's subArea
-        await this.locationRepository.updateCity(existing.city, body.city);
-        await this.locationRepository.update(id, body.city, body.subArea);
+        await db.$transaction(async () => {
+          await this.locationRepository.updateCity(existing.city, body.city);
+          await this.locationRepository.update(id, body.city, body.subArea);
+        });
       } else {
         await this.locationRepository.update(id, body.city, body.subArea);
       }

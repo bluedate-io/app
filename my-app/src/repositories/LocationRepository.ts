@@ -58,11 +58,18 @@ export class LocationRepository implements ILocationRepository {
   }
 
   async update(id: string, city: string, subArea: string) {
-    return this.db.location.update({
-      where: { id },
-      data: { city: city.trim(), subArea: subArea.trim() },
-      select: { id: true, city: true, subArea: true },
-    });
+    try {
+      return await this.db.location.update({
+        where: { id },
+        data: { city: city.trim(), subArea: subArea.trim() },
+        select: { id: true, city: true, subArea: true },
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        throw new BadRequestError("A location with that city and sub-area already exists.");
+      }
+      throw err;
+    }
   }
 
   async updateCity(oldCity: string, newCity: string): Promise<void> {
