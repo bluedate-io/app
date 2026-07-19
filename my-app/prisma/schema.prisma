@@ -41,6 +41,11 @@ enum OptInStatus {
   opted_in_late
 }
 
+enum UserType {
+  student
+  non_student
+}
+
 // ─── Core auth table — email-first auth ──────────────────────────────────────
 
 model User {
@@ -52,6 +57,7 @@ model User {
   onboardingCompleted Boolean     @default(false)
   optInStatus         OptInStatus @default(opted_in)
   optedInAt           DateTime?
+  userType            UserType    @default(student)
   lastMatchedAt       DateTime?
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
@@ -106,6 +112,21 @@ model CollegeDomain {
   @@map("college_domains")
 }
 
+// ─── Location — admin-managed city / sub-area hierarchy ──────────────────────
+
+model Location {
+  id        String    @id @default(cuid())
+  city      String
+  subArea   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  profiles  Profile[]
+
+  @@unique([city, subArea])
+  @@index([city])
+  @@map("locations")
+}
+
 // ─── Email OTP — stores codes server-side ────────────────────────────────────
 
 model EmailOtp {
@@ -131,6 +152,8 @@ model Profile {
   age         Int?
   city        String?
   bio         String?
+  locationId  String?
+  location    Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
