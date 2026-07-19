@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { MapPin, Trash2, Pencil, Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { MapPin, Trash2, Pencil, Plus, ChevronDown, ChevronRight, Check, X } from "lucide-react";
 import { adminTheme } from "@/lib/adminTheme";
 import { ADMIN_BTN_NEUTRAL_SM, ADMIN_BTN_PRIMARY_SM, ADMIN_INPUT } from "@/lib/adminChrome";
 import type { GroupedLocation } from "@/repositories/LocationRepository";
@@ -17,13 +17,19 @@ export default function LocationsClient() {
   const [addError, setAddError] = useState<string | null>(null);
   const [addLoading, setAddLoading] = useState(false);
 
-  // Edit state
+  // Sub-area edit state
   const [editId, setEditId] = useState<string | null>(null);
   const [editCity, setEditCity] = useState("");
   const [editSubArea, setEditSubArea] = useState("");
-  const [editRenameCity, setEditRenameCity] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [editLoading, setEditLoading] = useState(false);
+
+  // City rename state
+  const [editCityName, setEditCityName] = useState<string | null>(null);
+  const [editCityValue, setEditCityValue] = useState("");
+  const [editCityError, setEditCityError] = useState<string | null>(null);
+  const [editCityLoading, setEditCityLoading] = useState(false);
+  const cityInputRef = useRef<HTMLInputElement>(null);
 
   async function load() {
     setLoading(true);
@@ -38,6 +44,10 @@ export default function LocationsClient() {
   }
 
   useEffect(() => { void load(); }, []);
+
+  useEffect(() => {
+    if (editCityName) cityInputRef.current?.focus();
+  }, [editCityName]);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -64,10 +74,10 @@ export default function LocationsClient() {
   }
 
   function startEdit(id: string, city: string, subArea: string) {
+    setEditCityName(null);
     setEditId(id);
     setEditCity(city);
     setEditSubArea(subArea);
-    setEditRenameCity(false);
     setEditError(null);
   }
 
@@ -79,7 +89,7 @@ export default function LocationsClient() {
       const res = await fetch(`/api/admin/locations/${editId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ city: editCity.trim(), subArea: editSubArea.trim(), renameCity: editRenameCity }),
+        body: JSON.stringify({ city: editCity, subArea: editSubArea.trim(), renameCity: false }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to update");
@@ -92,6 +102,39 @@ export default function LocationsClient() {
     }
   }
 
+  function startEditCity(city: string) {
+    setEditId(null);
+    setEditCityName(city);
+    setEditCityValue(city);
+    setEditCityError(null);
+  }
+
+  async function handleSaveCityEdit(e: React.FormEvent, group: GroupedLocation) {
+    e.preventDefault();
+    const newCity = editCityValue.trim();
+    if (!newCity || newCity === editCityName) { setEditCityName(null); return; }
+    if (group.subAreas.length === 0) { setEditCityName(null); return; }
+    setEditCityLoading(true); setEditCityError(null);
+    try {
+      // Use the first sub-area id as the anchor; renameCity:true renames all entries
+      const anchorId = group.subAreas[0].id;
+      const anchorSubArea = group.subAreas[0].name;
+      const res = await fetch(`/api/admin/locations/${anchorId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ city: newCity, subArea: anchorSubArea, renameCity: true }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Failed to rename city");
+      setEditCityName(null);
+      await load();
+    } catch (err) {
+      setEditCityError((err as Error).message);
+    } finally {
+      setEditCityLoading(false);
+    }
+  }
+
   async function handleDelete(id: string, subArea: string) {
     if (!confirm(`Delete "${subArea}"? Users with this location will need to re-assign.`)) return;
     await fetch(`/api/admin/locations/${id}`, { method: "DELETE" });
@@ -99,6 +142,7 @@ export default function LocationsClient() {
   }
 
   function toggleCity(city: string) {
+    if (editCityName === city) return;
     setExpandedCities((prev) => {
       const next = new Set(prev);
       next.has(city) ? next.delete(city) : next.add(city);
@@ -140,43 +184,79 @@ export default function LocationsClient() {
         <div className="space-y-4">
           {locations.map((group) => {
             const expanded = expandedCities.has(group.city);
+            const isEditingCity = editCityName === group.city;
+
             return (
               <div key={group.city} className="rounded-xl border-2 overflow-hidden" style={{ borderColor: adminTheme.borderSoft }}>
-                <button
-                  type="button"
-                  onClick={() => toggleCity(group.city)}
-                  className="w-full flex items-center justify-between px-4 py-3 text-left"
-                  style={{ background: adminTheme.sidebarTop }}
-                >
-                  <div className="flex items-center gap-2">
+                {/* City header */}
+                {isEditingCity ? (
+                  <form
+                    onSubmit={(e) => handleSaveCityEdit(e, group)}
+                    className="flex items-center gap-2 px-4 py-2.5"
+                    style={{ background: adminTheme.sidebarTop }}
+                  >
                     <MapPin size={15} style={{ color: adminTheme.orange }} />
-                    <span className="text-sm font-semibold" style={{ color: adminTheme.ink }}>{group.city}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: adminTheme.accentMutedBg, color: adminTheme.orange }}>
-                      {group.subAreas.length}
-                    </span>
+                    <input
+                      ref={cityInputRef}
+                      className={`${ADMIN_INPUT} flex-1 py-1.5 text-sm font-semibold`}
+                      value={editCityValue}
+                      onChange={(e) => setEditCityValue(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Escape") setEditCityName(null); }}
+                    />
+                    <button type="submit" disabled={editCityLoading} className={ADMIN_BTN_PRIMARY_SM} title="Save">
+                      <Check size={13} />
+                    </button>
+                    <button type="button" onClick={() => setEditCityName(null)} className={ADMIN_BTN_NEUTRAL_SM} title="Cancel">
+                      <X size={13} />
+                    </button>
+                    {editCityError && <p className="text-xs" style={{ color: "#C0392B" }}>{editCityError}</p>}
+                  </form>
+                ) : (
+                  <div className="flex items-center px-4 py-3" style={{ background: adminTheme.sidebarTop }}>
+                    <button
+                      type="button"
+                      onClick={() => toggleCity(group.city)}
+                      className="flex items-center gap-2 flex-1 text-left min-w-0"
+                    >
+                      <MapPin size={15} style={{ color: adminTheme.orange }} />
+                      <span className="text-sm font-semibold" style={{ color: adminTheme.ink }}>{group.city}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: adminTheme.accentMutedBg, color: adminTheme.orange }}>
+                        {group.subAreas.length}
+                      </span>
+                      <span className="ml-auto">{expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => startEditCity(group.city)}
+                      className={`${ADMIN_BTN_NEUTRAL_SM} ml-3 shrink-0`}
+                      title="Rename city"
+                    >
+                      <Pencil size={12} /> Rename
+                    </button>
                   </div>
-                  {expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-                </button>
+                )}
 
-                {expanded && (
+                {expanded && !isEditingCity && (
                   <div className="divide-y" style={{ borderColor: adminTheme.borderSoft }}>
                     {group.subAreas.map((sa) => (
                       <div key={sa.id}>
                         {editId === sa.id ? (
-                          <form onSubmit={handleSaveEdit} className="px-4 py-3 flex flex-col gap-2">
-                            <div className="flex gap-2">
-                              <input className={`${ADMIN_INPUT} flex-1`} value={editCity} onChange={(e) => setEditCity(e.target.value)} placeholder="City" />
-                              <input className={`${ADMIN_INPUT} flex-1`} value={editSubArea} onChange={(e) => setEditSubArea(e.target.value)} placeholder="Sub-area" />
-                            </div>
-                            <label className="flex items-center gap-2 text-xs" style={{ color: adminTheme.mutedLabel }}>
-                              <input type="checkbox" checked={editRenameCity} onChange={(e) => setEditRenameCity(e.target.checked)} />
-                              Rename all &quot;{group.city}&quot; entries to this city name
-                            </label>
+                          <form onSubmit={handleSaveEdit} className="px-4 py-3 flex items-center gap-2">
+                            <input
+                              className={`${ADMIN_INPUT} flex-1`}
+                              value={editSubArea}
+                              onChange={(e) => setEditSubArea(e.target.value)}
+                              placeholder="Sub-area name"
+                              autoFocus
+                              onKeyDown={(e) => { if (e.key === "Escape") setEditId(null); }}
+                            />
                             {editError && <p className="text-xs" style={{ color: "#C0392B" }}>{editError}</p>}
-                            <div className="flex gap-2">
-                              <button type="submit" disabled={editLoading} className={ADMIN_BTN_PRIMARY_SM}>Save</button>
-                              <button type="button" onClick={() => setEditId(null)} className={ADMIN_BTN_NEUTRAL_SM}>Cancel</button>
-                            </div>
+                            <button type="submit" disabled={editLoading} className={ADMIN_BTN_PRIMARY_SM} title="Save">
+                              <Check size={13} />
+                            </button>
+                            <button type="button" onClick={() => setEditId(null)} className={ADMIN_BTN_NEUTRAL_SM} title="Cancel">
+                              <X size={13} />
+                            </button>
                           </form>
                         ) : (
                           <div className="flex items-center justify-between px-4 py-2.5" style={{ background: adminTheme.tableSurface }}>
