@@ -29,7 +29,7 @@ import type {
   BffInterestsInput,
   RelationshipStatusInput,
 } from "@/validations/onboarding.validation";
-import { BadRequestError } from "@/utils/errors";
+import { BadRequestError, NotFoundError } from "@/utils/errors";
 
 // null → undefined helpers
 const n = <T>(v: T | null): T | undefined => v ?? undefined;
@@ -736,7 +736,7 @@ export class OnboardingRepository implements IOnboardingRepository {
   async upsertLocation(userId: string, locationId: string): Promise<void> {
     // Verify location exists before linking
     const loc = await this.db.location.findUnique({ where: { id: locationId }, select: { id: true } });
-    if (!loc) throw new Error("Location not found");
+    if (!loc) throw new NotFoundError("Location not found");
     await this.db.profile.upsert({
       where: { userId },
       update: { locationId },
