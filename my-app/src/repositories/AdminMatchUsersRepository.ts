@@ -148,9 +148,26 @@ export class AdminMatchUsersRepository {
     });
   }
 
-  async findUsersForCandidatesByGender(genderIdentity: "Woman" | "Man") {
+  async findUsersForCandidatesByGender(
+    genderIdentity: "Woman" | "Man",
+    filters: { userType?: string; city?: string; subArea?: string } = {},
+  ) {
+    const userWhere: Record<string, unknown> = {
+      onboardingCompleted: true,
+      role: "user",
+      preferences: { wantDate: true, genderIdentity },
+    };
+
+    if (filters.userType) userWhere.userType = filters.userType;
+    if (filters.city || filters.subArea) {
+      const locationWhere: Record<string, unknown> = {};
+      if (filters.city) locationWhere.city = filters.city;
+      if (filters.subArea) locationWhere.subArea = filters.subArea;
+      userWhere.profile = { location: { is: locationWhere } };
+    }
+
     return this.db.user.findMany({
-      where: { onboardingCompleted: true, role: "user", preferences: { wantDate: true, genderIdentity } },
+      where: userWhere,
       include: {
         profile: { select: { fullName: true, age: true, city: true, bio: true } },
         preferences: {

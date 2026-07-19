@@ -244,7 +244,7 @@ export class AdminMatchUsersService {
     return { skipped: true };
   }
 
-  async getCandidates(_filters: { userType?: string; city?: string; subArea?: string } = {}) {
+  async getCandidates(filters: { userType?: string; city?: string; subArea?: string } = {}) {
     const activeMatches = await this.repo.findActiveMatches();
     const matchedIds = new Set<string>();
     for (const m of activeMatches) {
@@ -253,8 +253,8 @@ export class AdminMatchUsersService {
     }
 
     const [womenRaw, menRaw] = await Promise.all([
-      this.repo.findUsersForCandidatesByGender("Woman"),
-      this.repo.findUsersForCandidatesByGender("Man"),
+      this.repo.findUsersForCandidatesByGender("Woman", filters),
+      this.repo.findUsersForCandidatesByGender("Man", filters),
     ]);
 
     const shape = (u: (typeof womenRaw)[number]) => ({
