@@ -61,7 +61,7 @@ export const config = {
 
   admin: {
     phone: optionalEnv("ADMIN_PHONE", "8309671828"),
-    email: optionalEnv("ADMIN_EMAIL", "tryren.in@gmail.com"),
+    email: optionalEnv("ADMIN_EMAIL", "admin@tryren.in"),
   },
 
   email: {
@@ -90,6 +90,7 @@ export const config = {
       ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_ANON_KEY"],
       "",
     ),
+    serviceRoleKey: optionalEnv("SUPABASE_SERVICE_ROLE_KEY", ""),
     photoBucket: optionalEnv("SUPABASE_PHOTO_BUCKET", "photos"),
   },
 } as const;

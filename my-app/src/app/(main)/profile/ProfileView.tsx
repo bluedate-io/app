@@ -478,7 +478,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
               icon={<HelpCircle size={18} />}
               iconBg="#FFF3EE"
               label="Help &amp; Support"
-              onClick={() => window.open("mailto:tryren.in@gmail.com", "_blank")}
+              onClick={() => window.open("mailto:admin@tryren.in", "_blank")}
             />
             <Divider />
             <MenuRow
