@@ -107,13 +107,13 @@ export default function LocationsClient() {
   }
 
   if (loading) {
-    return <p className="text-sm" style={{ color: adminTheme.mutedLabel }}>Loading locations...</p>;
+    return <p className="text-sm py-4" style={{ color: adminTheme.mutedLabel }}>Loading locations...</p>;
   }
 
   return (
     <div className="max-w-2xl">
       {/* Add new location */}
-      <form onSubmit={handleAdd} className="mb-8 p-5 rounded-xl border-2" style={{ borderColor: adminTheme.borderSoft, background: adminTheme.pageBg }}>
+      <form onSubmit={handleAdd} className="mb-8 p-5 rounded-xl border-2" style={{ borderColor: adminTheme.borderMuted, background: adminTheme.accentMutedBg }}>
         <h3 className="text-sm font-semibold mb-4" style={{ color: adminTheme.ink }}>Add location</h3>
         <div className="flex gap-3 mb-3">
           <div className="flex-1">
@@ -179,7 +179,7 @@ export default function LocationsClient() {
                             </div>
                           </form>
                         ) : (
-                          <div className="flex items-center justify-between px-4 py-2.5" style={{ background: "white" }}>
+                          <div className="flex items-center justify-between px-4 py-2.5" style={{ background: adminTheme.tableSurface }}>
                             <span className="text-sm" style={{ color: adminTheme.textSecondary }}>{sa.name}</span>
                             <div className="flex gap-2">
                               <button type="button" onClick={() => startEdit(sa.id, group.city, sa.name)} className={ADMIN_BTN_NEUTRAL_SM}>
@@ -234,7 +234,7 @@ function QuickAddSubArea({ city, onAdded }: { city: string; onAdded: () => void 
   }
 
   return (
-    <form onSubmit={handleAdd} className="px-4 py-2.5 flex items-center gap-2" style={{ background: "#FAFAFA" }}>
+    <form onSubmit={handleAdd} className="px-4 py-2.5 flex items-center gap-2" style={{ background: adminTheme.tableRowAlt }}>
       <input
         className={`${ADMIN_INPUT} flex-1 text-xs`}
         value={value}
