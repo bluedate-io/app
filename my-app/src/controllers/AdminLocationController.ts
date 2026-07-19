@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import type { ILocationRepository } from "@/repositories/LocationRepository";
 import { adminRouteErrorResponse } from "@/utils/adminApiRoute";
+import { NotFoundError } from "@/utils/errors";
 
 const createSchema = z.object({
   city: z.string().trim().min(1, "City is required"),
@@ -40,7 +41,7 @@ export class AdminLocationController {
     try {
       const body = updateSchema.parse(await req.json());
       const existing = await this.locationRepository.findById(id);
-      if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      if (!existing) throw new NotFoundError("Location not found");
 
       if (body.renameCity && existing.city !== body.city) {
         // Rename city on all sub-area rows, then update this row's subArea
@@ -60,7 +61,7 @@ export class AdminLocationController {
   async deleteOne(_req: NextRequest, id: string) {
     try {
       const exists = await this.locationRepository.exists(id);
-      if (!exists) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      if (!exists) throw new NotFoundError("Location not found");
       await this.locationRepository.delete(id);
       return NextResponse.json({ success: true });
     } catch (e) {

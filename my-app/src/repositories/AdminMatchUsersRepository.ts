@@ -140,6 +140,41 @@ export class AdminMatchUsersRepository {
     });
   }
 
+  async findCandidateWeeklyOptInsNonStudent(
+    weekStart: Date,
+    userId: string,
+    filters: { userType?: string; city?: string; subArea?: string } = {},
+  ) {
+    const userWhere: Record<string, unknown> = { onboardingCompleted: true };
+    const profileWhere: Record<string, unknown> = {};
+
+    if (filters.userType) userWhere.userType = filters.userType;
+    if (filters.city || filters.subArea) {
+      const locationWhere: Record<string, unknown> = {};
+      if (filters.city) locationWhere.city = filters.city;
+      if (filters.subArea) locationWhere.subArea = filters.subArea;
+      profileWhere.location = { is: locationWhere };
+    }
+
+    if (Object.keys(profileWhere).length > 0) {
+      userWhere.profile = profileWhere;
+    }
+
+    return this.db.weeklyOptIn.findMany({
+      where: {
+        weekStart,
+        userId: { not: userId },
+        user: userWhere,
+      },
+      select: {
+        mode: true,
+        description: true,
+        userId: true,
+        user: { select: suggestionUserSelect },
+      },
+    });
+  }
+
   async upsertAdminSkip(userId1: string, userId2: string, adminId: string) {
     return this.db.adminSkip.upsert({
       where: { userId1_userId2: { userId1, userId2 } },
@@ -169,7 +204,15 @@ export class AdminMatchUsersRepository {
     return this.db.user.findMany({
       where: userWhere,
       include: {
-        profile: { select: { fullName: true, age: true, city: true, bio: true } },
+        profile: {
+          select: {
+            fullName: true,
+            age: true,
+            city: true,
+            bio: true,
+            location: { select: { city: true, subArea: true } },
+          },
+        },
         preferences: {
           select: {
             heightCm: true,

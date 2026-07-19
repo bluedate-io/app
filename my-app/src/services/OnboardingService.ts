@@ -375,6 +375,9 @@ export class OnboardingService {
       missing.push("relationship status");
     }
     if (status.photoCount < 2) missing.push("at least 2 photos");
+    if (status.userType === "non_student" && !status.hasLocation) {
+      missing.push("location");
+    }
 
     if (missing.length > 0) {
       throw new BadRequestError(

@@ -330,8 +330,8 @@ export class OnboardingController {
     }
   }
 
-  // GET /api/onboarding/locations (no auth — needed before login for onboarding dropdowns)
-  async getLocations(_req: NextRequest) {
+  // GET /api/onboarding/locations — requires auth (location step occurs post-login)
+  async getLocations(_req: NextRequest, _ctx: RequestContext) {
     try {
       const data = await this.onboardingService.getLocations();
       return successResponse(data);

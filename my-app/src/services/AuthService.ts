@@ -26,18 +26,21 @@ export class AuthService {
   // ─── Step 1: Validate .edu domain → send OTP email ──────────────────────────
 
   async sendOtp(input: SendOtpInput): Promise<SendOtpResponseDTO> {
-    if (input.userType === "student") {
+    const existingUser = await this.userRepository.findByEmail(input.email);
+
+    if (input.userType === "student" || existingUser?.userType === "student") {
       const emailDomain = input.email.split("@")[1]?.toLowerCase();
-      if (!input.collegeName) {
+      if (!input.collegeName && !existingUser?.collegeName) {
         throw new BadRequestError("College name is required for student sign-in.");
       }
-      const college = await this.collegeDomainRepository.findByCollegeName(input.collegeName);
+      const collegeName = input.collegeName ?? existingUser?.collegeName ?? "";
+      const college = await this.collegeDomainRepository.findByCollegeName(collegeName);
       if (!college) {
-        throw new BadRequestError(`College "${input.collegeName}" is not registered.`);
+        throw new BadRequestError(`College "${collegeName}" is not registered.`);
       }
       if (emailDomain !== college.domain.toLowerCase()) {
         throw new BadRequestError(
-          `Email domain @${emailDomain} does not match ${input.collegeName}. Use your @${college.domain} email.`,
+          `Email domain @${emailDomain} does not match ${collegeName}. Use your @${college.domain} email.`,
         );
       }
     }

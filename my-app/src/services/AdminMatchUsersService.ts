@@ -104,8 +104,6 @@ export class AdminMatchUsersService {
       };
     };
 
-    if (!selCollege) return { candidates: [], selectedUser: shapeSelected() };
-
     const activeMatches = await this.repo.findActiveMatches();
     const matchedIds = new Set<string>();
     for (const m of activeMatches) {
@@ -119,12 +117,9 @@ export class AdminMatchUsersService {
       skippedIds.add(s.userId1 === userId ? s.userId2 : s.userId1);
     }
 
-    const candidateOptIns = await this.repo.findCandidateWeeklyOptInsSameCollege(
-      weekStart,
-      userId,
-      selCollege,
-      filters,
-    );
+    const candidateOptIns = selCollege
+      ? await this.repo.findCandidateWeeklyOptInsSameCollege(weekStart, userId, selCollege, filters)
+      : await this.repo.findCandidateWeeklyOptInsNonStudent(weekStart, userId, filters);
 
     const scored: Array<Record<string, unknown>> = [];
 
@@ -262,6 +257,9 @@ export class AdminMatchUsersService {
       name: u.profile?.fullName ?? "—",
       age: u.profile?.age ?? null,
       city: u.profile?.city ?? null,
+      locationCity: u.profile?.location?.city ?? null,
+      locationSubArea: u.profile?.location?.subArea ?? null,
+      userType: u.userType ?? "student",
       photoUrl: u.photos[0]?.url ?? null,
       lookingFor: u.preferences?.relationshipIntent ?? null,
       heightCm: u.preferences?.heightCm ?? null,
