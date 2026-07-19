@@ -50,6 +50,10 @@ export interface OnboardingStatus {
   hasPhotosStepCompleted: boolean;
   /** True when BFF-only relationship status step has been saved */
   hasRelationshipStatus: boolean;
+  /** "student" or "non_student" */
+  userType: "student" | "non_student";
+  /** True once locationId is set on Profile (non-students only) */
+  hasLocation: boolean;
 }
 
 export default async function OnboardingPage() {
@@ -85,6 +89,8 @@ export default async function OnboardingPage() {
     completed: false,
     hasDatingMode: r.hasDatingMode ?? false,
     hasRelationshipStatus: r.hasRelationshipStatus ?? false,
+    userType: r.userType ?? "student",
+    hasLocation: r.hasLocation ?? false,
   };
 
   const currentStep = !status.hasProfile

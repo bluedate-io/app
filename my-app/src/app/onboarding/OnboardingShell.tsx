@@ -128,6 +128,8 @@ function validateFirstName(value: string): string | null {
 
 function getInitialSubStep(status: OnboardingStatus): number {
   if (!status.hasProfile) return 0;
+  // Non-student: location step is subStep 2, comes right after name/DOB
+  if (status.userType === "non_student" && !status.hasLocation) return 2;
   if (!status.hasPreferences) return 1;
   // Require an explicit Date/BFF choice before moving past step 3
   if (!status.hasDatingMode) return 3;
@@ -937,6 +939,19 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const [politics, setPolitics] = useState<string[]>([]);
   const [lifeExperiences, setLifeExperiences] = useState<string[]>([]);
   const [relationshipStatus, setRelationshipStatus] = useState<string>("");
+  // Location step state (non-students only)
+  const [locationGroups, setLocationGroups] = useState<{ city: string; subAreas: { id: string; name: string }[] }[]>([]);
+  const [selectedCity, setSelectedCity] = useState("");
+  const [selectedSubAreaId, setSelectedSubAreaId] = useState("");
+
+  useEffect(() => {
+    if (status.userType !== "non_student") return;
+    fetch("/api/onboarding/locations")
+      .then((r) => r.json())
+      .then((json) => { if (json?.data) setLocationGroups(json.data); })
+      .catch(() => {});
+  }, [status.userType]);
+
   // Scroll height list so the current selection appears centered initially,
   // to signal that the list can be scrolled.
   useEffect(() => {
@@ -1022,6 +1037,33 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
         }
         const dateOfBirth = `${birthday.year}-${String(birthday.month).padStart(2, "0")}-${String(birthday.day).padStart(2, "0")}`;
         await apiPost("profile", { fullName: firstName.trim(), dateOfBirth });
+        // Non-students go to location step; students go to gender
+        if (status.userType === "non_student") {
+          setSubStep(2);
+          setLoading(false);
+          return;
+        }
+      }
+
+      if (subStep === 2) {
+        if (!selectedSubAreaId) {
+          setStepError("Please select your location to continue.");
+          setLoading(false);
+          return;
+        }
+        const res = await fetch("/api/onboarding/location", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ locationId: selectedSubAreaId }),
+        });
+        if (res.status === 401) { router.push("/login"); return; }
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error((j as { error?: { message?: string } }).error?.message ?? "Could not save location");
+        }
+        setSubStep(1);
+        setLoading(false);
+        return;
       }
 
       if (subStep === 1) {
@@ -1088,6 +1130,11 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   };
 
   const handleBack = () => {
+    // Location step: back goes to name/DOB (0)
+    if (subStep === 2) {
+      setSubStep(0);
+      return;
+    }
     // Step 3 (dating mode): back goes to gender step (1)
     if (subStep === 3) {
       setSubStep(1);
@@ -1142,6 +1189,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
           && birthday.year.length === 4;
       }
       case 1: return genderIdentity !== "";
+      case 2: return selectedCity !== "" && selectedSubAreaId !== "";
       case 3: return datingMode !== "";
       case 4: return openToAll || genderPreference.length > 0;
       case 7: return heightTouched && heightCm >= HEIGHT_CM_MIN && heightCm <= HEIGHT_CM_MAX;
@@ -1339,6 +1387,75 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
               {birthdayError && <InlineError message={birthdayError} />}
               <p className="text-sm text-gray-400 mt-2">It's never too early to count down</p>
             </div>
+
+            {stepError && <InlineError message={stepError} />}
+
+            <div className="mt-auto pt-8 flex items-end justify-end">
+              <Fab onClick={handleNext} disabled={!canProceed} loading={loading} />
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 2: Location (non-students only) ──────────────────────── */}
+        {subStep === 2 && (
+          <div className="flex flex-col flex-1">
+            <div className="flex justify-start mb-6">
+              <svg className="w-12 h-12 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0z" />
+              </svg>
+            </div>
+            <Heading>Where are you based?</Heading>
+            <p className="text-sm mb-8" style={{ color: "#9B8B78" }}>
+              We use your location to find matches near you.
+            </p>
+
+            {/* City dropdown */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-2" style={{ color: FAB_BG }}>City</label>
+              <div className="relative">
+                <select
+                  value={selectedCity}
+                  onChange={(e) => {
+                    setSelectedCity(e.target.value);
+                    setSelectedSubAreaId("");
+                  }}
+                  className={inputCls}
+                  style={{ appearance: "none" }}
+                >
+                  <option value="">Select your city</option>
+                  {locationGroups.map((g) => (
+                    <option key={g.city} value={g.city}>{g.city}</option>
+                  ))}
+                </select>
+                <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Sub-area dropdown — appears once city is selected */}
+            {selectedCity && (
+              <div className="mb-4">
+                <label className="block text-sm font-semibold mb-2" style={{ color: FAB_BG }}>Area</label>
+                <div className="relative">
+                  <select
+                    value={selectedSubAreaId}
+                    onChange={(e) => setSelectedSubAreaId(e.target.value)}
+                    className={inputCls}
+                    style={{ appearance: "none" }}
+                  >
+                    <option value="">Select your area</option>
+                    {(locationGroups.find((g) => g.city === selectedCity)?.subAreas ?? []).map((sa) => (
+                      <option key={sa.id} value={sa.id}>{sa.name}</option>
+                    ))}
+                  </select>
+                  <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            )}
 
             {stepError && <InlineError message={stepError} />}
 
