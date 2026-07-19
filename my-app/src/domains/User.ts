@@ -8,6 +8,7 @@ export interface User {
   phone?: string;
   email?: string;
   collegeName?: string;
+  userType: "student" | "non_student";
   role: UserRole;
   onboardingCompleted: boolean;
   createdAt: Date;

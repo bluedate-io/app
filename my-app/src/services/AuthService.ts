@@ -26,22 +26,24 @@ export class AuthService {
   // ─── Step 1: Validate .edu domain → send OTP email ──────────────────────────
 
   async sendOtp(input: SendOtpInput): Promise<SendOtpResponseDTO> {
-    const emailDomain = input.email.split("@")[1]?.toLowerCase();
-
-    // Fetch the expected domain for the selected college
-    const college = await this.collegeDomainRepository.findByCollegeName(input.collegeName);
-    if (!college) {
-      throw new BadRequestError(`College "${input.collegeName}" is not registered.`);
-    }
-
-    if (emailDomain !== college.domain.toLowerCase()) {
-      throw new BadRequestError(
-        `Email domain @${emailDomain} does not match ${input.collegeName}. Use your @${college.domain} email.`,
-      );
+    if (input.userType === "student") {
+      const emailDomain = input.email.split("@")[1]?.toLowerCase();
+      if (!input.collegeName) {
+        throw new BadRequestError("College name is required for student sign-in.");
+      }
+      const college = await this.collegeDomainRepository.findByCollegeName(input.collegeName);
+      if (!college) {
+        throw new BadRequestError(`College "${input.collegeName}" is not registered.`);
+      }
+      if (emailDomain !== college.domain.toLowerCase()) {
+        throw new BadRequestError(
+          `Email domain @${emailDomain} does not match ${input.collegeName}. Use your @${college.domain} email.`,
+        );
+      }
     }
 
     await this.emailService.sendOtp(input.email);
-    log.info("Email OTP sent", { email: input.email, college: input.collegeName });
+    log.info("Email OTP sent", { email: input.email, userType: input.userType });
 
     return {
       message: "Verification code sent to your email. Valid for 10 minutes.",
@@ -54,16 +56,18 @@ export class AuthService {
   async verifyOtp(input: VerifyOtpInput): Promise<VerifyOtpResponseDTO> {
     await this.emailService.verifyOtp(input.email, input.code);
 
-    // Determine college from existing user record (if any) or from the email domain
     const existingUser = await this.userRepository.findByEmail(input.email);
     const collegeName = existingUser?.collegeName ?? "";
+    // Existing users keep their stored userType; new users get the one from the request
+    const userType = existingUser?.userType ?? input.userType ?? "student";
 
     const { user, created } = await this.userRepository.findOrCreateByEmail(
       input.email,
       collegeName,
+      userType,
     );
 
-    if (created) log.info("New user created via email OTP", { userId: user.id });
+    if (created) log.info("New user created via email OTP", { userId: user.id, userType });
     else log.info("Existing user authenticated via email OTP", { userId: user.id });
 
     const token = this.issueToken(

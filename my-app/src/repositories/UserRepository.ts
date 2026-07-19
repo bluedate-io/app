@@ -12,6 +12,7 @@ function toDomain(row: PrismaUser): User {
     phone: row.phone ?? undefined,
     email: row.email ?? undefined,
     collegeName: row.collegeName ?? undefined,
+    userType: row.userType as "student" | "non_student",
     role: row.role as User["role"],
     onboardingCompleted: row.onboardingCompleted,
     createdAt: row.createdAt,
@@ -25,7 +26,11 @@ export interface IUserRepository {
   findByEmail(email: string): Promise<User | null>;
   findAll(params: PaginationParams): Promise<PaginatedResult<User>>;
   findOrCreate(phone: string): Promise<{ user: User; created: boolean }>;
-  findOrCreateByEmail(email: string, collegeName: string): Promise<{ user: User; created: boolean }>;
+  findOrCreateByEmail(
+    email: string,
+    collegeName: string,
+    userType?: "student" | "non_student",
+  ): Promise<{ user: User; created: boolean }>;
   updateEmail(id: string, email: string): Promise<User>;
   completeOnboarding(id: string): Promise<User>;
   exists(id: string): Promise<boolean>;
@@ -69,15 +74,18 @@ export class UserRepository implements IUserRepository {
     return { user: toDomain(row), created: true };
   }
 
-  /** Email OTP auth: find or create user by .edu email */
+  /** Email OTP auth: find or create user by email */
   async findOrCreateByEmail(
     email: string,
     collegeName: string,
+    userType: "student" | "non_student" = "student",
   ): Promise<{ user: User; created: boolean }> {
     const existing = await this.db.user.findUnique({ where: { email } });
     if (existing) return { user: toDomain(existing), created: false };
 
-    const row = await this.db.user.create({ data: { email, collegeName } });
+    const row = await this.db.user.create({
+      data: { email, collegeName: collegeName || null, userType },
+    });
     return { user: toDomain(row), created: true };
   }
 
