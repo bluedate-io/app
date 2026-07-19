@@ -18,6 +18,9 @@ type OptedInUser = {
   name: string;
   age: number | null;
   city: string | null;
+  locationCity: string | null;
+  locationSubArea: string | null;
+  userType: "student" | "non_student";
   photoUrl: string | null;
   collegeName: string | null;
   genderIdentity: string | null;
@@ -247,6 +250,22 @@ function OptedInCard({
         {user.genderIdentity && (
           <p className="text-xs mt-1" style={{ color: adminTheme.textSecondary }}>{user.genderIdentity}</p>
         )}
+        {(user.locationCity || user.userType === "non_student") && (
+          <p className="text-xs mt-1 flex items-center gap-1" style={{ color: adminTheme.mutedLabel }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0z" />
+            </svg>
+            {user.locationCity
+              ? `${user.locationCity}${user.locationSubArea ? ` · ${user.locationSubArea}` : ""}`
+              : "Location not set"}
+          </p>
+        )}
+        {user.userType === "non_student" && (
+          <span className="inline-block mt-1 text-xs px-1.5 py-0.5 rounded" style={{ background: "#F0F0F0", color: adminTheme.textSecondary }}>
+            Non-student
+          </span>
+        )}
         {user.description && (
           <p className="text-xs mt-1 line-clamp-2 leading-relaxed" style={{ color: adminTheme.mutedLabel }}>{user.description}</p>
         )}
@@ -270,17 +289,32 @@ function MatchPhase({
   const [loading, setLoading] = useState(true);
   const [idx, setIdx] = useState(0);
   const [modal, setModal] = useState<ModalState>({ open: false });
+  const [filterUserType, setFilterUserType] = useState("");
+  const [filterCity, setFilterCity] = useState("");
+  const [filterSubArea, setFilterSubArea] = useState("");
+  const [locationGroups, setLocationGroups] = useState<{ city: string; subAreas: { id: string; name: string }[] }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/admin/locations")
+      .then((r) => r.json())
+      .then((json) => { if (json?.data) setLocationGroups(json.data); })
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/match-users/suggestions?userId=${selectedUser.userId}`);
+      const params = new URLSearchParams({ userId: selectedUser.userId });
+      if (filterUserType) params.set("userType", filterUserType);
+      if (filterCity) params.set("city", filterCity);
+      if (filterSubArea) params.set("subArea", filterSubArea);
+      const res = await fetch(`/api/admin/match-users/suggestions?${params}`);
       const { data } = await res.json();
       setCandidates(data.candidates ?? []);
     } finally {
       setLoading(false);
     }
-  }, [selectedUser.userId]);
+  }, [selectedUser.userId, filterUserType, filterCity, filterSubArea]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -326,6 +360,56 @@ function MatchPhase({
             {loading ? "Loading…" : `${candidates.length} candidates from ${selectedUser.collegeName ?? "their college"}`}
           </p>
         </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 mb-5">
+        <select
+          value={filterUserType}
+          onChange={(e) => { setFilterUserType(e.target.value); setIdx(0); }}
+          className={ADMIN_INPUT}
+          style={{ width: "auto", minWidth: 140 }}
+        >
+          <option value="">All users</option>
+          <option value="student">Students only</option>
+          <option value="non_student">Non-students only</option>
+        </select>
+
+        <select
+          value={filterCity}
+          onChange={(e) => { setFilterCity(e.target.value); setFilterSubArea(""); setIdx(0); }}
+          className={ADMIN_INPUT}
+          style={{ width: "auto", minWidth: 140 }}
+        >
+          <option value="">All cities</option>
+          {locationGroups.map((g) => (
+            <option key={g.city} value={g.city}>{g.city}</option>
+          ))}
+        </select>
+
+        {filterCity && (
+          <select
+            value={filterSubArea}
+            onChange={(e) => { setFilterSubArea(e.target.value); setIdx(0); }}
+            className={ADMIN_INPUT}
+            style={{ width: "auto", minWidth: 140 }}
+          >
+            <option value="">All areas</option>
+            {(locationGroups.find((g) => g.city === filterCity)?.subAreas ?? []).map((sa) => (
+              <option key={sa.id} value={sa.name}>{sa.name}</option>
+            ))}
+          </select>
+        )}
+
+        {(filterUserType || filterCity || filterSubArea) && (
+          <button
+            type="button"
+            onClick={() => { setFilterUserType(""); setFilterCity(""); setFilterSubArea(""); setIdx(0); }}
+            className={ADMIN_BTN_NEUTRAL_SM}
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -509,6 +593,16 @@ function FullProfileCard({
         </p>
         {user.city && <p className="text-xs mt-0.5" style={{ color: adminTheme.mutedLabel }}>{user.city}</p>}
         {user.collegeName && <p className="text-xs" style={{ color: adminTheme.mutedLabel }}>{user.collegeName}</p>}
+        {user.locationCity && (
+          <p className="text-xs mt-1" style={{ color: adminTheme.mutedLabel }}>
+            📍 {user.locationCity}{user.locationSubArea ? ` · ${user.locationSubArea}` : ""}
+          </p>
+        )}
+        {user.userType === "non_student" && (
+          <span className="inline-block mt-1 text-xs px-1.5 py-0.5 rounded" style={{ background: "#F0F0F0", color: adminTheme.textSecondary }}>
+            Non-student
+          </span>
+        )}
 
         {/* Opt-in description */}
         {user.description && (

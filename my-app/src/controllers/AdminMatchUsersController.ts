@@ -26,7 +26,13 @@ export class AdminMatchUsersController {
   async getSuggestions(req: NextRequest) {
     try {
       const query = parseAdminMatchUsersSuggestionsQuery(req.nextUrl.searchParams);
-      const data = await this.adminMatchUsersService.getSuggestions(query.userId);
+      const params = req.nextUrl.searchParams;
+      const filters = {
+        userType: params.get("userType") ?? undefined,
+        city: params.get("city") ?? undefined,
+        subArea: params.get("subArea") ?? undefined,
+      };
+      const data = await this.adminMatchUsersService.getSuggestions(query.userId, filters);
       return NextResponse.json({ data });
     } catch (e) {
       return adminRouteErrorResponse(e);
@@ -35,7 +41,13 @@ export class AdminMatchUsersController {
 
   async getCandidates(req: NextRequest) {
     try {
-      const data = await this.adminMatchUsersService.getCandidates();
+      const params = req.nextUrl.searchParams;
+      const filters = {
+        userType: params.get("userType") ?? undefined,
+        city: params.get("city") ?? undefined,
+        subArea: params.get("subArea") ?? undefined,
+      };
+      const data = await this.adminMatchUsersService.getCandidates(filters);
       return NextResponse.json({ data });
     } catch (e) {
       return adminRouteErrorResponse(e);

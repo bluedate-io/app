@@ -4,8 +4,19 @@ import { getWeekStartIST } from "@/utils/istTime";
 const suggestionUserSelect = {
   id: true,
   collegeName: true,
+  userType: true,
   onboardingCompleted: true,
-  profile: { select: { fullName: true, age: true, city: true, bio: true } },
+  profile: {
+    select: {
+      fullName: true,
+      age: true,
+      city: true,
+      bio: true,
+      location: {
+        select: { city: true, subArea: true },
+      },
+    },
+  },
   preferences: {
     select: {
       genderIdentity: true,
@@ -56,8 +67,16 @@ export class AdminMatchUsersRepository {
           select: {
             id: true,
             collegeName: true,
+            userType: true,
             onboardingCompleted: true,
-            profile: { select: { fullName: true, age: true, city: true } },
+            profile: {
+              select: {
+                fullName: true,
+                age: true,
+                city: true,
+                location: { select: { city: true, subArea: true } },
+              },
+            },
             preferences: { select: { genderIdentity: true, genderPreference: true } },
             photos: { orderBy: { order: "asc" }, take: 1, select: { url: true } },
           },
@@ -85,12 +104,32 @@ export class AdminMatchUsersRepository {
     });
   }
 
-  async findCandidateWeeklyOptInsSameCollege(weekStart: Date, userId: string, collegeName: string) {
+  async findCandidateWeeklyOptInsSameCollege(
+    weekStart: Date,
+    userId: string,
+    collegeName: string,
+    filters: { userType?: string; city?: string; subArea?: string } = {},
+  ) {
+    const userWhere: Record<string, unknown> = { collegeName, onboardingCompleted: true };
+    const profileWhere: Record<string, unknown> = {};
+
+    if (filters.userType) userWhere.userType = filters.userType;
+    if (filters.city || filters.subArea) {
+      const locationWhere: Record<string, unknown> = {};
+      if (filters.city) locationWhere.city = filters.city;
+      if (filters.subArea) locationWhere.subArea = filters.subArea;
+      profileWhere.location = { is: locationWhere };
+    }
+
+    if (Object.keys(profileWhere).length > 0) {
+      userWhere.profile = profileWhere;
+    }
+
     return this.db.weeklyOptIn.findMany({
       where: {
         weekStart,
         userId: { not: userId },
-        user: { collegeName, onboardingCompleted: true },
+        user: userWhere,
       },
       select: {
         mode: true,

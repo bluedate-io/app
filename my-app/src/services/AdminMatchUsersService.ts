@@ -45,6 +45,9 @@ export class AdminMatchUsersService {
       name: o.user.profile?.fullName ?? "—",
       age: o.user.profile?.age ?? null,
       city: o.user.profile?.city ?? null,
+      locationCity: o.user.profile?.location?.city ?? null,
+      locationSubArea: o.user.profile?.location?.subArea ?? null,
+      userType: o.user.userType ?? "student",
       photoUrl: o.user.photos[0]?.url ?? null,
       collegeName: o.user.collegeName ?? null,
       genderIdentity: o.user.preferences?.genderIdentity ?? null,
@@ -57,7 +60,10 @@ export class AdminMatchUsersService {
     return { users, total, page: query.page, limit: query.limit, pages: Math.ceil(total / query.limit) };
   }
 
-  async getSuggestions(userId: string) {
+  async getSuggestions(
+    userId: string,
+    filters: { userType?: string; city?: string; subArea?: string } = {},
+  ) {
     const weekStart = this.repo.getCurrentWeekStart();
     const selectedOptIn = await this.repo.findWeeklyOptInByUserForCurrentWeek(userId, weekStart);
     if (!selectedOptIn) throw new NotFoundError("User not opted in this week");
@@ -74,6 +80,9 @@ export class AdminMatchUsersService {
         name: sel.profile?.fullName ?? "—",
         age: sel.profile?.age ?? null,
         city: sel.profile?.city ?? null,
+        locationCity: sel.profile?.location?.city ?? null,
+        locationSubArea: sel.profile?.location?.subArea ?? null,
+        userType: sel.userType ?? "student",
         bio: sel.profile?.bio ?? null,
         photoUrl: sel.photos[0]?.url ?? null,
         collegeName: sel.collegeName ?? null,
@@ -114,6 +123,7 @@ export class AdminMatchUsersService {
       weekStart,
       userId,
       selCollege,
+      filters,
     );
 
     const scored: Array<Record<string, unknown>> = [];
@@ -199,6 +209,9 @@ export class AdminMatchUsersService {
         name: c.profile?.fullName ?? "—",
         age: c.profile?.age ?? null,
         city: c.profile?.city ?? null,
+        locationCity: c.profile?.location?.city ?? null,
+        locationSubArea: c.profile?.location?.subArea ?? null,
+        userType: c.userType ?? "student",
         bio: c.profile?.bio ?? null,
         photoUrl: c.photos[0]?.url ?? null,
         collegeName: c.collegeName ?? null,
@@ -231,7 +244,7 @@ export class AdminMatchUsersService {
     return { skipped: true };
   }
 
-  async getCandidates() {
+  async getCandidates(_filters: { userType?: string; city?: string; subArea?: string } = {}) {
     const activeMatches = await this.repo.findActiveMatches();
     const matchedIds = new Set<string>();
     for (const m of activeMatches) {
