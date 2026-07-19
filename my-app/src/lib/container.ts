@@ -4,6 +4,7 @@
 
 import { db } from "@/lib/db";
 import { AdminAuthController } from "@/controllers/AdminAuthController";
+import { AdminLocationController } from "@/controllers/AdminLocationController";
 import { AdminMatchesController } from "@/controllers/AdminMatchesController";
 import { AdminMatchmakingController } from "@/controllers/AdminMatchmakingController";
 import { AdminMatchUsersController } from "@/controllers/AdminMatchUsersController";
@@ -97,6 +98,7 @@ const userSelfService = new UserSelfService(userSelfRepository, matchEmailServic
 const adminAuthService = new AdminAuthService(emailService, userRepository, userSelfRepository);
 
 // ─── Controllers ──────────────────────────────────────────────────────────────
+const adminLocationController = new AdminLocationController(locationRepository);
 const authController = new AuthController(authService, userRepository, collegeDomainRepository);
 const onboardingController = new OnboardingController(onboardingService, authService);
 const userApiController = new UserApiController(userSelfService, authService);
@@ -144,6 +146,7 @@ export const container = {
   adminAuthService,
 
   // Controllers
+  adminLocationController,
   authController,
   onboardingController,
   userApiController,
