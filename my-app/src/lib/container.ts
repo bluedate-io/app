@@ -20,6 +20,7 @@ import { AdminMatchUsersRepository } from "@/repositories/AdminMatchUsersReposit
 import { AdminOnboardingReminderRepository } from "@/repositories/AdminOnboardingReminderRepository";
 import { AdminUsersRepository } from "@/repositories/AdminUsersRepository";
 import { CollegeDomainRepository } from "@/repositories/CollegeDomainRepository";
+import { LocationRepository } from "@/repositories/LocationRepository";
 import { MatchRepository } from "@/repositories/MatchRepository";
 import { OnboardingRepository } from "@/repositories/OnboardingRepository";
 import { UserSelfRepository } from "@/repositories/UserSelfRepository";
@@ -55,6 +56,7 @@ const adminUsersRepository = new AdminUsersRepository(db);
 const adminOnboardingReminderRepository = new AdminOnboardingReminderRepository(db);
 const adminMatchesRepository = new AdminMatchesRepository(db);
 const userSelfRepository = new UserSelfRepository(db);
+const locationRepository = new LocationRepository(db);
 
 // ─── Services ─────────────────────────────────────────────────────────────────
 const twilioService = new TwilioService();
@@ -115,6 +117,7 @@ export const container = {
   inviteCodeRepository,
   whatsAppSessionRepository,
   collegeDomainRepository,
+  locationRepository,
   matchRepository,
   adminMatchmakingRepository,
   adminMatchUsersRepository,
