@@ -1,4 +1,4 @@
-export const APP_NAME = "bluedate";
+export const APP_NAME = "Tryren";
 
 export const JWT_EXPIRY = "7d";
 export const REFRESH_TOKEN_EXPIRY = "30d";

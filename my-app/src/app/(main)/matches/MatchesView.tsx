@@ -172,7 +172,7 @@ function EmptyState() {
           margin: 0,
         }}
       >
-        Our Bluedate AI agent is hand-picking one curated match for you — no swiping, just quality.
+        Our Tryren AI agent is hand-picking one curated match for you — no swiping, just quality.
       </p>
     </div>
   );

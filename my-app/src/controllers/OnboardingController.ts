@@ -308,7 +308,7 @@ export class OnboardingController {
       return NextResponse.json({
         success: true,
         data: { accessToken, expiresIn },
-        message: "Onboarding complete! Welcome to bluedate.",
+        message: "Onboarding complete! Welcome to Tryren.",
       });
     } catch (error) {
       return handleError(error);

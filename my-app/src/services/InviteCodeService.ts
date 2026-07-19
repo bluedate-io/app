@@ -102,7 +102,7 @@ export class InviteCodeService {
     }
 
     const codeToSend = codeRecord.code;
-    return `Your bluedate invite code is: *${codeToSend}*\n\nShare it with a friend so they can join. They'll need to enter it when creating their profile.`;
+    return `Your Tryren invite code is: *${codeToSend}*\n\nShare it with a friend so they can join. They'll need to enter it when creating their profile.`;
   }
 
   /**

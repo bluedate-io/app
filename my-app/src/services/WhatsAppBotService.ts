@@ -60,7 +60,7 @@ const MSG = {
 
   CHANNEL_CHOICE: btns(
     [
-      `💙 *Welcome to bluedate!*`,
+      `💙 *Welcome to Tryren!*`,
       ``,
       `Where would you like to set up your profile?`,
       ``,
@@ -73,7 +73,7 @@ const MSG = {
   WEB_APP_LINK: (url: string) =>
     txt(
       [
-        `🔗 *Here's your link to set up on bluedate:*`,
+        `🔗 *Here's your link to set up on Tryren:*`,
         ``,
         url,
         ``,
@@ -119,15 +119,15 @@ const MSG = {
   INVITE_CODE: (gender: string): WaMessage => {
     const lower = gender.trim().toLowerCase();
     const isMan = lower === "man";
-    const from = isMan ? "a *woman* already on bluedate" : "a *woman* or *man* already on bluedate";
+    const from = isMan ? "a *woman* already on Tryren" : "a *woman* or *man* already on Tryren";
     return txt(
       [
         `🔑 *Invite Code Required*`,
         ``,
-        `bluedate is invite-only — you need a code from ${from}.`,
+        `Tryren is invite-only — you need a code from ${from}.`,
         ``,
         `*How to get a code:*`,
-        `Ask someone on bluedate to send *invite code* on WhatsApp — they'll receive a unique code to share with you.`,
+        `Ask someone on Tryren to send *invite code* on WhatsApp — they'll receive a unique code to share with you.`,
         ``,
         `Enter your invite code below:`,
         BACK_HINT,
@@ -297,7 +297,7 @@ const MSG = {
       [
         `👋 *Welcome back, ${name}!*`,
         ``,
-        `Your bluedate profile is all set.`,
+        `Your Tryren profile is all set.`,
         `Open the app to start matching. 💙`,
       ].join("\n"),
     ),
@@ -307,7 +307,7 @@ const MSG = {
       [
         `🎉 *You're all set, ${name}!*`,
         ``,
-        `Your bluedate profile is live.`,
+        `Your Tryren profile is live.`,
         `Open the app to start matching. 💙`,
       ].join("\n"),
     ),
@@ -331,7 +331,7 @@ const MSG = {
   ),
 
   ERROR_DOB_AGE: txt(
-    `Sorry, you must be at least *18 years old* to join bluedate.`,
+    `Sorry, you must be at least *18 years old* to join Tryren.`,
   ),
 
   ERROR_GENDER: txt(

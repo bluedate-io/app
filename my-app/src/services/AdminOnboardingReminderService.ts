@@ -26,13 +26,13 @@ function wrap(body: string): string {
         style="max-width:480px;width:100%;background:#fff;border:2.5px solid ${DARK};border-radius:18px;box-shadow:5px 5px 0 ${DARK};overflow:hidden;">
         <tr>
           <td style="background:${DARK};padding:24px 32px;">
-            <p style="margin:0;font-family:Georgia,serif;font-size:22px;font-weight:800;color:${BG};letter-spacing:-0.5px;">bluedate</p>
+            <p style="margin:0;font-family:Georgia,serif;font-size:22px;font-weight:800;color:${BG};letter-spacing:-0.5px;">Tryren</p>
           </td>
         </tr>
         ${body}
         <tr>
           <td style="border-top:1.5px solid ${DARK}15;padding:16px 32px;">
-            <p style="margin:0;font-size:12px;color:${SUBTLE};">© bluedate · campus dating, thoughtfully done</p>
+            <p style="margin:0;font-size:12px;color:${SUBTLE};">© Tryren · campus dating, thoughtfully done</p>
           </td>
         </tr>
       </table>
@@ -60,11 +60,11 @@ function buildOnboardingReminderHtml(onboardingUrl: string): string {
   const inner = `
     <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:${DARK};font-family:Georgia,serif;">Finish your profile</p>
     <p style="margin:0 0 24px;font-size:14px;color:${MUTED};line-height:1.6;">
-      You started joining bluedate but haven&rsquo;t finished onboarding yet. It only takes a few minutes &mdash; add your details and photos so we can match you thoughtfully.
+      You started joining Tryren but haven&rsquo;t finished onboarding yet. It only takes a few minutes &mdash; add your details and photos so we can match you thoughtfully.
     </p>
     ${ctaButton("Continue onboarding", onboardingUrl)}
     <p style="margin:24px 0 0;font-size:13px;color:${MUTED};line-height:1.6;">
-      If you didn&rsquo;t sign up for bluedate, you can ignore this message.
+      If you didn&rsquo;t sign up for Tryren, you can ignore this message.
     </p>
   `;
   return wrap(`<tr><td style="padding:32px;">${inner}</td></tr>`);
@@ -72,14 +72,14 @@ function buildOnboardingReminderHtml(onboardingUrl: string): string {
 
 function buildOnboardingReminderText(onboardingUrl: string): string {
   return [
-    "Finish your bluedate profile",
+    "Finish your Tryren profile",
     "",
-    "You started joining bluedate but haven't finished onboarding yet. Continue here:",
+    "You started joining Tryren but haven't finished onboarding yet. Continue here:",
     onboardingUrl,
     "",
-    "If you didn't sign up for bluedate, you can ignore this message.",
+    "If you didn't sign up for Tryren, you can ignore this message.",
     "",
-    "— bluedate",
+    "— Tryren",
   ].join("\n");
 }
 
@@ -229,10 +229,10 @@ export class AdminOnboardingReminderService {
 
     try {
       await this.transporter.sendMail({
-        from: `"bluedate" <${config.email.fromAddress}>`,
+        from: `"Tryren" <${config.email.fromAddress}>`,
         to: config.email.fromAddress,
         bcc,
-        subject: "Complete your bluedate profile",
+        subject: "Complete your Tryren profile",
         text,
         html,
       });

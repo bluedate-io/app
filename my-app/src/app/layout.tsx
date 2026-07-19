@@ -30,8 +30,8 @@ const caveat = Caveat({
   weight: ["400", "500", "600", "700"],
 });
 
-const APP_URL = "https://bluedate.io";
-const TITLE = "bluedate — campus dating, thoughtfully done";
+const APP_URL = "https://tryren.in";
+const TITLE = "Tryren — campus dating, thoughtfully done";
 const DESCRIPTION =
   "Exclusive weekly matches for college students. Opt in every week, get matched with someone from your campus based on what matters most.";
 
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
     default: TITLE,
-    template: "%s · bluedate",
+    template: "%s · Tryren",
   },
   description: DESCRIPTION,
   keywords: [
@@ -47,18 +47,18 @@ export const metadata: Metadata = {
     "college dating app",
     "student dating India",
     "weekly match",
-    "bluedate",
+    "Tryren",
     "VIT AP dating",
     "KL University dating",
     "SRM AP dating",
   ],
-  authors: [{ name: "bluedate", url: APP_URL }],
-  creator: "bluedate",
+  authors: [{ name: "Tryren", url: APP_URL }],
+  creator: "Tryren",
   openGraph: {
     type: "website",
     locale: "en_IN",
     url: APP_URL,
-    siteName: "bluedate",
+    siteName: "Tryren",
     title: TITLE,
     description: DESCRIPTION,
     images: [
@@ -66,7 +66,7 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "bluedate — campus dating, thoughtfully done",
+        alt: "Tryren — campus dating, thoughtfully done",
       },
     ],
   },
@@ -75,7 +75,7 @@ export const metadata: Metadata = {
     title: TITLE,
     description: DESCRIPTION,
     images: ["/og-image.png"],
-    creator: "@bluedateio",
+    creator: "@tryrenin",
   },
   robots: {
     index: true,
@@ -96,7 +96,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "bluedate",
+    title: "Tryren",
   },
   formatDetection: { telephone: false },
 };

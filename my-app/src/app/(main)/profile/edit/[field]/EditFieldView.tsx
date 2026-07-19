@@ -816,7 +816,7 @@ function DatingModeEditor({
           </svg>
         </div>
         <h1 className="text-3xl font-black leading-tight mb-2" style={{ fontFamily: SERIF, color: DARK }}>
-          What brings you to bluedate?
+          What brings you to Tryren?
         </h1>
         <p className="text-sm text-gray-500 mb-8">
           Romance and butterflies or a beautiful friendship? Choose a mode to find your people.

@@ -185,7 +185,7 @@ export class AdminUsersService {
 
     return {
       csv: lines.join("\n"),
-      filename: `bluedate-users-${new Date().toISOString().slice(0, 10)}.csv`,
+      filename: `tryren-users-${new Date().toISOString().slice(0, 10)}.csv`,
     };
   }
 }

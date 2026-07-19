@@ -55,9 +55,9 @@ export class EmailService implements IEmailService {
 
     try {
       await this.transporter.sendMail({
-        from: `"bluedate" <${config.email.fromAddress}>`,
+        from: `"Tryren" <${config.email.fromAddress}>`,
         to: email,
-        subject: "Your bluedate verification code",
+        subject: "Your Tryren verification code",
         text: `Your verification code is ${code}. It expires in ${config.auth.otpTtlMinutes} minutes.`,
         html: `<!DOCTYPE html>
 <html lang="en">
@@ -69,7 +69,7 @@ export class EmailService implements IEmailService {
         <!-- Header -->
         <tr>
           <td style="background:#2B1A07;padding:24px 32px;">
-            <p style="margin:0;font-family:Georgia,serif;font-size:22px;font-weight:800;color:#EDE8D5;letter-spacing:-0.5px;">bluedate</p>
+            <p style="margin:0;font-family:Georgia,serif;font-size:22px;font-weight:800;color:#EDE8D5;letter-spacing:-0.5px;">Tryren</p>
           </td>
         </tr>
         <!-- Body -->
@@ -96,7 +96,7 @@ export class EmailService implements IEmailService {
         <!-- Footer -->
         <tr>
           <td style="border-top:1.5px solid #2B1A0715;padding:16px 32px;">
-            <p style="margin:0;font-size:12px;color:#9B8B78;">© bluedate · campus dating, thoughtfully done</p>
+            <p style="margin:0;font-size:12px;color:#9B8B78;">© Tryren · campus dating, thoughtfully done</p>
           </td>
         </tr>
       </table>

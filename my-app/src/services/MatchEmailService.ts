@@ -41,7 +41,7 @@ function wrap(body: string): string {
         <!-- header -->
         <tr>
           <td style="background:${DARK};padding:24px 32px;">
-            <p style="margin:0;font-family:Georgia,serif;font-size:22px;font-weight:800;color:${BG};letter-spacing:-0.5px;">bluedate</p>
+            <p style="margin:0;font-family:Georgia,serif;font-size:22px;font-weight:800;color:${BG};letter-spacing:-0.5px;">Tryren</p>
           </td>
         </tr>
         <!-- body -->
@@ -49,7 +49,7 @@ function wrap(body: string): string {
         <!-- footer -->
         <tr>
           <td style="border-top:1.5px solid ${DARK}15;padding:16px 32px;">
-            <p style="margin:0;font-size:12px;color:${SUBTLE};">© bluedate · campus dating, thoughtfully done</p>
+            <p style="margin:0;font-size:12px;color:${SUBTLE};">© Tryren · campus dating, thoughtfully done</p>
           </td>
         </tr>
       </table>
@@ -114,7 +114,7 @@ export class MatchEmailService {
     }
     try {
       await this.transporter.sendMail({
-        from: `"bluedate" <${config.email.fromAddress}>`,
+        from: `"Tryren" <${config.email.fromAddress}>`,
         to,
         subject,
         html,

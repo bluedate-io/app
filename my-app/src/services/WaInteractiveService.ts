@@ -97,7 +97,7 @@ export class WaInteractiveService {
   // ─── Quick-reply (≤3 buttons) ────────────────────────────────────────────
 
   private async ensureButtonTemplate(buttons: string[]): Promise<string> {
-    const friendlyName = `bluedate_qr_${this.labelKey(buttons)}`;
+    const friendlyName = `tryren_qr_${this.labelKey(buttons)}`;
     const cached = this.sidCache.get(friendlyName);
     if (cached) return cached;
 
@@ -129,7 +129,7 @@ export class WaInteractiveService {
     items: string[],
     buttonLabel = "Choose",
   ): Promise<string> {
-    const friendlyName = `bluedate_list_${this.labelKey(items)}`;
+    const friendlyName = `tryren_list_${this.labelKey(items)}`;
     const cached = this.sidCache.get(friendlyName);
     if (cached) return cached;
 

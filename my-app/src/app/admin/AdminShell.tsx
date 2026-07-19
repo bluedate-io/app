@@ -52,7 +52,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               className="truncate text-[15px] font-semibold tracking-tight text-bd-ink"
               style={{ fontFamily: "var(--font-bd-display), Georgia, serif" }}
             >
-              Bluedate
+              Tryren
             </p>
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-bd-muted-label">
               Admin

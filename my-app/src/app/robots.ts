@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/home", "/matches", "/profile", "/onboarding", "/admin", "/api/"],
       },
     ],
-    sitemap: "https://bluedate.io/sitemap.xml",
+    sitemap: "https://tryren.in/sitemap.xml",
   };
 }

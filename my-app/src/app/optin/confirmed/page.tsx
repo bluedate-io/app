@@ -2,7 +2,7 @@
 // Standalone page — no auth required, no bottom nav.
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "bluedate — opt-in confirmed" };
+export const metadata: Metadata = { title: "Tryren — opt-in confirmed" };
 
 const BG = "#EDE8D5";
 const DARK = "#2B1A07";
@@ -25,7 +25,7 @@ const MESSAGES = {
   invalid: {
     emoji: "🚫",
     heading: "That link doesn't look right.",
-    body: "The opt-in link may be malformed or already used. If you received it from a bluedate email, try clicking it again or contact support.",
+    body: "The opt-in link may be malformed or already used. If you received it from a Tryren email, try clicking it again or contact support.",
   },
 } as const;
 
@@ -80,7 +80,7 @@ export default async function OptInConfirmedPage({
               letterSpacing: -0.5,
             }}
           >
-            bluedate
+            Tryren
           </p>
         </div>
 
@@ -144,7 +144,7 @@ export default async function OptInConfirmedPage({
           }}
         >
           <p style={{ margin: 0, fontSize: 12, color: "#9B8B78" }}>
-            © bluedate · campus dating, thoughtfully done
+            © Tryren · campus dating, thoughtfully done
           </p>
         </div>
       </div>
