@@ -1,6 +1,7 @@
 // ─── OnboardingController ─────────────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import type { AuthService } from "@/services/AuthService";
 import type { OnboardingService } from "@/services/OnboardingService";
 import {
@@ -310,6 +311,30 @@ export class OnboardingController {
         data: { accessToken, expiresIn },
         message: "Onboarding complete! Welcome to Tryren.",
       });
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  // POST /api/onboarding/location
+  async saveLocation(req: NextRequest, ctx: RequestContext) {
+    try {
+      const body = await req.json();
+      const { locationId } = z.object({
+        locationId: z.string().min(1, "locationId is required"),
+      }).parse(body);
+      const result = await this.onboardingService.saveLocation(ctx.userId, locationId);
+      return createdResponse(result, "Location saved");
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  // GET /api/onboarding/locations (no auth — needed before login for onboarding dropdowns)
+  async getLocations(_req: NextRequest) {
+    try {
+      const data = await this.onboardingService.getLocations();
+      return successResponse(data);
     } catch (error) {
       return handleError(error);
     }

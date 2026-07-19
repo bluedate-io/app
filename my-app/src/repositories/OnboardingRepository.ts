@@ -66,6 +66,7 @@ export interface IOnboardingRepository {
   getPhotos(userId: string): Promise<Photo[]>;
   deletePhoto(photoId: string, userId: string): Promise<void>;
   markPhotosStepCompleted(userId: string): Promise<void>;
+  upsertLocation(userId: string, locationId: string): Promise<void>;
   getOnboardingStatus(userId: string): Promise<{
     hasPhone: boolean;
     hasProfile: boolean;
@@ -89,6 +90,9 @@ export interface IOnboardingRepository {
     hasLifeExperiences: boolean;
     hasBffInterests: boolean;
     hasPhotosStepCompleted: boolean;
+    hasRelationshipStatus: boolean;
+    userType: "student" | "non_student";
+    hasLocation: boolean;
   }>;
   getGenderIdentity(userId: string): Promise<string | null>;
 }
@@ -643,8 +647,8 @@ export class OnboardingRepository implements IOnboardingRepository {
       photoCount,
     ] =
       await this.db.$transaction([
-        this.db.user.findUnique({ where: { id: userId }, select: { phone: true } }),
-        this.db.profile.findUnique({ where: { userId }, select: { id: true, fullName: true } }),
+        this.db.user.findUnique({ where: { id: userId }, select: { phone: true, userType: true } }),
+        this.db.profile.findUnique({ where: { userId }, select: { id: true, fullName: true, locationId: true } }),
         this.db.preferences.findUnique({
           where: { userId },
           select: {
@@ -716,6 +720,8 @@ export class OnboardingRepository implements IOnboardingRepository {
       hasBffInterests,
       hasPhotosStepCompleted,
       hasRelationshipStatus,
+      userType: (user?.userType ?? "student") as "student" | "non_student",
+      hasLocation: !!(profile?.locationId),
     };
   }
 
@@ -725,5 +731,16 @@ export class OnboardingRepository implements IOnboardingRepository {
       select: { genderIdentity: true },
     });
     return prefs?.genderIdentity ?? null;
+  }
+
+  async upsertLocation(userId: string, locationId: string): Promise<void> {
+    // Verify location exists before linking
+    const loc = await this.db.location.findUnique({ where: { id: locationId }, select: { id: true } });
+    if (!loc) throw new Error("Location not found");
+    await this.db.profile.upsert({
+      where: { userId },
+      update: { locationId },
+      create: { userId, locationId },
+    });
   }
 }

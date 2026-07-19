@@ -5,6 +5,7 @@ import { config } from "@/config";
 import { getSupabaseStorage } from "@/lib/supabaseStorageClient";
 import type { IOnboardingRepository } from "@/repositories/OnboardingRepository";
 import type { IUserRepository } from "@/repositories/UserRepository";
+import type { ILocationRepository, GroupedLocation } from "@/repositories/LocationRepository";
 import type {
   ProfileInput,
   GenderIdentityInput,
@@ -52,6 +53,7 @@ export class OnboardingService {
   constructor(
     private readonly onboardingRepo: IOnboardingRepository,
     private readonly userRepo: IUserRepository,
+    private readonly locationRepository: ILocationRepository,
   ) {}
 
   // ─── Profile ────────────────────────────────────────────────────────────────
@@ -401,5 +403,17 @@ export class OnboardingService {
       ...status,
       completed: user?.onboardingCompleted ?? false,
     };
+  }
+
+  async saveLocation(userId: string, locationId: string): Promise<{ locationId: string }> {
+    const userExists = await this.userRepo.exists(userId);
+    if (!userExists) throw new UnauthorizedError("Your session is invalid or expired. Please log in again.");
+    await this.onboardingRepo.upsertLocation(userId, locationId);
+    log.info("Location saved", { userId, locationId });
+    return { locationId };
+  }
+
+  async getLocations(): Promise<GroupedLocation[]> {
+    return this.locationRepository.findAll();
   }
 }
