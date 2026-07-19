@@ -8,7 +8,7 @@ const ACCENT = "#E8622A";
 const MUTED = "#7A6A54";
 const BG = "#EDE8D5";
 
-type Step = "email" | "otp" | "phone";
+type Step = "role" | "email" | "otp" | "phone";
 
 interface College {
   id: string;
@@ -89,7 +89,8 @@ function Fab({ disabled, loading }: { disabled?: boolean; loading?: boolean }) {
 }
 
 export default function LoginForm() {
-  const [step, setStep] = useState<Step>("email");
+  const [step, setStep] = useState<Step>("role");
+  const [userType, setUserType] = useState<"student" | "non_student">("student");
   const [colleges, setColleges] = useState<College[]>([]);
   const [selectedCollege, setSelectedCollege] = useState<College | null>(null);
   const [showCollegePicker, setShowCollegePicker] = useState(false);
@@ -137,13 +138,22 @@ export default function LoginForm() {
 
   const sendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCollege) { setError("Please select your college first."); return; }
+    if (userType === "student" && !selectedCollege) {
+      setError("Please select your college first.");
+      return;
+    }
     setLoading(true); setError(null);
     try {
       const res = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, collegeName: selectedCollege.collegeName }),
+        body: JSON.stringify({
+          email,
+          userType,
+          ...(userType === "student" && selectedCollege
+            ? { collegeName: selectedCollege.collegeName }
+            : {}),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message ?? "Failed to send OTP");
@@ -163,7 +173,7 @@ export default function LoginForm() {
       const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code: otp }),
+        body: JSON.stringify({ email, code: otp, userType }),
       });
       const json = await res.json() as {
         success?: boolean;
@@ -229,13 +239,20 @@ export default function LoginForm() {
   };
 
   const resendOtp = async () => {
-    if (!selectedCollege || resendCooldown > 0) return;
+    if (userType === "student" && !selectedCollege) return;
+    if (resendCooldown > 0) return;
     setError(null); setLoading(true);
     try {
       const res = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, collegeName: selectedCollege.collegeName }),
+        body: JSON.stringify({
+          email,
+          userType,
+          ...(userType === "student" && selectedCollege
+            ? { collegeName: selectedCollege.collegeName }
+            : {}),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error?.message ?? "Failed to send OTP");
@@ -276,9 +293,78 @@ export default function LoginForm() {
 
   return (
     <div className="flex flex-col flex-1 max-w-md mx-auto w-full">
+      {/* ── Role step ── */}
+      {step === "role" && (
+        <div className="flex flex-col flex-1">
+          <div className="flex justify-start mb-6">
+            <div
+              style={{
+                width: 56, height: 56, borderRadius: "50%",
+                border: `2.5px solid ${DARK}`, boxShadow: `3px 3px 0 ${DARK}`,
+                backgroundColor: "white", display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <ShieldCheck size={26} strokeWidth={1.8} style={{ color: DARK }} />
+            </div>
+          </div>
+
+          <h1
+            className="text-3xl font-black mb-2 leading-tight"
+            style={{ fontFamily: "var(--font-playfair), Georgia, serif", color: DARK }}
+          >
+            Are you a student?
+          </h1>
+          <p className="text-sm mb-8" style={{ color: MUTED }}>
+            This helps us show you the right sign-in flow.
+          </p>
+
+          <div className="flex flex-col gap-3">
+            {[
+              { id: "student" as const, label: "Student", sub: "I have a college email address" },
+              { id: "non_student" as const, label: "Not a student", sub: "I’ll use my personal email" },
+            ].map(({ id, label, sub }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => { setUserType(id); setStep("email"); }}
+                className="w-full flex items-center justify-between text-left transition-all"
+                style={{
+                  padding: "16px 18px",
+                  background: "white",
+                  border: `2px solid ${DARK}`,
+                  borderRadius: 14,
+                  boxShadow: `2px 2px 0 ${DARK}`,
+                }}
+              >
+                <div>
+                  <p className="text-base font-semibold" style={{ color: DARK }}>{label}</p>
+                  <p className="text-sm mt-0.5" style={{ color: MUTED }}>{sub}</p>
+                </div>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                  stroke={DARK} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 6l6 4-6 4" />
+                </svg>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Email step ── */}
       {step === "email" && (
         <form onSubmit={sendOtp} className="flex flex-col flex-1">
+          <button
+            type="button"
+            onClick={() => setStep("role")}
+            className="flex items-center gap-1 mb-6 text-sm font-medium"
+            style={{ color: MUTED, background: "none", border: "none", padding: 0, cursor: "pointer" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
+            </svg>
+            Back
+          </button>
+
           <div className="flex justify-start mb-6">
             <div
               style={{
@@ -295,81 +381,87 @@ export default function LoginForm() {
             className="text-3xl font-black mb-8 leading-tight"
             style={{ fontFamily: "var(--font-playfair), Georgia, serif", color: DARK }}
           >
-            What&apos;s your college email?
+            {userType === "student" ? "What’s your college email?" : "What’s your email?"}
           </h1>
 
-          {/* College selector */}
-          <div className="mb-5 relative">
-            <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: MUTED }}>
-              Your college
-            </label>
-            <button
-              ref={collegeButtonRef}
-              type="button"
-              onClick={() => setPickerOpen((v) => !v)}
-              className="w-full flex items-center justify-between text-left"
-              style={{
-                padding: "12px 16px",
-                background: "white",
-                border: `2px solid ${DARK}`,
-                borderRadius: 12,
-                boxShadow: `2px 2px 0 ${DARK}`,
-                color: selectedCollege ? DARK : "#9B8B78",
-                fontSize: 15,
-              }}
-            >
-              <span>{selectedCollege ? selectedCollege.collegeName : "Select your college"}</span>
-              <ChevronDown
-                size={16}
-                style={{ color: MUTED, transform: pickerOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}
-              />
-            </button>
-
-            {pickerOpen && (
-              <div
-                ref={pickerRef}
-                className="absolute top-full left-0 right-0 mt-1 z-50 overflow-y-auto rounded-xl"
+          {/* College selector — students only */}
+          {userType === "student" && (
+            <div className="mb-5 relative">
+              <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: MUTED }}>
+                Your college
+              </label>
+              <button
+                ref={collegeButtonRef}
+                type="button"
+                onClick={() => setPickerOpen((v) => !v)}
+                className="w-full flex items-center justify-between text-left"
                 style={{
-                  maxHeight: 220,
-                  background: BG,
+                  padding: "12px 16px",
+                  background: "white",
                   border: `2px solid ${DARK}`,
-                  boxShadow: `4px 4px 0 ${DARK}`,
+                  borderRadius: 12,
+                  boxShadow: `2px 2px 0 ${DARK}`,
+                  color: selectedCollege ? DARK : "#9B8B78",
+                  fontSize: 15,
                 }}
               >
-                {colleges.length === 0 ? (
-                  <p className="px-4 py-3 text-sm" style={{ color: MUTED }}>No colleges found</p>
-                ) : (
-                  colleges.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => { setSelectedCollege(c); setPickerOpen(false); setEmail(""); }}
-                      className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-black/5"
-                    >
-                      <span className="font-semibold" style={{ color: DARK }}>{c.collegeName}</span>
-                      <span className="text-xs ml-2" style={{ color: MUTED }}>@{c.domain}</span>
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
+                <span>{selectedCollege ? selectedCollege.collegeName : "Select your college"}</span>
+                <ChevronDown
+                  size={16}
+                  style={{ color: MUTED, transform: pickerOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}
+                />
+              </button>
+
+              {pickerOpen && (
+                <div
+                  ref={pickerRef}
+                  className="absolute top-full left-0 right-0 mt-1 z-50 overflow-y-auto rounded-xl"
+                  style={{
+                    maxHeight: 220,
+                    background: BG,
+                    border: `2px solid ${DARK}`,
+                    boxShadow: `4px 4px 0 ${DARK}`,
+                  }}
+                >
+                  {colleges.length === 0 ? (
+                    <p className="px-4 py-3 text-sm" style={{ color: MUTED }}>No colleges found</p>
+                  ) : (
+                    colleges.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => { setSelectedCollege(c); setPickerOpen(false); setEmail(""); }}
+                        className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-black/5"
+                      >
+                        <span className="font-semibold" style={{ color: DARK }}>{c.collegeName}</span>
+                        <span className="text-xs ml-2" style={{ color: MUTED }}>@{c.domain}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Email input */}
           <div className="mb-2">
             <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: MUTED }}>
-              College email
+              {userType === "student" ? "College email" : "Email"}
             </label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={selectedCollege ? `you@${selectedCollege.domain}` : "Select college first"}
-              disabled={!selectedCollege}
+              placeholder={
+                userType === "student"
+                  ? (selectedCollege ? `you@${selectedCollege.domain}` : "Select college first")
+                  : "your@email.com"
+              }
+              disabled={userType === "student" && !selectedCollege}
               className={`${inputCls} disabled:opacity-50`}
             />
-            {selectedCollege && (
+            {userType === "student" && selectedCollege && (
               <p className="text-xs mt-2" style={{ color: MUTED }}>
                 Must end in <span className="font-semibold" style={{ color: DARK }}>@{selectedCollege.domain}</span>
               </p>
@@ -377,14 +469,21 @@ export default function LoginForm() {
           </div>
 
           <p className="text-sm mt-4 mb-2" style={{ color: MUTED }}>
-            We&apos;ll send a 6-digit verification code to your college email.
+            We&apos;ll send a 6-digit verification code to your email.
           </p>
 
           {error && <InlineError message={error} />}
 
           <div className="mt-auto pt-8 flex items-end justify-between">
-            <span className="text-sm" style={{ color: MUTED }}>Use your college-issued email</span>
-            <Fab disabled={!selectedCollege || !email || loading} loading={loading} />
+            <span className="text-sm" style={{ color: MUTED }}>
+              {userType === "student" ? "Use your college-issued email" : "Use your personal email"}
+            </span>
+            <Fab
+              disabled={
+                (userType === "student" ? (!selectedCollege || !email) : !email) || loading
+              }
+              loading={loading}
+            />
           </div>
         </form>
       )}
