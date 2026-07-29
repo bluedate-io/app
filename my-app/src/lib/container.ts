@@ -12,6 +12,7 @@ import { AdminOnboardingReminderController } from "@/controllers/AdminOnboarding
 import { AdminUsersController } from "@/controllers/AdminUsersController";
 import { AuthController } from "@/controllers/AuthController";
 import { MatchController } from "@/controllers/MatchController";
+import { PaymentController } from "@/controllers/PaymentController";
 import { OnboardingController } from "@/controllers/OnboardingController";
 import { UserApiController } from "@/controllers/UserApiController";
 import { InviteCodeRepository } from "@/repositories/InviteCodeRepository";
@@ -118,6 +119,7 @@ const adminOnboardingReminderController = new AdminOnboardingReminderController(
 const adminMatchesController = new AdminMatchesController(adminMatchesService);
 const adminAuthController = new AdminAuthController(adminAuthService);
 const matchController = new MatchController(matchService);
+const paymentController = new PaymentController(paymentService, payPalService);
 
 export const container = {
   // Repositories
@@ -167,4 +169,5 @@ export const container = {
   adminMatchesController,
   adminAuthController,
   matchController,
+  paymentController,
 } as const;
