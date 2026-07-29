@@ -40,10 +40,18 @@ export default async function HomePage() {
   const weekStart = getWeekStart(now);
   const deadline = getFridayMidnight(now);
 
-  const record = await db.weeklyOptIn.findUnique({
-    where: { userId_weekStart: { userId, weekStart } },
-    select: { mode: true, description: true },
-  });
+  const [record, userRow] = await Promise.all([
+    db.weeklyOptIn.findUnique({
+      where: { userId_weekStart: { userId, weekStart } },
+      select: { mode: true, description: true },
+    }),
+    db.user.findUnique({
+      where: { id: userId },
+      select: { planType: true },
+    }),
+  ]);
+
+  const planType = (userRow?.planType ?? "basic") as "basic" | "vip";
 
   const initial = {
     optedIn: !!record,
@@ -54,5 +62,5 @@ export default async function HomePage() {
     windowOpen: now < deadline,
   };
 
-  return <HomeView initial={initial} />;
+  return <HomeView initial={initial} planType={planType} />;
 }

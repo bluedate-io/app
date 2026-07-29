@@ -130,7 +130,7 @@ function TypeTextarea({
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export function HomeView({ initial }: { initial: OptInState }) {
+export function HomeView({ initial, planType }: { initial: OptInState; planType: "basic" | "vip" }) {
   const [state, setState] = useState<OptInState>(initial);
   const [parts, setParts] = useState(() => getTimeParts(new Date(initial.deadline).getTime() - Date.now()));
   const [description, setDescription] = useState(initial.description ?? "");
@@ -242,62 +242,103 @@ const modeLine = state.mode === "bff" ? "BFF" : "Date";
       {/* ── Not opted in ─────────────────────────────────────────────────── */}
       {!state.optedIn && (
         <div style={{ padding: "0 16px" }}>
-          <div
-            style={{
-              background: "#fff",
-              border: `2.5px solid ${DARK}`,
-              boxShadow: `4px 4px 0 ${DARK}`,
-              borderRadius: 18,
-              padding: "20px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 16,
-            }}
-          >
-            <div>
-              <p style={{ margin: "0 0 4px", fontFamily: SERIF, fontSize: 20, fontWeight: 700, color: DARK }}>
-                Want a match this week?
-              </p>
-              <p style={{ margin: 0, fontSize: 13, color: MUTED }}>
-                Opt in and we&apos;ll find you someone by the weekend.
-              </p>
-            </div>
-
-            {!initial.description && (
-              <div>
-                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
-                  Describe your type <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span>
-                </label>
-                <TypeTextarea
-                  value={description}
-                  onChange={setDescription}
-                  disabled={!windowOpen}
-                  placeholder="e.g. someone outdoorsy who loves films…"
-                />
-              </div>
-            )}
-
-            <button
-              onClick={handleOptIn}
-              disabled={!windowOpen || optingIn}
+          {planType === "vip" ? (
+            <div
               style={{
-                background: windowOpen ? DARK : MUTED,
-                color: "#fff",
+                background: "#fff",
                 border: `2.5px solid ${DARK}`,
-                boxShadow: windowOpen ? `4px 4px 0 ${DARK}` : "none",
-                borderRadius: 999,
-                padding: "14px 24px",
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: windowOpen ? "pointer" : "not-allowed",
-                width: "100%",
-                transition: "opacity 0.15s",
-                opacity: optingIn ? 0.7 : 1,
+                boxShadow: `4px 4px 0 ${DARK}`,
+                borderRadius: 18,
+                padding: "20px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
               }}
             >
-              {optingIn ? "Opting in…" : windowOpen ? "Opt In for This Week" : "Window Closed"}
-            </button>
-          </div>
+              <div>
+                <p style={{ margin: "0 0 4px", fontFamily: SERIF, fontSize: 20, fontWeight: 700, color: DARK }}>
+                  Want a match this week?
+                </p>
+                <p style={{ margin: 0, fontSize: 13, color: MUTED }}>
+                  Opt in and we&apos;ll find you someone by the weekend.
+                </p>
+              </div>
+
+              {!initial.description && (
+                <div>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                    Describe your type <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+                  </label>
+                  <TypeTextarea
+                    value={description}
+                    onChange={setDescription}
+                    disabled={!windowOpen}
+                    placeholder="e.g. someone outdoorsy who loves films…"
+                  />
+                </div>
+              )}
+
+              <button
+                onClick={handleOptIn}
+                disabled={!windowOpen || optingIn}
+                style={{
+                  background: windowOpen ? DARK : MUTED,
+                  color: "#fff",
+                  border: `2.5px solid ${DARK}`,
+                  boxShadow: windowOpen ? `4px 4px 0 ${DARK}` : "none",
+                  borderRadius: 999,
+                  padding: "14px 24px",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  cursor: windowOpen ? "pointer" : "not-allowed",
+                  width: "100%",
+                  transition: "opacity 0.15s",
+                  opacity: optingIn ? 0.7 : 1,
+                }}
+              >
+                {optingIn ? "Opting in…" : windowOpen ? "Opt In for This Week" : "Window Closed"}
+              </button>
+            </div>
+          ) : (
+            <div
+              style={{
+                background: DARK,
+                border: `2.5px solid ${DARK}`,
+                boxShadow: `4px 4px 0 #E8622A`,
+                borderRadius: 18,
+                padding: "20px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+              }}
+            >
+              <div>
+                <p style={{ margin: "0 0 4px", fontFamily: SERIF, fontSize: 20, fontWeight: 700, color: "#fff" }}>
+                  Upgrade to get matched
+                </p>
+                <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.65)" }}>
+                  VIP members get access to weekly matchmaking for $1.20/month.
+                </p>
+              </div>
+              <a
+                href="/upgrade"
+                style={{
+                  display: "block",
+                  textAlign: "center",
+                  background: "#E8622A",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 999,
+                  padding: "14px 24px",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  textDecoration: "none",
+                }}
+              >
+                View VIP plans
+              </a>
+            </div>
+          )}
         </div>
       )}
 
