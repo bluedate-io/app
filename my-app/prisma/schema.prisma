@@ -372,13 +372,13 @@ model Message {
   @@map("messages")
 }
 
-// ─── Subscription — PayPal recurring billing ──────────────────────────────────
+// ─── Subscription — Razorpay recurring billing ────────────────────────────────
 
 model Subscription {
-  id                   String             @id @default(cuid())
-  userId               String             @unique
-  paypalSubscriptionId String             @unique
-  status               SubscriptionStatus @default(pending)
+  id                     String             @id @default(cuid())
+  userId                 String             @unique
+  razorpaySubscriptionId String             @unique
+  status                 SubscriptionStatus @default(pending)
   startedAt            DateTime?
   nextBillingAt        DateTime?
   cancelledAt          DateTime?

@@ -41,7 +41,7 @@ import { InviteCodeService } from "@/services/InviteCodeService";
 import { MatchService } from "@/services/MatchService";
 import { MatchEmailService } from "@/services/MatchEmailService";
 import { OnboardingService } from "@/services/OnboardingService";
-import { PayPalService } from "@/services/PayPalService";
+import { RazorpayService } from "@/services/RazorpayService";
 import { PaymentService } from "@/services/PaymentService";
 import { TwilioService } from "@/services/TwilioService";
 import { UserSelfService } from "@/services/UserSelfService";
@@ -65,7 +65,7 @@ const locationRepository = new LocationRepository(db);
 const subscriptionRepository = new SubscriptionRepository(db);
 
 // ─── Services ─────────────────────────────────────────────────────────────────
-const payPalService = new PayPalService();
+const razorpayService = new RazorpayService();
 const twilioService = new TwilioService();
 const matchEmailService = new MatchEmailService();
 const emailService = new EmailService(db);
@@ -103,7 +103,7 @@ const adminOnboardingReminderService = new AdminOnboardingReminderService(
 const adminMatchesService = new AdminMatchesService(adminMatchesRepository);
 const userSelfService = new UserSelfService(userSelfRepository, matchEmailService);
 const adminAuthService = new AdminAuthService(emailService, userRepository, userSelfRepository);
-const paymentService = new PaymentService(db, subscriptionRepository, payPalService);
+const paymentService = new PaymentService(db, subscriptionRepository, razorpayService);
 
 // ─── Controllers ──────────────────────────────────────────────────────────────
 const adminLocationController = new AdminLocationController(locationRepository);
@@ -119,7 +119,7 @@ const adminOnboardingReminderController = new AdminOnboardingReminderController(
 const adminMatchesController = new AdminMatchesController(adminMatchesService);
 const adminAuthController = new AdminAuthController(adminAuthService);
 const matchController = new MatchController(matchService);
-const paymentController = new PaymentController(paymentService, payPalService);
+const paymentController = new PaymentController(paymentService, razorpayService);
 
 export const container = {
   // Repositories
@@ -139,7 +139,7 @@ export const container = {
   subscriptionRepository,
 
   // Services
-  payPalService,
+  razorpayService,
   paymentService,
   twilioService,
   emailService,

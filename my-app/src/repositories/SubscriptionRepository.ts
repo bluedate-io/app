@@ -3,10 +3,12 @@
 import type { PrismaClient } from "@/generated/prisma/client";
 import { SubscriptionStatus } from "@/generated/prisma/client";
 
+export { SubscriptionStatus };
+
 export interface SubscriptionRow {
   id: string;
   userId: string;
-  paypalSubscriptionId: string;
+  razorpaySubscriptionId: string;
   status: SubscriptionStatus;
   startedAt: Date | null;
   nextBillingAt: Date | null;
@@ -16,7 +18,7 @@ export interface SubscriptionRow {
 }
 
 export interface UpsertSubscriptionData {
-  paypalSubscriptionId: string;
+  razorpaySubscriptionId: string;
   status: SubscriptionStatus;
   startedAt?: Date | null;
   nextBillingAt?: Date | null;
@@ -26,7 +28,7 @@ export interface UpsertSubscriptionData {
 export interface ISubscriptionRepository {
   upsert(userId: string, data: UpsertSubscriptionData): Promise<SubscriptionRow>;
   findByUserId(userId: string): Promise<SubscriptionRow | null>;
-  findByPaypalId(paypalSubscriptionId: string): Promise<SubscriptionRow | null>;
+  findByRazorpayId(razorpaySubscriptionId: string): Promise<SubscriptionRow | null>;
 }
 
 export class SubscriptionRepository implements ISubscriptionRepository {
@@ -44,7 +46,7 @@ export class SubscriptionRepository implements ISubscriptionRepository {
     return this.db.subscription.findUnique({ where: { userId } });
   }
 
-  async findByPaypalId(paypalSubscriptionId: string): Promise<SubscriptionRow | null> {
-    return this.db.subscription.findUnique({ where: { paypalSubscriptionId } });
+  async findByRazorpayId(razorpaySubscriptionId: string): Promise<SubscriptionRow | null> {
+    return this.db.subscription.findUnique({ where: { razorpaySubscriptionId } });
   }
 }

@@ -94,12 +94,11 @@ export const config = {
     photoBucket: optionalEnv("SUPABASE_PHOTO_BUCKET", "photos"),
   },
 
-  paypal: {
-    clientId: optionalEnv("PAYPAL_CLIENT_ID", ""),
-    clientSecret: optionalEnv("PAYPAL_CLIENT_SECRET", ""),
-    planId: optionalEnv("PAYPAL_PLAN_ID", ""),
-    webhookId: optionalEnv("PAYPAL_WEBHOOK_ID", ""),
-    baseUrl: "https://api-m.paypal.com",
+  razorpay: {
+    keyId: optionalEnv("RAZORPAY_KEY_ID", ""),
+    keySecret: optionalEnv("RAZORPAY_KEY_SECRET", ""),
+    planId: optionalEnv("RAZORPAY_PLAN_ID", ""),
+    webhookSecret: optionalEnv("RAZORPAY_WEBHOOK_SECRET", ""),
   },
 } as const;
 
@@ -116,8 +115,7 @@ if (config.isProd) {
   requireEnv("SMTP_USER");
   requireEnv("SMTP_PASS");
   requireEnv("EMAIL_FROM");
-  requireEnv("PAYPAL_CLIENT_ID");
-  requireEnv("PAYPAL_CLIENT_SECRET");
-  requireEnv("PAYPAL_PLAN_ID");
-  // PAYPAL_WEBHOOK_ID is checked at runtime in PayPalService.verifyWebhookSignature
+  requireEnv("RAZORPAY_KEY_ID");
+  requireEnv("RAZORPAY_KEY_SECRET");
+  // RAZORPAY_PLAN_ID and RAZORPAY_WEBHOOK_SECRET checked at runtime in RazorpayService
 }

@@ -1,52 +1,43 @@
 // ─── PaymentService ───────────────────────────────────────────────────────────
-// Orchestrates subscription lifecycle: initiate, activate, handle webhooks.
 
 import type { PrismaClient } from "@/generated/prisma/client";
 import { SubscriptionStatus } from "@/generated/prisma/client";
 import type { ISubscriptionRepository } from "@/repositories/SubscriptionRepository";
-import type { PayPalService } from "@/services/PayPalService";
+import type { RazorpayService } from "@/services/RazorpayService";
 import { config } from "@/config";
 import { logger } from "@/utils/logger";
 
 const log = logger.child("PaymentService");
 
-export interface PayPalWebhookEvent {
-  event_type: string;
-  resource: {
-    id: string;
-    status?: string;
-    start_time?: string;
-    billing_info?: { next_billing_time?: string };
+export interface RazorpayWebhookEvent {
+  event: string;
+  payload: {
+    subscription?: {
+      entity: {
+        id: string;
+        status: string;
+        current_start?: number;
+        charge_at?: number;
+      };
+    };
+    payment?: {
+      entity: { id: string };
+    };
   };
 }
-
-const ACTIVATE_EVENTS = new Set([
-  "BILLING.SUBSCRIPTION.ACTIVATED",
-  "BILLING.SUBSCRIPTION.RE-ACTIVATED",
-]);
-
-const DEACTIVATE_EVENTS = new Set([
-  "BILLING.SUBSCRIPTION.CANCELLED",
-  "BILLING.SUBSCRIPTION.SUSPENDED",
-  "BILLING.SUBSCRIPTION.EXPIRED",
-]);
 
 export class PaymentService {
   constructor(
     private readonly db: PrismaClient,
     private readonly subscriptionRepository: ISubscriptionRepository,
-    private readonly payPalService: PayPalService,
+    private readonly razorpayService: RazorpayService,
   ) {}
 
-  async initiateSubscription(userId: string): Promise<{ approvalUrl: string }> {
-    const returnUrl = `${config.app.url}/api/payment/success`;
-    const cancelUrl = `${config.app.url}/payment/cancel`;
-
-    const { subscriptionId, approvalUrl } =
-      await this.payPalService.createSubscription(userId, returnUrl, cancelUrl);
+  async initiateSubscription(userId: string): Promise<{ subscriptionId: string; keyId: string }> {
+    const { subscriptionId } = await this.razorpayService.createSubscription(userId);
 
     await this.subscriptionRepository.upsert(userId, {
-      paypalSubscriptionId: subscriptionId,
+      razorpaySubscriptionId: subscriptionId,
       status: SubscriptionStatus.pending,
       startedAt: null,
       nextBillingAt: null,
@@ -54,35 +45,31 @@ export class PaymentService {
     });
 
     log.info("Subscription initiated", { userId, subscriptionId });
-    return { approvalUrl };
+    return { subscriptionId, keyId: config.razorpay.keyId };
   }
 
-  async activateFromRedirect(paypalSubscriptionId: string): Promise<void> {
-    const sub = await this.payPalService.getSubscription(paypalSubscriptionId);
-
-    if (sub.status !== "ACTIVE") {
-      log.info("Subscription not yet ACTIVE on redirect, skipping", {
-        paypalSubscriptionId,
-        status: sub.status,
-      });
-      return;
+  async verifyFirstPayment(
+    paymentId: string,
+    subscriptionId: string,
+    signature: string
+  ): Promise<void> {
+    const valid = this.razorpayService.verifyPaymentSignature(paymentId, subscriptionId, signature);
+    if (!valid) {
+      throw new Error("Invalid payment signature");
     }
 
-    const row = await this.subscriptionRepository.findByPaypalId(paypalSubscriptionId);
+    const row = await this.subscriptionRepository.findByRazorpayId(subscriptionId);
     if (!row) {
-      log.warn("Unknown subscription on success redirect", { paypalSubscriptionId });
-      return;
+      log.warn("Unknown subscription on verify", { subscriptionId });
+      throw new Error("Subscription not found");
     }
 
     await this.db.$transaction([
       this.db.subscription.update({
-        where: { paypalSubscriptionId },
+        where: { razorpaySubscriptionId: subscriptionId },
         data: {
           status: SubscriptionStatus.active,
-          startedAt: sub.start_time ? new Date(sub.start_time) : new Date(),
-          nextBillingAt: sub.billing_info?.next_billing_time
-            ? new Date(sub.billing_info.next_billing_time)
-            : null,
+          startedAt: new Date(),
         },
       }),
       this.db.user.update({
@@ -91,29 +78,33 @@ export class PaymentService {
       }),
     ]);
 
-    log.info("User upgraded to VIP via redirect", { userId: row.userId, paypalSubscriptionId });
+    log.info("User upgraded to VIP via payment verify", { userId: row.userId, subscriptionId });
   }
 
-  async handleWebhook(event: PayPalWebhookEvent): Promise<void> {
-    const { event_type, resource } = event;
-    const paypalSubscriptionId = resource.id;
+  async handleWebhook(event: RazorpayWebhookEvent): Promise<void> {
+    const { event: eventType, payload } = event;
+    const subscriptionId = payload.subscription?.entity.id;
 
-    if (ACTIVATE_EVENTS.has(event_type)) {
-      const row = await this.subscriptionRepository.findByPaypalId(paypalSubscriptionId);
+    if (!subscriptionId) {
+      log.info("Webhook: no subscription in payload, ignoring", { eventType });
+      return;
+    }
+
+    if (eventType === "subscription.activated") {
+      const row = await this.subscriptionRepository.findByRazorpayId(subscriptionId);
       if (!row) {
-        log.warn("Webhook: unknown subscription", { paypalSubscriptionId, event_type });
+        log.warn("Webhook: unknown subscription on activate", { subscriptionId });
         return;
       }
 
+      const chargeAt = payload.subscription?.entity.charge_at;
       await this.db.$transaction([
         this.db.subscription.update({
-          where: { paypalSubscriptionId },
+          where: { razorpaySubscriptionId: subscriptionId },
           data: {
             status: SubscriptionStatus.active,
-            startedAt: resource.start_time ? new Date(resource.start_time) : new Date(),
-            nextBillingAt: resource.billing_info?.next_billing_time
-              ? new Date(resource.billing_info.next_billing_time)
-              : null,
+            startedAt: new Date(),
+            nextBillingAt: chargeAt ? new Date(chargeAt * 1000) : null,
           },
         }),
         this.db.user.update({
@@ -122,28 +113,34 @@ export class PaymentService {
         }),
       ]);
 
-      log.info("User upgraded to VIP via webhook", { userId: row.userId, event_type });
+      log.info("User upgraded to VIP via webhook", { userId: row.userId, eventType });
       return;
     }
 
-    if (DEACTIVATE_EVENTS.has(event_type)) {
-      const row = await this.subscriptionRepository.findByPaypalId(paypalSubscriptionId);
+    if (
+      eventType === "subscription.cancelled" ||
+      eventType === "subscription.halted" ||
+      eventType === "subscription.completed" ||
+      eventType === "subscription.expired"
+    ) {
+      const row = await this.subscriptionRepository.findByRazorpayId(subscriptionId);
       if (!row) {
-        log.warn("Webhook: unknown subscription on deactivate", { paypalSubscriptionId, event_type });
+        log.warn("Webhook: unknown subscription on deactivate", { subscriptionId });
         return;
       }
 
       const statusMap: Record<string, SubscriptionStatus> = {
-        "BILLING.SUBSCRIPTION.CANCELLED": SubscriptionStatus.cancelled,
-        "BILLING.SUBSCRIPTION.SUSPENDED": SubscriptionStatus.suspended,
-        "BILLING.SUBSCRIPTION.EXPIRED": SubscriptionStatus.expired,
+        "subscription.cancelled": SubscriptionStatus.cancelled,
+        "subscription.halted": SubscriptionStatus.suspended,
+        "subscription.completed": SubscriptionStatus.expired,
+        "subscription.expired": SubscriptionStatus.expired,
       };
 
       await this.db.$transaction([
         this.db.subscription.update({
-          where: { paypalSubscriptionId },
+          where: { razorpaySubscriptionId: subscriptionId },
           data: {
-            status: statusMap[event_type] ?? SubscriptionStatus.cancelled,
+            status: statusMap[eventType] ?? SubscriptionStatus.cancelled,
             cancelledAt: new Date(),
           },
         }),
@@ -153,10 +150,10 @@ export class PaymentService {
         }),
       ]);
 
-      log.info("User downgraded to Basic via webhook", { userId: row.userId, event_type });
+      log.info("User downgraded to Basic via webhook", { userId: row.userId, eventType });
       return;
     }
 
-    log.info("Webhook: unhandled event type, ignoring", { event_type });
+    log.info("Webhook: unhandled event, ignoring", { eventType });
   }
 }

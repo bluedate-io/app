@@ -2,10 +2,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import type { RequestContext } from "@/types";
-import type { PaymentService, PayPalWebhookEvent } from "@/services/PaymentService";
-import type { PayPalService } from "@/services/PayPalService";
+import type { PaymentService, RazorpayWebhookEvent } from "@/services/PaymentService";
+import type { RazorpayService } from "@/services/RazorpayService";
 import { successResponse, handleError } from "@/utils/response";
-import { config } from "@/config";
 import { logger } from "@/utils/logger";
 
 const log = logger.child("PaymentController");
@@ -13,10 +12,10 @@ const log = logger.child("PaymentController");
 export class PaymentController {
   constructor(
     private readonly paymentService: PaymentService,
-    private readonly payPalService: PayPalService,
+    private readonly razorpayService: RazorpayService,
   ) {}
 
-  // POST /api/payment/subscribe — authenticated; returns { approvalUrl }
+  // POST /api/payment/subscribe — returns { subscriptionId, keyId }
   async subscribe(_req: NextRequest, ctx: RequestContext) {
     try {
       const result = await this.paymentService.initiateSubscription(ctx.userId);
@@ -26,56 +25,54 @@ export class PaymentController {
     }
   }
 
-  // GET /api/payment/success?subscription_id=I-XXX — PayPal redirect
-  async successRedirect(req: NextRequest) {
-    const subscriptionId = req.nextUrl.searchParams.get("subscription_id") ?? "";
+  // POST /api/payment/verify — verify first payment from Razorpay checkout
+  async verifyPayment(req: NextRequest, ctx: RequestContext) {
+    try {
+      const { razorpay_payment_id, razorpay_subscription_id, razorpay_signature } =
+        await req.json() as {
+          razorpay_payment_id: string;
+          razorpay_subscription_id: string;
+          razorpay_signature: string;
+        };
 
-    if (subscriptionId) {
-      try {
-        await this.paymentService.activateFromRedirect(subscriptionId);
-      } catch (err) {
-        log.error("Failed to activate subscription on redirect", { subscriptionId, err });
+      if (!razorpay_payment_id || !razorpay_subscription_id || !razorpay_signature) {
+        return NextResponse.json({ success: false, error: "Missing payment fields" }, { status: 400 });
       }
+
+      await this.paymentService.verifyFirstPayment(
+        razorpay_payment_id,
+        razorpay_subscription_id,
+        razorpay_signature,
+      );
+
+      log.info("Payment verified", { userId: ctx.userId, razorpay_subscription_id });
+      return successResponse({ activated: true });
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  // POST /api/webhooks/razorpay
+  async razorpayWebhook(req: NextRequest) {
+    const rawBody = await req.text();
+    const signature = req.headers.get("x-razorpay-signature") ?? "";
+
+    if (!this.razorpayService.verifyWebhookSignature(rawBody, signature)) {
+      log.warn("Razorpay webhook signature invalid");
+      return NextResponse.json({ error: "invalid signature" }, { status: 400 });
     }
 
-    return NextResponse.redirect(new URL("/payment/success", config.app.url));
-  }
-
-  // GET /api/payment/cancel — PayPal redirect when user cancels
-  async cancelRedirect(_req: NextRequest) {
-    return NextResponse.redirect(new URL("/payment/cancel", config.app.url));
-  }
-
-  // POST /api/webhooks/paypal
-  async paypalWebhook(req: NextRequest) {
-    const rawBody = await req.text();
-    let parsed: PayPalWebhookEvent;
-
+    let parsed: RazorpayWebhookEvent;
     try {
-      parsed = JSON.parse(rawBody) as PayPalWebhookEvent;
+      parsed = JSON.parse(rawBody) as RazorpayWebhookEvent;
     } catch {
       return NextResponse.json({ error: "invalid json" }, { status: 400 });
-    }
-
-    const headers: Record<string, string> = {
-      "paypal-auth-algo": req.headers.get("paypal-auth-algo") ?? "",
-      "paypal-cert-url": req.headers.get("paypal-cert-url") ?? "",
-      "paypal-transmission-id": req.headers.get("paypal-transmission-id") ?? "",
-      "paypal-transmission-sig": req.headers.get("paypal-transmission-sig") ?? "",
-      "paypal-transmission-time": req.headers.get("paypal-transmission-time") ?? "",
-    };
-
-    try {
-      await this.payPalService.verifyWebhookSignature(headers, rawBody, parsed);
-    } catch (err) {
-      log.warn("Webhook signature verification failed", { err });
-      return NextResponse.json({ error: "invalid signature" }, { status: 400 });
     }
 
     try {
       await this.paymentService.handleWebhook(parsed);
     } catch (err) {
-      log.error("Webhook processing error", { event_type: parsed.event_type, err });
+      log.error("Webhook processing error", { event: parsed.event, err });
       return NextResponse.json({ error: "processing failed" }, { status: 500 });
     }
 
