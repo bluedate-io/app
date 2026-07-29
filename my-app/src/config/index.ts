@@ -93,6 +93,14 @@ export const config = {
     serviceRoleKey: optionalEnv("SUPABASE_SERVICE_ROLE_KEY", ""),
     photoBucket: optionalEnv("SUPABASE_PHOTO_BUCKET", "photos"),
   },
+
+  paypal: {
+    clientId: optionalEnv("PAYPAL_CLIENT_ID", ""),
+    clientSecret: optionalEnv("PAYPAL_CLIENT_SECRET", ""),
+    planId: optionalEnv("PAYPAL_PLAN_ID", ""),
+    webhookId: optionalEnv("PAYPAL_WEBHOOK_ID", ""),
+    baseUrl: "https://api-m.paypal.com",
+  },
 } as const;
 
 // Eagerly validate critical secrets at startup in production
@@ -108,4 +116,8 @@ if (config.isProd) {
   requireEnv("SMTP_USER");
   requireEnv("SMTP_PASS");
   requireEnv("EMAIL_FROM");
+  requireEnv("PAYPAL_CLIENT_ID");
+  requireEnv("PAYPAL_CLIENT_SECRET");
+  requireEnv("PAYPAL_PLAN_ID");
+  requireEnv("PAYPAL_WEBHOOK_ID");
 }

@@ -32,6 +32,9 @@ export const ErrorCode = {
   ONBOARDING_INCOMPLETE: "ONBOARDING_INCOMPLETE",
   ONBOARDING_STEP_MISSING: "ONBOARDING_STEP_MISSING",
   PROFILE_INCOMPLETE: "PROFILE_INCOMPLETE",
+
+  // Payment
+  PLAN_REQUIRED: "PLAN_REQUIRED",
 } as const;
 
 export type ErrorCodeType = (typeof ErrorCode)[keyof typeof ErrorCode];
