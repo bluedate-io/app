@@ -23,50 +23,38 @@ export class RazorpayService {
     );
   }
 
-  async createSubscription(
+  async createOrder(
+    amount: number,
     userId: string
-  ): Promise<{ subscriptionId: string }> {
-    const res = await fetch(`${this.base}/subscriptions`, {
+  ): Promise<{ orderId: string }> {
+    const res = await fetch(`${this.base}/orders`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: this.auth,
       },
       body: JSON.stringify({
-        plan_id: config.razorpay.planId,
-        total_count: 120,
-        quantity: 1,
+        amount,
+        currency: "INR",
         notes: { userId },
       }),
     });
 
     if (!res.ok) {
       const err = await res.text();
-      throw new Error(`Razorpay createSubscription failed: ${res.status} ${err}`);
+      throw new Error(`Razorpay createOrder failed: ${res.status} ${err}`);
     }
 
     const data = (await res.json()) as { id: string };
-    return { subscriptionId: data.id };
+    return { orderId: data.id };
   }
 
-  async getSubscription(subscriptionId: string): Promise<RazorpaySubscription> {
-    const res = await fetch(`${this.base}/subscriptions/${subscriptionId}`, {
-      headers: { Authorization: this.auth },
-    });
-
-    if (!res.ok) {
-      throw new Error(`Razorpay getSubscription failed: ${res.status}`);
-    }
-
-    return res.json() as Promise<RazorpaySubscription>;
-  }
-
-  verifyPaymentSignature(
+  verifyOrderSignature(
+    orderId: string,
     paymentId: string,
-    subscriptionId: string,
     signature: string
   ): boolean {
-    const body = `${paymentId}|${subscriptionId}`;
+    const body = `${orderId}|${paymentId}`;
     const expected = crypto
       .createHmac("sha256", config.razorpay.keySecret)
       .update(body)

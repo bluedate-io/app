@@ -34,7 +34,7 @@ export function UpgradeView() {
       const res = await fetch("/api/payment/subscribe", { method: "POST" });
       const data = await res.json() as {
         success: boolean;
-        data?: { subscriptionId: string; keyId: string };
+        data?: { orderId: string; keyId: string };
         error?: { message: string };
       };
 
@@ -44,17 +44,19 @@ export function UpgradeView() {
         return;
       }
 
-      const { subscriptionId, keyId } = data.data;
+      const { orderId, keyId } = data.data;
 
       const rzp = new window.Razorpay({
         key: keyId,
-        subscription_id: subscriptionId,
+        order_id: orderId,
+        amount: 9900,
+        currency: "INR",
         name: "Ren",
-        description: "VIP Monthly — ₹99/month",
+        description: "VIP — ₹99",
         theme: { color: ACCENT },
         handler: async (response: {
           razorpay_payment_id: string;
-          razorpay_subscription_id: string;
+          razorpay_order_id: string;
           razorpay_signature: string;
         }) => {
           try {

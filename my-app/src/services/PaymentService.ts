@@ -33,40 +33,40 @@ export class PaymentService {
     private readonly razorpayService: RazorpayService,
   ) {}
 
-  async initiateSubscription(userId: string): Promise<{ subscriptionId: string; keyId: string }> {
-    const { subscriptionId } = await this.razorpayService.createSubscription(userId);
+  async initiateSubscription(userId: string): Promise<{ orderId: string; keyId: string }> {
+    const { orderId } = await this.razorpayService.createOrder(9900, userId);
 
     await this.subscriptionRepository.upsert(userId, {
-      razorpaySubscriptionId: subscriptionId,
+      razorpaySubscriptionId: orderId,
       status: SubscriptionStatus.pending,
       startedAt: null,
       nextBillingAt: null,
       cancelledAt: null,
     });
 
-    log.info("Subscription initiated", { userId, subscriptionId });
-    return { subscriptionId, keyId: config.razorpay.keyId };
+    log.info("Order created", { userId, orderId });
+    return { orderId, keyId: config.razorpay.keyId };
   }
 
   async verifyFirstPayment(
+    orderId: string,
     paymentId: string,
-    subscriptionId: string,
     signature: string
   ): Promise<void> {
-    const valid = this.razorpayService.verifyPaymentSignature(paymentId, subscriptionId, signature);
+    const valid = this.razorpayService.verifyOrderSignature(orderId, paymentId, signature);
     if (!valid) {
       throw new Error("Invalid payment signature");
     }
 
-    const row = await this.subscriptionRepository.findByRazorpayId(subscriptionId);
+    const row = await this.subscriptionRepository.findByRazorpayId(orderId);
     if (!row) {
-      log.warn("Unknown subscription on verify", { subscriptionId });
-      throw new Error("Subscription not found");
+      log.warn("Unknown order on verify", { orderId });
+      throw new Error("Order not found");
     }
 
     await this.db.$transaction([
       this.db.subscription.update({
-        where: { razorpaySubscriptionId: subscriptionId },
+        where: { razorpaySubscriptionId: orderId },
         data: {
           status: SubscriptionStatus.active,
           startedAt: new Date(),
@@ -78,7 +78,7 @@ export class PaymentService {
       }),
     ]);
 
-    log.info("User upgraded to VIP via payment verify", { userId: row.userId, subscriptionId });
+    log.info("User upgraded to VIP via payment verify", { userId: row.userId, orderId });
   }
 
   async handleWebhook(event: RazorpayWebhookEvent): Promise<void> {
