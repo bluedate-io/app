@@ -98,7 +98,14 @@ async function getUsers(
     db.user.count({ where }),
     db.user.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        phone: true,
+        email: true,
+        planType: true,
+        onboardingCompleted: true,
+        optInStatus: true,
+        createdAt: true,
         profile: { select: { fullName: true, city: true } },
         preferences: { select: { genderIdentity: true } },
         interests: { select: { id: true } },
@@ -121,6 +128,7 @@ async function getUsers(
     step: computeAdminUserStep(u),
     completed: u.onboardingCompleted,
     optInStatus: (u.optInStatus as string) ?? "opted_out",
+    planType: (u.planType as "basic" | "vip") ?? "basic",
     joinedAt: u.createdAt.toISOString(),
   }));
 

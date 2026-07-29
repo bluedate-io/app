@@ -54,6 +54,7 @@ type UserRow = {
   step: string;
   completed: boolean;
   optInStatus: string;
+  planType: "basic" | "vip";
   joinedAt: string;
 };
 
@@ -793,6 +794,9 @@ export default function UsersTable({
                 )}
               </th>
               <th className={plainThClass} style={{ color: HEADER_TEXT }}>
+                Plan
+              </th>
+              <th className={plainThClass} style={{ color: HEADER_TEXT }}>
                 Opt-in
               </th>
               <th className={plainThClass} style={{ color: HEADER_TEXT }}>
@@ -804,7 +808,7 @@ export default function UsersTable({
           <tbody>
             {users.length === 0 ? (
               <tr style={{ backgroundColor: adminTheme.tableSurface }}>
-                <td colSpan={8} className="px-4 py-16 text-center text-sm" style={{ color: adminTheme.mutedLabel }}>
+                <td colSpan={9} className="px-4 py-16 text-center text-sm" style={{ color: adminTheme.mutedLabel }}>
                   No users found.
                 </td>
               </tr>
@@ -846,6 +850,17 @@ export default function UsersTable({
                     >
                       {u.step}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {u.planType === "vip" ? (
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium" style={{ color: "#b45309", backgroundColor: "#b4530918" }}>
+                        VIP
+                      </span>
+                    ) : (
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium" style={{ color: "#6b7280", backgroundColor: "#6b728018" }}>
+                        Basic
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {u.optInStatus === "opted_in" ? (
