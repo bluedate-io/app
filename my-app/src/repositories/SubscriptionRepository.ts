@@ -1,12 +1,13 @@
 // ─── SubscriptionRepository ───────────────────────────────────────────────────
 
 import type { PrismaClient } from "@/generated/prisma/client";
+import { SubscriptionStatus } from "@/generated/prisma/client";
 
 export interface SubscriptionRow {
   id: string;
   userId: string;
   paypalSubscriptionId: string;
-  status: string;
+  status: SubscriptionStatus;
   startedAt: Date | null;
   nextBillingAt: Date | null;
   cancelledAt: Date | null;
@@ -16,7 +17,7 @@ export interface SubscriptionRow {
 
 export interface UpsertSubscriptionData {
   paypalSubscriptionId: string;
-  status: string;
+  status: SubscriptionStatus;
   startedAt?: Date | null;
   nextBillingAt?: Date | null;
   cancelledAt?: Date | null;

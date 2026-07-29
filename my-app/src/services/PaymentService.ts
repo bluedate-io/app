@@ -2,6 +2,7 @@
 // Orchestrates subscription lifecycle: initiate, activate, handle webhooks.
 
 import type { PrismaClient } from "@/generated/prisma/client";
+import { SubscriptionStatus } from "@/generated/prisma/client";
 import type { ISubscriptionRepository } from "@/repositories/SubscriptionRepository";
 import type { PayPalService } from "@/services/PayPalService";
 import { config } from "@/config";
@@ -46,7 +47,7 @@ export class PaymentService {
 
     await this.subscriptionRepository.upsert(userId, {
       paypalSubscriptionId: subscriptionId,
-      status: "pending",
+      status: SubscriptionStatus.pending,
       startedAt: null,
       nextBillingAt: null,
       cancelledAt: null,
@@ -77,7 +78,7 @@ export class PaymentService {
       this.db.subscription.update({
         where: { paypalSubscriptionId },
         data: {
-          status: "active",
+          status: SubscriptionStatus.active,
           startedAt: sub.start_time ? new Date(sub.start_time) : new Date(),
           nextBillingAt: sub.billing_info?.next_billing_time
             ? new Date(sub.billing_info.next_billing_time)
@@ -108,7 +109,7 @@ export class PaymentService {
         this.db.subscription.update({
           where: { paypalSubscriptionId },
           data: {
-            status: "active",
+            status: SubscriptionStatus.active,
             startedAt: resource.start_time ? new Date(resource.start_time) : new Date(),
             nextBillingAt: resource.billing_info?.next_billing_time
               ? new Date(resource.billing_info.next_billing_time)
@@ -132,17 +133,17 @@ export class PaymentService {
         return;
       }
 
-      const statusMap: Record<string, string> = {
-        "BILLING.SUBSCRIPTION.CANCELLED": "cancelled",
-        "BILLING.SUBSCRIPTION.SUSPENDED": "suspended",
-        "BILLING.SUBSCRIPTION.EXPIRED": "expired",
+      const statusMap: Record<string, SubscriptionStatus> = {
+        "BILLING.SUBSCRIPTION.CANCELLED": SubscriptionStatus.cancelled,
+        "BILLING.SUBSCRIPTION.SUSPENDED": SubscriptionStatus.suspended,
+        "BILLING.SUBSCRIPTION.EXPIRED": SubscriptionStatus.expired,
       };
 
       await this.db.$transaction([
         this.db.subscription.update({
           where: { paypalSubscriptionId },
           data: {
-            status: statusMap[event_type] ?? "cancelled",
+            status: statusMap[event_type] ?? SubscriptionStatus.cancelled,
             cancelledAt: new Date(),
           },
         }),

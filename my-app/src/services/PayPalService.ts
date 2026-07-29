@@ -103,6 +103,9 @@ export class PayPalService {
     parsedBody: unknown
   ): Promise<void> {
     void rawBody; // kept for future use if PayPal changes verification method
+    if (!config.paypal.webhookId) {
+      throw new Error("PAYPAL_WEBHOOK_ID is not configured");
+    }
     const token = await this.getAccessToken();
 
     const res = await fetch(

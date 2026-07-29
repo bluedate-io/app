@@ -119,5 +119,5 @@ if (config.isProd) {
   requireEnv("PAYPAL_CLIENT_ID");
   requireEnv("PAYPAL_CLIENT_SECRET");
   requireEnv("PAYPAL_PLAN_ID");
-  requireEnv("PAYPAL_WEBHOOK_ID");
+  // PAYPAL_WEBHOOK_ID is checked at runtime in PayPalService.verifyWebhookSignature
 }

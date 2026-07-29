@@ -42,7 +42,7 @@ export class PaymentController {
   }
 
   // GET /api/payment/cancel — PayPal redirect when user cancels
-  cancelRedirect(_req: NextRequest) {
+  async cancelRedirect(_req: NextRequest) {
     return NextResponse.redirect(new URL("/payment/cancel", config.app.url));
   }
 
