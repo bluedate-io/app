@@ -83,6 +83,13 @@ export class UserSelfRepository {
     });
   }
 
+  findPlanType(userId: string): Promise<{ planType: string } | null> {
+    return this.db.user.findUnique({
+      where: { id: userId },
+      select: { planType: true },
+    });
+  }
+
   findUserBasic(userId: string) {
     return this.db.user.findUnique({
       where: { id: userId },

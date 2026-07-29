@@ -3,7 +3,7 @@ import { getFridayCutoffIST, getWeekStartIST, isAfterFridayCutoff } from "@/util
 import { verifyOptInToken } from "@/utils/optInToken";
 import { MatchEmailService } from "@/services/MatchEmailService";
 import { UserSelfRepository } from "@/repositories/UserSelfRepository";
-import { BadRequestError, UnauthorizedError } from "@/utils/errors";
+import { BadRequestError, ForbiddenError, UnauthorizedError } from "@/utils/errors";
 import { logger } from "@/utils/logger";
 
 const log = logger.child("UserSelfService");
@@ -47,6 +47,11 @@ export class UserSelfService {
   }
 
   async postHomeOptIn(userId: string, description?: string) {
+    const planRecord = await this.repo.findPlanType(userId);
+    if (!planRecord || planRecord.planType !== "vip") {
+      throw new ForbiddenError("VIP plan required to opt in to matchmaking.");
+    }
+
     const now = new Date();
     const weekStart = getWeekStartIST(now);
     const deadline = getFridayCutoffIST(now);
