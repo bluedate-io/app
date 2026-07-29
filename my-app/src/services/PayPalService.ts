@@ -55,7 +55,7 @@ export class PayPalService {
         subscriber: { custom_id: userId },
         application_context: {
           brand_name: "Bluedate",
-          locale: "en-IN",
+          locale: "en-US",
           shipping_preference: "NO_SHIPPING",
           user_action: "SUBSCRIBE_NOW",
           return_url: returnUrl,
