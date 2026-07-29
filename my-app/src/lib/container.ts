@@ -26,6 +26,7 @@ import { MatchRepository } from "@/repositories/MatchRepository";
 import { OnboardingRepository } from "@/repositories/OnboardingRepository";
 import { UserSelfRepository } from "@/repositories/UserSelfRepository";
 import { UserRepository } from "@/repositories/UserRepository";
+import { SubscriptionRepository } from "@/repositories/SubscriptionRepository";
 import { WhatsAppSessionRepository } from "@/repositories/WhatsAppSessionRepository";
 import { AdminAuthService } from "@/services/AdminAuthService";
 import { AdminMatchesService } from "@/services/AdminMatchesService";
@@ -58,6 +59,7 @@ const adminOnboardingReminderRepository = new AdminOnboardingReminderRepository(
 const adminMatchesRepository = new AdminMatchesRepository(db);
 const userSelfRepository = new UserSelfRepository(db);
 const locationRepository = new LocationRepository(db);
+const subscriptionRepository = new SubscriptionRepository(db);
 
 // ─── Services ─────────────────────────────────────────────────────────────────
 const twilioService = new TwilioService();
@@ -128,6 +130,7 @@ export const container = {
   adminMatchesRepository,
   adminOnboardingReminderRepository,
   userSelfRepository,
+  subscriptionRepository,
 
   // Services
   twilioService,
