@@ -41,6 +41,7 @@ import { MatchService } from "@/services/MatchService";
 import { MatchEmailService } from "@/services/MatchEmailService";
 import { OnboardingService } from "@/services/OnboardingService";
 import { PayPalService } from "@/services/PayPalService";
+import { PaymentService } from "@/services/PaymentService";
 import { TwilioService } from "@/services/TwilioService";
 import { UserSelfService } from "@/services/UserSelfService";
 import { WaInteractiveService } from "@/services/WaInteractiveService";
@@ -101,6 +102,7 @@ const adminOnboardingReminderService = new AdminOnboardingReminderService(
 const adminMatchesService = new AdminMatchesService(adminMatchesRepository);
 const userSelfService = new UserSelfService(userSelfRepository, matchEmailService);
 const adminAuthService = new AdminAuthService(emailService, userRepository, userSelfRepository);
+const paymentService = new PaymentService(db, subscriptionRepository, payPalService);
 
 // ─── Controllers ──────────────────────────────────────────────────────────────
 const adminLocationController = new AdminLocationController(locationRepository);
@@ -136,6 +138,7 @@ export const container = {
 
   // Services
   payPalService,
+  paymentService,
   twilioService,
   emailService,
   matchEmailService,
