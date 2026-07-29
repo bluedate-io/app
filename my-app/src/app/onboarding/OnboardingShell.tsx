@@ -898,7 +898,7 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       const maxAge = j.data?.expiresIn ?? 7 * 24 * 60 * 60;
       document.cookie = `access_token=${newToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
     }
-    window.location.assign("/home");
+    window.location.assign("/upgrade");
   }
   const [loading, setLoading] = useState(false);
   /** API error for the current step — shown inline below the step form, not in a top alert */
