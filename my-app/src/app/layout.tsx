@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Caveat, Fraunces, Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
-import Script from "next/script";
+import TawkMessenger from "@/components/TawkMessenger";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -122,23 +122,7 @@ export default function RootLayout({
       >
         {children}
         <Analytics />
-        <Script
-          id="tawk-to"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-              (function(){
-                var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-                s1.async=true;
-                s1.src='https://embed.tawk.to/6a6b26c8cf00701d473f03c5/1jup8v0p3';
-                s1.charset='UTF-8';
-                s1.setAttribute('crossorigin','*');
-                s0.parentNode.insertBefore(s1,s0);
-              })();
-            `,
-          }}
-        />
+        <TawkMessenger />
       </body>
     </html>
   );
