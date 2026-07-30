@@ -898,7 +898,8 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
       const maxAge = j.data?.expiresIn ?? 7 * 24 * 60 * 60;
       document.cookie = `access_token=${newToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
     }
-    window.location.assign("/upgrade");
+    try { sessionStorage.removeItem(SS_KEY); } catch { /* ignore */ }
+    window.location.assign("/welcome");
   }
   const [loading, setLoading] = useState(false);
   /** API error for the current step — shown inline below the step form, not in a top alert */
@@ -911,9 +912,16 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const heightListRef = useRef<HTMLDivElement>(null);
 
   // ── Form state ────────────────────────────────────────────────────────────
-  const [firstName, setFirstName] = useState("");
+  const SS_KEY = "ob_step0";
+  const [firstName, setFirstName] = useState(() => {
+    if (typeof window === "undefined") return status.fullName?.split(" ")[0] ?? "";
+    try { return JSON.parse(sessionStorage.getItem(SS_KEY) ?? "{}").firstName ?? status.fullName?.split(" ")[0] ?? ""; } catch { return ""; }
+  });
   const [firstNameError, setFirstNameError] = useState<string | null>(null);
-  const [birthday, setBirthday] = useState({ day: "", month: "", year: "" });
+  const [birthday, setBirthday] = useState<{ day: string; month: string; year: string }>(() => {
+    if (typeof window === "undefined") return { day: "", month: "", year: "" };
+    try { return JSON.parse(sessionStorage.getItem(SS_KEY) ?? "{}").birthday ?? { day: "", month: "", year: "" }; } catch { return { day: "", month: "", year: "" }; }
+  });
   const [birthdayError, setBirthdayError] = useState<string | null>(null);
   const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
   const [genderIdentity, setGenderIdentity] = useState(() => status.genderIdentity ?? "");
@@ -943,6 +951,11 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
   const [locationGroups, setLocationGroups] = useState<{ city: string; subAreas: { id: string; name: string }[] }[]>([]);
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedSubAreaId, setSelectedSubAreaId] = useState("");
+
+  // Persist step-0 fields to sessionStorage so back-nav and refresh don't wipe them
+  useEffect(() => {
+    try { sessionStorage.setItem(SS_KEY, JSON.stringify({ firstName, birthday })); } catch { /* ignore */ }
+  }, [firstName, birthday]);
 
   useEffect(() => {
     if (status.userType !== "non_student") return;
@@ -1484,14 +1497,69 @@ export default function OnboardingShell({ step: _step, token, status }: Props) {
               Which gender best describes you?
             </p>
 
-            <div>
-              {["Woman", "Man", "Nonbinary"].map((g) => (
-                <RadioRow
-                  key={g} label={g}
-                  selected={genderIdentity === g}
-                  onClick={() => setGenderIdentity(g)}
-                />
-              ))}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+              {[
+                {
+                  label: "Woman",
+                  icon: (
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="8" r="5" />
+                      <line x1="12" y1="13" x2="12" y2="21" />
+                      <line x1="9" y1="18" x2="15" y2="18" />
+                    </svg>
+                  ),
+                },
+                {
+                  label: "Man",
+                  icon: (
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="10" cy="14" r="5" />
+                      <line x1="19" y1="5" x2="14.2" y2="9.8" />
+                      <polyline points="15 5 19 5 19 9" />
+                    </svg>
+                  ),
+                },
+                {
+                  label: "Nonbinary",
+                  icon: (
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="11" r="4" />
+                      <line x1="12" y1="15" x2="12" y2="21" />
+                      <line x1="9" y1="18" x2="15" y2="18" />
+                      <line x1="12" y1="7" x2="12" y2="3" />
+                      <line x1="9.5" y1="4.5" x2="14.5" y2="4.5" />
+                    </svg>
+                  ),
+                },
+              ].map(({ label, icon }) => {
+                const selected = genderIdentity === label;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setGenderIdentity(label)}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 10,
+                      aspectRatio: "1",
+                      borderRadius: 16,
+                      border: `2px solid ${selected ? ACCENT : FAB_BG}`,
+                      boxShadow: selected ? `3px 3px 0 ${ACCENT}` : `3px 3px 0 ${FAB_BG}`,
+                      background: selected ? `${ACCENT}12` : "#fff",
+                      color: selected ? ACCENT : FAB_BG,
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                      padding: "16px 8px",
+                    }}
+                  >
+                    {icon}
+                    <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: 0.2 }}>{label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             <p className="text-sm text-gray-400 mt-4">You can always update this later.</p>

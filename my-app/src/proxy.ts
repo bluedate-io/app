@@ -8,7 +8,7 @@ const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
 ];
 
-const PROTECTED = ["/home", "/matches", "/profile"];
+const PROTECTED = ["/home", "/matches", "/profile", "/welcome"];
 
 /** Decode JWT payload without verifying signature (routing only — APIs still verify). */
 function decodeJwt(token: string): { onboardingCompleted?: boolean; exp?: number } {
@@ -57,11 +57,10 @@ export function proxy(req: NextRequest) {
     return NextResponse.next(); // let them continue onboarding (or re-auth)
   }
 
-  // Protected routes: pass through if token is present.
-  // Server components verify JWT validity and handle onboarding checks themselves.
-  // (Removing the proxy-level stale-onboardingCompleted redirect avoids RSC
-  //  navigation issues where cookie updates from /api/auth/refresh aren't picked
-  //  up by the next middleware pass.)
+  // Protected routes: redirect to onboarding if not yet completed.
+  if (isProtected && !onboardingCompleted && !isExpired) {
+    return NextResponse.redirect(new URL("/onboarding", req.url));
+  }
 
   // ── CORS (API routes) ─────────────────────────────────────────────────────
 
@@ -97,5 +96,6 @@ export const config = {
     "/matches/:path*",
     "/profile",
     "/profile/:path*",
+    "/welcome",
   ],
 };
