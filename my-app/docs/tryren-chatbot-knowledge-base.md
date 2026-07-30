@@ -56,7 +56,7 @@ A: [FILL IN — minimum age, e.g. 18+]
 ## SECTION 3: HOW MATCHMAKING WORKS
 
 **Q: How does matchmaking work on Tryren?**
-A: Each week, you opt in to matchmaking before Friday midnight IST. On Saturday morning, our team reviews all opted-in profiles and manually curates the best match for you based on your preferences, personality, interests, and location. You receive your match via email on Saturday.
+A: Each week, you opt in to matchmaking before Friday midnight IST. On Saturday morning, our AI agents analyse all opted-in profiles and select the best match for you based on your interests, personality, preferences, and location. You receive your match via email on Saturday.
 
 **Q: When do I need to opt in to get a match this week?**
 A: You must opt in before Friday midnight IST. Opt-ins after that deadline will be considered for the following week.
@@ -65,7 +65,7 @@ A: You must opt in before Friday midnight IST. Opt-ins after that deadline will 
 A: Matches are sent out on Saturday morning (IST) via email.
 
 **Q: How is my match selected?**
-A: Our team manually reviews all opted-in profiles each week. We consider your gender preference, age, location, interests, personality, and what you're looking for — then pair you with someone we genuinely think you'll connect with.
+A: Our AI agents analyse all opted-in profiles every week. They consider your gender preference, age, location, interests, personality, and what you're looking for — then pair you with the person they think you'll connect with the most.
 
 **Q: I opted in but didn't get a match. Why?**
 A: This can happen if there weren't enough compatible profiles in the pool that week (e.g., not enough people of your preferred gender in your area opted in). We'll always try our best, but we can't guarantee a match every single week.
@@ -77,7 +77,7 @@ A: You'll get an email with your match's details (name, a few things about them,
 A: You can reach out to them directly using the contact details in the match email. The first move is yours — say hello!
 
 **Q: Can I choose who I get matched with?**
-A: No. Tryren is a curated service — our team selects the match for you. You set your preferences (gender, age range) and we do the rest.
+A: No. Tryren is an AI-powered matchmaking service — our AI agents select the best match for you. You set your preferences (gender, age range) and the AI does the rest.
 
 **Q: What if I don't opt in this week?**
 A: No problem — you simply won't be matched that week. You can opt in again next week.
