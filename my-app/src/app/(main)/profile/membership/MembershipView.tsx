@@ -206,7 +206,7 @@ export function MembershipView({
 
               {planType === "basic" && (
                 <Link
-                  href="/upgrade"
+                  href="/profile/membership"
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center",
                     gap: 8, marginTop: 6,

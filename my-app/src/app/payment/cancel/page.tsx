@@ -38,7 +38,7 @@ export default function PaymentCancelPage() {
         You haven&apos;t been charged. You can upgrade to VIP whenever you&apos;re ready.
       </p>
       <button
-        onClick={() => router.push("/upgrade")}
+        onClick={() => router.push("/profile/membership")}
         style={{
           padding: "13px 28px",
           background: DARK,

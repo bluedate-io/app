@@ -410,7 +410,7 @@ const modeLine = state.mode === "bff" ? "BFF" : "Date";
                 </p>
               </div>
               <a
-                href="/upgrade"
+                href="/profile/membership"
                 style={{
                   display: "block",
                   textAlign: "center",
