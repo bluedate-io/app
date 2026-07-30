@@ -144,6 +144,7 @@ export class AdminMatchmakingService {
       { role: { not: "admin" } },
       { onboardingCompleted: true },
       { userType },
+      { planType: "vip" },
       { weeklyOptIns: { some: { weekStart: currentWeekStart } } },
     ];
 
@@ -251,6 +252,7 @@ export class AdminMatchmakingService {
       { role: { not: "admin" } },
       { onboardingCompleted: true },
       { userType: query.userType },
+      { planType: "vip" },
       { weeklyOptIns: { some: { weekStart: currentWeekStart } } },
     ];
 
