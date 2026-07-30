@@ -1,14 +1,28 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-
-const TawkMessengerReact = dynamic(() => import('@tawk.to/tawk-messenger-react'), { ssr: false });
+import { useEffect } from 'react';
 
 export default function TawkMessenger() {
-  const propertyId = process.env.NEXT_PUBLIC_TAWK_MESSENGER_PROPERTY_ID as string;
-  const widgetId = process.env.NEXT_PUBLIC_TAWK_MESSENGER_WIDGET_ID as string;
+  const propertyId = process.env.NEXT_PUBLIC_TAWK_MESSENGER_PROPERTY_ID;
+  const widgetId = process.env.NEXT_PUBLIC_TAWK_MESSENGER_WIDGET_ID;
 
-  if (!propertyId || !widgetId) return null;
+  useEffect(() => {
+    if (!propertyId || !widgetId) return;
+    if (document.getElementById('tawk-script')) return;
 
-  return <TawkMessengerReact propertyId={propertyId} widgetId={widgetId} />;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    w.Tawk_API = w.Tawk_API ?? {};
+    w.Tawk_LoadStart = new Date();
+
+    const s = document.createElement('script');
+    s.id = 'tawk-script';
+    s.async = true;
+    s.src = `https://embed.tawk.to/${propertyId}/${widgetId}`;
+    s.charset = 'UTF-8';
+    s.setAttribute('crossorigin', '*');
+    document.head.appendChild(s);
+  }, [propertyId, widgetId]);
+
+  return null;
 }
