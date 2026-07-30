@@ -3,16 +3,6 @@
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 
 export const adminMatchUserInclude = {
-  profile: {
-    select: {
-      fullName: true,
-      nickname: true,
-      dateOfBirth: true,
-      age: true,
-      city: true,
-      bio: true,
-    },
-  },
   preferences: {
     select: {
       genderIdentity: true,
@@ -56,6 +46,17 @@ export const adminMatchUserInclude = {
     },
   },
   availability: { select: { days: true, times: true } },
+  profile: {
+    select: {
+      fullName: true,
+      nickname: true,
+      dateOfBirth: true,
+      age: true,
+      city: true,
+      bio: true,
+      location: { select: { subArea: true } },
+    },
+  },
   aiSignals: { select: { selfDescription: true, idealPartner: true, idealDate: true } },
   weeklyOptIns: {
     select: { weekStart: true, mode: true, description: true, createdAt: true },

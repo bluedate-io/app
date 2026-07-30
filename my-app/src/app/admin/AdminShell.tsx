@@ -12,14 +12,20 @@ import {
   Shuffle,
   MailWarning,
   MapPin,
+  GraduationCap,
+  UserRound,
+  BarChart2,
 } from "lucide-react";
 import { adminTheme } from "@/lib/adminTheme";
 
 const NAV = [
+  { label: "Analytics", href: "/admin/analytics", icon: BarChart2 },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Onboarding reminders", href: "/admin/onboarding-incomplete", icon: MailWarning },
   { label: "Locations", href: "/admin/locations", icon: MapPin },
-  { label: "Match", href: "/admin/match", icon: Shuffle },
+  { label: "College Domains", href: "/admin/college-domains", icon: GraduationCap },
+  { label: "Match (Students)", href: "/admin/match", icon: Shuffle },
+  { label: "Match (Non-students)", href: "/admin/match-nonstudents", icon: UserRound },
   { label: "Match Users", href: "/admin/match-users", icon: GitMerge },
   { label: "View Matches", href: "/admin/view-matches", icon: Heart },
   { label: "Add Admin", href: "/admin/add-admin", icon: UserPlus },
@@ -64,7 +70,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
         <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
           {NAV.map(({ label, href, icon: Icon }) => {
-            const active = path.startsWith(href);
+            const active = path === href || (path.startsWith(href + "/") && href !== "/admin");
             return (
               <Link
                 key={href}

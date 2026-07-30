@@ -30,6 +30,11 @@ export const adminMatchPoolQuerySchema = z.object({
     .refine((s) => s === "" || s === "date" || s === "friendship", {
       message: "relationshipIntent must be empty, date, or friendship",
     }),
+  userType: z
+    .enum(["student", "non_student"])
+    .optional()
+    .default("student"),
+  subArea: z.string().optional().default(""),
 });
 
 export type AdminMatchPoolQuery = z.infer<typeof adminMatchPoolQuerySchema>;
@@ -43,6 +48,8 @@ export function parseAdminMatchPoolQuery(sp: URLSearchParams): AdminMatchPoolQue
     ageMax: sp.get("ageMax") ?? undefined,
     search: sp.get("search") ?? "",
     relationshipIntent: sp.get("relationshipIntent") ?? "",
+    userType: sp.get("userType") ?? "student",
+    subArea: sp.get("subArea") ?? "",
   });
 }
 
@@ -63,6 +70,8 @@ export function parseAdminMatchCandidatesQuery(sp: URLSearchParams): AdminMatchC
     ageMax: sp.get("ageMax") ?? undefined,
     search: sp.get("search") ?? "",
     relationshipIntent: sp.get("relationshipIntent") ?? "",
+    userType: sp.get("userType") ?? "student",
+    subArea: sp.get("subArea") ?? "",
   });
 }
 
@@ -70,11 +79,13 @@ export function csvFromPoolQuery(q: AdminMatchPoolQuery | AdminMatchCandidatesQu
   cities: string[];
   colleges: string[];
   genderFilterRaw: string[];
+  subAreas: string[];
 } {
   return {
     cities: parseCsvParam(q.city || null),
     colleges: parseCsvParam(q.college || null),
     genderFilterRaw: parseCsvParam(q.gender || null),
+    subAreas: parseCsvParam(q.subArea || null),
   };
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Mail, ShieldCheck, ChevronDown } from "lucide-react";
+import { Mail, ShieldCheck, ChevronDown, Search } from "lucide-react";
 
 const DARK = "#2B1A07";
 const ACCENT = "#E8622A";
@@ -94,6 +94,7 @@ export default function LoginForm() {
   const [colleges, setColleges] = useState<College[]>([]);
   const [selectedCollege, setSelectedCollege] = useState<College | null>(null);
   const [showCollegePicker, setShowCollegePicker] = useState(false);
+  const [collegeSearch, setCollegeSearch] = useState("");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [phone, setPhone] = useState("");
@@ -106,6 +107,7 @@ export default function LoginForm() {
   const collegeButtonRef = useRef<HTMLButtonElement>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const otpFormRef = useRef<HTMLFormElement>(null);
 
@@ -118,7 +120,11 @@ export default function LoginForm() {
 
   // Close college picker on outside click
   useEffect(() => {
-    if (!pickerOpen) return;
+    if (!pickerOpen) {
+      setCollegeSearch("");
+      return;
+    }
+    setTimeout(() => searchInputRef.current?.focus(), 50);
     const handler = (e: MouseEvent) => {
       if (
         !collegeButtonRef.current?.contains(e.target as Node) &&
@@ -415,29 +421,67 @@ export default function LoginForm() {
               {pickerOpen && (
                 <div
                   ref={pickerRef}
-                  className="absolute top-full left-0 right-0 mt-1 z-50 overflow-y-auto rounded-xl"
+                  className="absolute top-full left-0 right-0 mt-1 z-50 rounded-xl flex flex-col"
                   style={{
-                    maxHeight: 220,
+                    maxHeight: 280,
                     background: BG,
                     border: `2px solid ${DARK}`,
                     boxShadow: `4px 4px 0 ${DARK}`,
                   }}
                 >
-                  {colleges.length === 0 ? (
-                    <p className="px-4 py-3 text-sm" style={{ color: MUTED }}>No colleges found</p>
-                  ) : (
-                    colleges.map((c) => (
+                  {/* Search input */}
+                  <div
+                    className="flex items-center gap-2 px-3 shrink-0"
+                    style={{
+                      borderBottom: `1.5px solid ${DARK}20`,
+                      padding: "10px 12px",
+                    }}
+                  >
+                    <Search size={14} style={{ color: MUTED, flexShrink: 0 }} />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={collegeSearch}
+                      onChange={(e) => setCollegeSearch(e.target.value)}
+                      placeholder="Search college…"
+                      className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-[#9B8B78]"
+                      style={{ color: DARK }}
+                    />
+                    {collegeSearch && (
                       <button
-                        key={c.id}
                         type="button"
-                        onClick={() => { setSelectedCollege(c); setPickerOpen(false); setEmail(""); }}
-                        className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-black/5"
+                        onClick={() => setCollegeSearch("")}
+                        className="text-xs shrink-0"
+                        style={{ color: MUTED }}
                       >
-                        <span className="font-semibold" style={{ color: DARK }}>{c.collegeName}</span>
-                        <span className="text-xs ml-2" style={{ color: MUTED }}>@{c.domain}</span>
+                        ✕
                       </button>
-                    ))
-                  )}
+                    )}
+                  </div>
+
+                  {/* College list */}
+                  <div className="overflow-y-auto">
+                    {(() => {
+                      const filtered = colleges.filter((c) =>
+                        c.collegeName.toLowerCase().includes(collegeSearch.toLowerCase()) ||
+                        c.domain.toLowerCase().includes(collegeSearch.toLowerCase())
+                      );
+                      if (filtered.length === 0) {
+                        return <p className="px-4 py-3 text-sm" style={{ color: MUTED }}>No results</p>;
+                      }
+                      return filtered.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => { setSelectedCollege(c); setPickerOpen(false); setEmail(""); }}
+                          className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-black/5"
+                        >
+                          <span className="font-semibold" style={{ color: DARK }}>{c.collegeName}</span>
+                          <span className="text-xs ml-2" style={{ color: MUTED }}>@{c.domain}</span>
+                        </button>
+                      ));
+                    })()}
+                  </div>
                 </div>
               )}
             </div>

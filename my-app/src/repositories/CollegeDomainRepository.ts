@@ -13,6 +13,10 @@ export interface ICollegeDomainRepository {
   findAll(): Promise<CollegeDomain[]>;
   findByCollegeName(collegeName: string): Promise<CollegeDomain | null>;
   findByDomain(domain: string): Promise<CollegeDomain | null>;
+  create(collegeName: string, domain: string): Promise<CollegeDomain>;
+  update(id: string, collegeName: string, domain: string): Promise<CollegeDomain>;
+  delete(id: string): Promise<void>;
+  exists(id: string): Promise<boolean>;
 }
 
 export class CollegeDomainRepository implements ICollegeDomainRepository {
@@ -28,5 +32,22 @@ export class CollegeDomainRepository implements ICollegeDomainRepository {
 
   async findByDomain(domain: string): Promise<CollegeDomain | null> {
     return this.db.collegeDomain.findUnique({ where: { domain } });
+  }
+
+  async create(collegeName: string, domain: string): Promise<CollegeDomain> {
+    return this.db.collegeDomain.create({ data: { collegeName, domain } });
+  }
+
+  async update(id: string, collegeName: string, domain: string): Promise<CollegeDomain> {
+    return this.db.collegeDomain.update({ where: { id }, data: { collegeName, domain } });
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.db.collegeDomain.delete({ where: { id } });
+  }
+
+  async exists(id: string): Promise<boolean> {
+    const row = await this.db.collegeDomain.findUnique({ where: { id }, select: { id: true } });
+    return row !== null;
   }
 }

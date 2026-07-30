@@ -14,6 +14,7 @@ import {
   normLower,
   oppositeGenderIdentityValues,
 } from "@/domains/adminMatchmaking";
+import { getWeekStartIST } from "@/utils/istTime";
 import type { IAdminMatchmakingRepository } from "@/repositories/AdminMatchmakingRepository";
 import { MatchEmailService } from "@/services/MatchEmailService";
 import { BadRequestError, ConflictError, NotFoundError } from "@/utils/errors";
@@ -135,14 +136,22 @@ export class AdminMatchmakingService {
     domains: string[],
     ageMin: number | undefined,
     ageMax: number | undefined,
+    userType: "student" | "non_student" = "student",
+    subAreas: string[] = [],
   ): Prisma.UserWhereInput[] {
+    const currentWeekStart = getWeekStartIST();
     const baseAnd: Prisma.UserWhereInput[] = [
       { role: { not: "admin" } },
       { onboardingCompleted: true },
-      { optInStatus: { in: ["opted_in", "opted_in_late"] } },
+      { userType },
+      { weeklyOptIns: { some: { weekStart: currentWeekStart } } },
     ];
 
     if (cities.length > 0) baseAnd.push({ profile: { is: { city: { in: cities } } } });
+
+    if (subAreas.length > 0) {
+      baseAnd.push({ profile: { is: { location: { is: { subArea: { in: subAreas } } } } } });
+    }
 
     if (colleges.length > 0) {
       const domainOr: Prisma.UserWhereInput[] = domains
@@ -174,7 +183,7 @@ export class AdminMatchmakingService {
   }
 
   async getPool(query: AdminMatchPoolQuery): Promise<AdminPoolUserDTO[]> {
-    const { cities, colleges } = csvFromPoolQuery(query);
+    const { cities, colleges, subAreas } = csvFromPoolQuery(query);
     const gender = query.gender?.trim() ?? "";
     const ageMin = query.ageMin;
     const ageMax = query.ageMax;
@@ -182,7 +191,7 @@ export class AdminMatchmakingService {
     const domains =
       colleges.length > 0 ? await this.repo.findDomainsByCollegeNames(colleges) : [];
 
-    const baseAnd = this.buildBaseAndFilters(cities, colleges, domains, ageMin, ageMax);
+    const baseAnd = this.buildBaseAndFilters(cities, colleges, domains, ageMin, ageMax, query.userType, subAreas);
     this.pushNameEmailSearch(baseAnd, query.search ?? "");
     this.pushRelationshipIntentFilter(baseAnd, query.relationshipIntent ?? "");
     const collegeByDomain = await this.buildCollegeDomainMap();
@@ -229,18 +238,20 @@ export class AdminMatchmakingService {
       throw new BadRequestError("User A must have genderIdentity to find opposite-gender candidates");
     }
 
-    const { cities, colleges, genderFilterRaw } = csvFromPoolQuery(query);
+    const { cities, colleges, genderFilterRaw, subAreas } = csvFromPoolQuery(query);
     const ageMin = query.ageMin;
     const ageMax = query.ageMax;
 
     const domains =
       colleges.length > 0 ? await this.repo.findDomainsByCollegeNames(colleges) : [];
 
+    const currentWeekStart = getWeekStartIST();
     const and: Prisma.UserWhereInput[] = [
       { id: { not: query.userId } },
       { role: { not: "admin" } },
       { onboardingCompleted: true },
-      { optInStatus: { in: ["opted_in", "opted_in_late"] } },
+      { userType: query.userType },
+      { weeklyOptIns: { some: { weekStart: currentWeekStart } } },
     ];
 
     if (genderFilterRaw.length > 0) {
@@ -260,6 +271,10 @@ export class AdminMatchmakingService {
     }
 
     if (cities.length > 0) and.push({ profile: { is: { city: { in: cities } } } });
+
+    if (subAreas.length > 0) {
+      and.push({ profile: { is: { location: { is: { subArea: { in: subAreas } } } } } });
+    }
 
     if (colleges.length > 0) {
       const domainOr: Prisma.UserWhereInput[] = domains

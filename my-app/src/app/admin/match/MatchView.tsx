@@ -40,6 +40,7 @@ type Filters = {
   gender: string;
   candidateGenders: string[];
   colleges: string[];
+  subAreas: string[];
   ageMin: string;
   ageMax: string;
   search: string;
@@ -214,8 +215,11 @@ function FilterBar({
   applied,
   allCities,
   allColleges,
+  allSubAreas,
   showUserAGenderFilter,
   showCandidateGender,
+  showCityFilter,
+  showCollegeFilter,
   onDraftChange,
   onApply,
   onClear,
@@ -224,8 +228,11 @@ function FilterBar({
   applied: Filters;
   allCities: string[];
   allColleges: string[];
+  allSubAreas: string[];
   showUserAGenderFilter: boolean;
   showCandidateGender: boolean;
+  showCityFilter: boolean;
+  showCollegeFilter: boolean;
   onDraftChange: (f: Filters) => void;
   onApply: () => void;
   onClear: () => void;
@@ -233,6 +240,7 @@ function FilterBar({
   const appliedHasAny =
     Boolean(applied.gender) ||
     applied.cities.length > 0 ||
+    applied.subAreas.length > 0 ||
     applied.candidateGenders.length > 0 ||
     applied.colleges.length > 0 ||
     Boolean(applied.ageMin) ||
@@ -260,13 +268,25 @@ function FilterBar({
           </span>
         </div>
 
-        <MultiSelectDropdown
-          label="City"
-          options={allCities}
-          selected={draft.cities}
-          onChange={(v) => onDraftChange({ ...draft, cities: v })}
-          active={applied.cities.length > 0}
-        />
+        {showCityFilter && (
+          <MultiSelectDropdown
+            label="City"
+            options={allCities}
+            selected={draft.cities}
+            onChange={(v) => onDraftChange({ ...draft, cities: v, subAreas: [] })}
+            active={applied.cities.length > 0}
+          />
+        )}
+
+        {showCityFilter && allSubAreas.length > 0 && (
+          <MultiSelectDropdown
+            label="Sub-area"
+            options={allSubAreas}
+            selected={draft.subAreas}
+            onChange={(v) => onDraftChange({ ...draft, subAreas: v })}
+            active={applied.subAreas.length > 0}
+          />
+        )}
 
         {showUserAGenderFilter && (
           <select
@@ -317,13 +337,15 @@ function FilterBar({
           </select>
         </div>
 
-        <MultiSelectDropdown
-          label="College"
-          options={allColleges}
-          selected={draft.colleges}
-          onChange={(v) => onDraftChange({ ...draft, colleges: v })}
-          active={applied.colleges.length > 0}
-        />
+        {showCollegeFilter && (
+          <MultiSelectDropdown
+            label="College"
+            options={allColleges}
+            selected={draft.colleges}
+            onChange={(v) => onDraftChange({ ...draft, colleges: v })}
+            active={applied.colleges.length > 0}
+          />
+        )}
 
         <div
           className={`flex h-10 shrink-0 items-center gap-2 rounded-xl border-2 border-bd-ink-dark bg-bd-card px-2.5 shadow-[2px_2px_0px_0px_var(--bd-shadow-ink)] ${
@@ -1281,15 +1303,20 @@ function MatchPhaseView({
 export default function MatchView({
   cities: allCities,
   colleges: allColleges,
+  locations = [],
+  userType = "student",
 }: {
   cities: string[];
   colleges: string[];
+  locations?: { city: string; subAreas: string[] }[];
+  userType?: "student" | "non_student";
 }) {
   const [draftFilters, setDraftFilters] = useState<Filters>({
     cities: [],
     gender: "",
     candidateGenders: [],
     colleges: [],
+    subAreas: [],
     ageMin: "",
     ageMax: "",
     search: "",
@@ -1301,6 +1328,7 @@ export default function MatchView({
     gender: "",
     candidateGenders: [],
     colleges: [],
+    subAreas: [],
     ageMin: "",
     ageMax: "",
     search: "",
@@ -1329,8 +1357,10 @@ export default function MatchView({
     setPoolLoading(true);
     try {
       const params = new URLSearchParams();
+      params.set("userType", userType);
       if (f.gender) params.set("gender", f.gender);
       if (f.cities.length) params.set("city", f.cities.join(","));
+      if (f.subAreas.length) params.set("subArea", f.subAreas.join(","));
       if (f.colleges.length) params.set("college", f.colleges.join(","));
       if (f.ageMin) params.set("ageMin", f.ageMin);
       if (f.ageMax) params.set("ageMax", f.ageMax);
@@ -1360,8 +1390,9 @@ export default function MatchView({
       setCandidates([]);
       setCandidateIndex(0);
       try {
-        const params = new URLSearchParams({ userId: aId });
+        const params = new URLSearchParams({ userId: aId, userType });
         if (f.cities.length) params.set("city", f.cities.join(","));
+        if (f.subAreas.length) params.set("subArea", f.subAreas.join(","));
         if (f.candidateGenders.length) params.set("gender", f.candidateGenders.join(","));
         if (f.colleges.length) params.set("college", f.colleges.join(","));
         if (f.ageMin) params.set("ageMin", f.ageMin);
@@ -1399,6 +1430,7 @@ export default function MatchView({
       gender: "",
       candidateGenders: [],
       colleges: [],
+      subAreas: [],
       ageMin: "",
       ageMax: "",
       search: "",
@@ -1455,8 +1487,8 @@ export default function MatchView({
     setCandidates([]);
     setCandidateIndex(0);
     setS3CardUrl("");
-    setDraftFilters((prev) => ({ ...prev, colleges: [], search: "", relationshipIntent: "" }));
-    setAppliedFilters((prev) => ({ ...prev, colleges: [], search: "", relationshipIntent: "" }));
+    setDraftFilters((prev) => ({ ...prev, colleges: [], subAreas: [], search: "", relationshipIntent: "" }));
+    setAppliedFilters((prev) => ({ ...prev, colleges: [], subAreas: [], search: "", relationshipIntent: "" }));
   }
 
   function skip() {
@@ -1504,6 +1536,7 @@ export default function MatchView({
         gender: "",
         candidateGenders: [],
         colleges: [],
+        subAreas: [],
         ageMin: "",
         ageMax: "",
         search: "",
@@ -1552,8 +1585,17 @@ export default function MatchView({
         applied={appliedFilters}
         allCities={allCities}
         allColleges={allColleges}
+        allSubAreas={Array.from(new Set(
+          draftFilters.cities.length > 0
+            ? locations
+                .filter((l) => draftFilters.cities.includes(l.city))
+                .flatMap((l) => l.subAreas)
+            : locations.flatMap((l) => l.subAreas)
+        ))}
         showUserAGenderFilter={userA === null}
         showCandidateGender={userA !== null}
+        showCityFilter={userType === "non_student"}
+        showCollegeFilter={userType === "student"}
         onDraftChange={setDraftFilters}
         onApply={applyFilters}
         onClear={clearFilters}
@@ -1566,12 +1608,18 @@ export default function MatchView({
             className="text-2xl font-bold tracking-tight"
             style={{ fontFamily: "var(--font-bd-display), Georgia, serif", color: DARK }}
           >
-            {userA ? `Matching: ${userA.name}` : "Matchmaking"}
+            {userA
+              ? `Matching: ${userA.name}`
+              : userType === "non_student"
+                ? "Non-student Matchmaking"
+                : "Student Matchmaking"}
           </h1>
           <p className="text-sm mt-0.5" style={{ color: SUBTLE }}>
             {userA
               ? "Select a candidate on the right, then click Match."
-              : "Select a user from the pool to start matching."}
+              : userType === "non_student"
+                ? "Opted-in non-students for this week."
+                : "Opted-in students for this week."}
           </p>
         </div>
       </div>

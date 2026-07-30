@@ -4,6 +4,7 @@
 
 import { db } from "@/lib/db";
 import { AdminAuthController } from "@/controllers/AdminAuthController";
+import { AdminCollegeDomainController } from "@/controllers/AdminCollegeDomainController";
 import { AdminLocationController } from "@/controllers/AdminLocationController";
 import { AdminMatchesController } from "@/controllers/AdminMatchesController";
 import { AdminMatchmakingController } from "@/controllers/AdminMatchmakingController";
@@ -107,6 +108,7 @@ const paymentService = new PaymentService(db, subscriptionRepository, razorpaySe
 
 // ─── Controllers ──────────────────────────────────────────────────────────────
 const adminLocationController = new AdminLocationController(locationRepository);
+const adminCollegeDomainController = new AdminCollegeDomainController(collegeDomainRepository);
 const authController = new AuthController(authService, userRepository, collegeDomainRepository);
 const onboardingController = new OnboardingController(onboardingService, authService);
 const userApiController = new UserApiController(userSelfService, authService);
@@ -159,6 +161,7 @@ export const container = {
 
   // Controllers
   adminLocationController,
+  adminCollegeDomainController,
   authController,
   onboardingController,
   userApiController,

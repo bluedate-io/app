@@ -40,7 +40,7 @@ export default async function AdminMatchPage() {
 
   return (
     <AdminShell>
-      <MatchView cities={cities} colleges={colleges} />
+      <MatchView cities={cities} colleges={colleges} userType="student" />
     </AdminShell>
   );
 }
