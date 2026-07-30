@@ -83,8 +83,9 @@
   }
 }
 
+html,
 body {
-  background: var(--background);
+  background: #EDE8D5;
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }

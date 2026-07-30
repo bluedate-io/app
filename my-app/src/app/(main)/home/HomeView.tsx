@@ -90,6 +90,91 @@ function TimeSep() {
   );
 }
 
+// ─── What happens next timeline ───────────────────────────────────────────────
+const STEPS = [
+  { label: "Opt in", sub: "Before Friday midnight IST" },
+  { label: "We match you", sub: "Saturday morning" },
+  { label: "Check your match", sub: "Matches tab — say hello" },
+];
+
+function WhatHappensNext({ optedIn }: { optedIn: boolean }) {
+  const activeStep = optedIn ? 1 : 0;
+
+  return (
+    <div
+      style={{
+        background: "#fff",
+        border: `2.5px solid ${DARK}`,
+        boxShadow: `4px 4px 0 ${DARK}`,
+        borderRadius: 18,
+        padding: "18px 20px 14px",
+      }}
+    >
+      <p style={{
+        fontSize: 10, fontWeight: 700, color: MUTED,
+        letterSpacing: 2, textTransform: "uppercase",
+        margin: "0 0 16px", fontFamily: "'Playfair Display', Georgia, serif",
+      }}>
+        What happens next
+      </p>
+
+      {STEPS.map((step, i) => {
+        const done = i < activeStep;
+        const active = i === activeStep;
+        const isLast = i === STEPS.length - 1;
+
+        return (
+          <div key={step.label} style={{ display: "flex", gap: 14 }}>
+            {/* Left: circle + connector */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 20, flexShrink: 0 }}>
+              <div style={{
+                width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
+                background: done ? DARK : active ? ACCENT : "transparent",
+                border: `2px solid ${done ? DARK : active ? ACCENT : `${DARK}30`}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {done && (
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M2 5l2.5 2.5L8 3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </div>
+              {!isLast && (
+                <div style={{
+                  width: 2, flex: 1, minHeight: 20,
+                  background: done ? DARK : `${DARK}15`,
+                  margin: "3px 0",
+                  borderRadius: 1,
+                }} />
+              )}
+            </div>
+
+            {/* Right: text */}
+            <div style={{ paddingBottom: isLast ? 0 : 16 }}>
+              <p style={{
+                margin: "0 0 2px",
+                fontSize: 14, fontWeight: done ? 600 : active ? 700 : 500,
+                color: done ? MUTED : active ? DARK : `${DARK}60`,
+                fontFamily: "var(--font-geist-sans, sans-serif)",
+                textDecoration: done ? "line-through" : "none",
+              }}>
+                {step.label}
+              </p>
+              <p style={{
+                margin: 0, fontSize: 12,
+                color: active ? MUTED : `${DARK}40`,
+                fontFamily: "var(--font-geist-sans, sans-serif)",
+              }}>
+                {step.sub}
+              </p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Textarea ─────────────────────────────────────────────────────────────────
 function TypeTextarea({
   value,
@@ -169,17 +254,21 @@ export function HomeView({ initial, planType }: { initial: OptInState; planType:
 const modeLine = state.mode === "bff" ? "BFF" : "Date";
 
   return (
+    <div style={{
+      minHeight: "100dvh",
+      background: BG,
+      backgroundImage: `radial-gradient(circle, ${DARK}22 1px, transparent 1px)`,
+      backgroundSize: "22px 22px",
+    }}>
     <div
       style={{
+        maxWidth: 480,
+        margin: "0 auto",
         minHeight: "100dvh",
-        background: BG,
         paddingTop: "max(env(safe-area-inset-top), 20px)",
         paddingBottom: 24,
         display: "flex",
         flexDirection: "column",
-        maxWidth: 480,
-        margin: "0 auto",
-        width: "100%",
       }}
     >
       {/* Page title */}
@@ -325,9 +414,10 @@ const modeLine = state.mode === "bff" ? "BFF" : "Date";
                 style={{
                   display: "block",
                   textAlign: "center",
-                  background: "#E8622A",
+                  background: ACCENT,
                   color: "#fff",
-                  border: "none",
+                  border: `2.5px solid ${ACCENT}`,
+                  boxShadow: `4px 4px 0 rgba(255,255,255,0.25)`,
                   borderRadius: 999,
                   padding: "14px 24px",
                   fontSize: 15,
@@ -368,8 +458,17 @@ const modeLine = state.mode === "bff" ? "BFF" : "Date";
             </div>
           </div>
 
+          <WhatHappensNext optedIn={state.optedIn} />
         </div>
       )}
+
+      {/* ── Not opted in: timeline context ────────────────────────────────── */}
+      {!state.optedIn && planType === "vip" && (
+        <div style={{ padding: "12px 16px 0" }}>
+          <WhatHappensNext optedIn={false} />
+        </div>
+      )}
+    </div>
     </div>
   );
 }

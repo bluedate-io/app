@@ -475,61 +475,13 @@ export function ProfileView({ data }: { data: ProfileData }) {
         <div>
           <SectionLabel text="Membership" />
           <Card>
-            {planType === "vip" ? (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  padding: "14px 16px",
-                }}
-              >
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 12,
-                    background: "#FFF8EE",
-                    border: `1.5px solid ${DARK}20`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    color: "#b45309",
-                  }}
-                >
-                  <Crown size={18} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: DARK, margin: 0, lineHeight: 1.3 }}>
-                    VIP Member
-                  </p>
-                  <p style={{ fontSize: 12, color: MUTED, margin: "2px 0 0" }}>
-                    Weekly matchmaking active
-                  </p>
-                </div>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "#166534",
-                    background: "#16653418",
-                    borderRadius: 999,
-                    padding: "3px 10px",
-                  }}
-                >
-                  Active
-                </span>
-              </div>
-            ) : (
-              <MenuRow
-                href="/upgrade"
-                icon={<Crown size={18} />}
-                iconBg="#FFF8EE"
-                label="Upgrade to VIP"
-                hint="$1.20/month · weekly matchmaking"
-              />
-            )}
+            <MenuRow
+              href="/profile/membership"
+              icon={<Crown size={18} />}
+              iconBg="#FFF8EE"
+              label="Membership & Plans"
+              hint={planType === "vip" ? "VIP · Active" : "Basic · Free"}
+            />
           </Card>
         </div>
 

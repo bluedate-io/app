@@ -6,8 +6,16 @@ import { config } from "@/config";
 import { db } from "@/lib/db";
 import { ProfileView } from "./ProfileView";
 
+export interface SubscriptionData {
+  status: string;
+  startedAt: Date | null;
+  nextBillingAt: Date | null;
+  createdAt: Date;
+}
+
 export interface ProfileData {
   planType: "basic" | "vip";
+  subscription: SubscriptionData | null;
   profile: {
     fullName?: string;
     dateOfBirth?: string;
@@ -53,8 +61,12 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const [userRow, profile, preferences, interests, personality, photos] = await db.$transaction([
+  const [userRow, subscription, profile, preferences, interests, personality, photos] = await db.$transaction([
     db.user.findUnique({ where: { id: userId }, select: { planType: true } }),
+    db.subscription.findUnique({
+      where: { userId },
+      select: { status: true, startedAt: true, nextBillingAt: true, createdAt: true },
+    }),
     db.profile.findUnique({
       where: { userId },
       select: { fullName: true, dateOfBirth: true, city: true, bio: true },
@@ -105,6 +117,7 @@ export default async function ProfilePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = {
     planType: (userRow?.planType ?? "basic") as "basic" | "vip",
+    subscription: subscription ?? null,
     profile,
     preferences,
     interests,
