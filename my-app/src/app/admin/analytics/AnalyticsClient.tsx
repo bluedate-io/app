@@ -29,6 +29,9 @@ interface AnalyticsData {
   genderBoardingPending: Slice[];
   genderVip: Slice[];
   genderBasic: Slice[];
+  weeklyOptIn: Slice[];
+  weeklyOptInStudents: Slice[];
+  weeklyOptInNonStudents: Slice[];
 }
 
 // ─── Colour palettes ──────────────────────────────────────────────────────────
@@ -39,6 +42,7 @@ const PALETTES: Record<string, string[]> = {
   userType:  ["#EF6820", "#6366F1"],
   onboarding: ["#22C55E", "#F43F5E"],
   plan: ["#F59E0B", "#94A3B8"],
+  weeklyOptIn: ["#0EA5E9", "#E2E8F0"],
   gender: ["#EC4899", "#3B82F6", "#A78BFA", "#94A3B8"],
 };
 
@@ -240,6 +244,29 @@ export default function AnalyticsClient() {
 
   const GROUPS: Group[] = [
     {
+      heading: "Weekly Opt-in",
+      charts: [
+        {
+          title: "All Users",
+          subtitle: "Opted-in vs Not opted-in this week",
+          data: data.weeklyOptIn,
+          paletteName: "weeklyOptIn",
+        },
+        {
+          title: "Students",
+          subtitle: "Opted-in vs Not opted-in · students only",
+          data: data.weeklyOptInStudents,
+          paletteName: "weeklyOptIn",
+        },
+        {
+          title: "Non-students",
+          subtitle: "Opted-in vs Not opted-in · non-students only",
+          data: data.weeklyOptInNonStudents,
+          paletteName: "weeklyOptIn",
+        },
+      ],
+    },
+    {
       heading: "Gender by Segment",
       charts: [
         {
@@ -380,11 +407,12 @@ export default function AnalyticsClient() {
       </div>
 
       {/* Summary pills */}
-      <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
         <StatPill label="Total Users" value={data.total} />
         <StatPill label="Students" value={data.userType.find((d) => d.label === "Students")?.value ?? 0} />
         <StatPill label="Non-students" value={data.userType.find((d) => d.label === "Non-students")?.value ?? 0} />
         <StatPill label="Onboarding Done" value={data.onboarding.find((d) => d.label === "Completed")?.value ?? 0} />
+        <StatPill label="Opted-in This Week" value={data.weeklyOptIn.find((d) => d.label === "Opted-in")?.value ?? 0} />
       </div>
 
       {/* Grouped charts */}

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAdminId } from "@/middleware/adminAuth.middleware";
 import db from "@/lib/db";
+import { getWeekStartIST } from "@/utils/istTime";
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,17 +10,32 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const users = await db.user.findMany({
-    where: { role: { not: "admin" } },
-    select: {
-      userType: true,
-      onboardingCompleted: true,
-      planType: true,
-      preferences: { select: { genderIdentity: true } },
-    },
-  });
+  const currentWeekStart = getWeekStartIST();
+
+  const [users, weeklyOptIns] = await Promise.all([
+    db.user.findMany({
+      where: { role: { not: "admin" } },
+      select: {
+        id: true,
+        userType: true,
+        onboardingCompleted: true,
+        planType: true,
+        preferences: { select: { genderIdentity: true } },
+      },
+    }),
+    db.weeklyOptIn.findMany({
+      where: { weekStart: currentWeekStart },
+      select: { userId: true },
+    }),
+  ]);
 
   const total = users.length;
+  const optedInIds = new Set(weeklyOptIns.map((o) => o.userId));
+
+  // Weekly opt-in counters
+  let weeklyOptInAll = 0;
+  let weeklyOptInStudents = 0;
+  let weeklyOptInNonStudents = 0;
 
   let students = 0;
   let nonStudents = 0;
@@ -52,6 +68,11 @@ export async function GET(req: NextRequest) {
 
     if (isStudent) students++; else nonStudents++;
     if (done) onboardingDone++; else onboardingPending++;
+
+    if (optedInIds.has(u.id)) {
+      weeklyOptInAll++;
+      if (isStudent) weeklyOptInStudents++; else weeklyOptInNonStudents++;
+    }
     if (hasVip) planTook++; else planNotTook++;
 
     if (isStudent) {
@@ -73,6 +94,18 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     total,
+    weeklyOptIn: [
+      { label: "Opted-in", value: weeklyOptInAll },
+      { label: "Not opted-in", value: total - weeklyOptInAll },
+    ],
+    weeklyOptInStudents: [
+      { label: "Opted-in", value: weeklyOptInStudents },
+      { label: "Not opted-in", value: students - weeklyOptInStudents },
+    ],
+    weeklyOptInNonStudents: [
+      { label: "Opted-in", value: weeklyOptInNonStudents },
+      { label: "Not opted-in", value: nonStudents - weeklyOptInNonStudents },
+    ],
     userType: [
       { label: "Students", value: students },
       { label: "Non-students", value: nonStudents },
