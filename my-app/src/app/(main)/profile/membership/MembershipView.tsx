@@ -291,6 +291,12 @@ export function MembershipView({
                     </button>
                   </>
                 )}
+                <p style={{ margin: "14px 8px 0", textAlign: "center", fontSize: 11, lineHeight: 1.6, color: MUTED }}>
+                  By purchasing, you agree to our{" "}
+                  <a href="/terms-and-conditions" style={{ color: DARK, fontWeight: 600, textDecoration: "underline" }}>Terms</a>,{" "}
+                  <a href="/privacy-policy" style={{ color: DARK, fontWeight: 600, textDecoration: "underline" }}>Privacy Policy</a> and{" "}
+                  <a href="/cancellation-and-refund-policy" style={{ color: DARK, fontWeight: 600, textDecoration: "underline" }}>Cancellation &amp; Refund Policy</a>.
+                </p>
               </div>
             </section>
 
