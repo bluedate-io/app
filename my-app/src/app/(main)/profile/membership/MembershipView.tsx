@@ -299,7 +299,6 @@ export function MembershipView({
                 </p>
               </div>
             </section>
-
           </div>
         </div>
       </div>
