@@ -147,7 +147,7 @@ model Location {
 model EmailOtp {
   id        String   @id @default(cuid())
   email     String
-  code      String
+  codeHash  String
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())

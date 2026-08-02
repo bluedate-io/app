@@ -4,6 +4,10 @@
 
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+
+function hashOtp(code: string): string {
+  return crypto.createHash("sha256").update(code).digest("hex");
+}
 import type { PrismaClient } from "@/generated/prisma/client";
 import { config } from "@/config";
 import { logger } from "@/utils/logger";
@@ -45,7 +49,7 @@ export class EmailService implements IEmailService {
     const code = crypto.randomInt(100000, 999999).toString();
     const expiresAt = new Date(Date.now() + config.auth.otpTtlMinutes * 60 * 1000);
 
-    await this.db.emailOtp.create({ data: { email, code, expiresAt } });
+    await this.db.emailOtp.create({ data: { email, codeHash: hashOtp(code), expiresAt } });
 
     if (!this.transporter) {
       log.info(`[DEV] Email OTP for ${email}: ${code} (expires ${expiresAt.toISOString()})`);
@@ -116,10 +120,11 @@ export class EmailService implements IEmailService {
   // ── Verify OTP code ───────────────────────────────────────────────────────
 
   async verifyOtp(email: string, code: string): Promise<void> {
+    const codeHash = hashOtp(code);
     const otp = await this.db.emailOtp.findFirst({
       where: {
         email,
-        code,
+        codeHash,
         used: false,
         expiresAt: { gt: new Date() },
       },
