@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
+    "@arcjet/next": "^1.9.1",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "@sentry/nextjs": "^10.44.0",
