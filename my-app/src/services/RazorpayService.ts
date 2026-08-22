@@ -2,6 +2,8 @@
 
 import crypto from "crypto";
 import { config } from "@/config";
+import { AppError } from "@/types";
+import { ErrorCode } from "@/constants/errors";
 
 export interface RazorpaySubscription {
   id: string;
@@ -25,8 +27,17 @@ export class RazorpayService {
 
   async createOrder(
     amount: number,
-    userId: string
+    userId: string,
+    receipt?: string
   ): Promise<{ orderId: string }> {
+    if (!Number.isInteger(amount) || amount < 100) {
+      throw new AppError(
+        "Amount must be at least ₹1 (100 paise)",
+        ErrorCode.VALIDATION_ERROR,
+        400,
+      );
+    }
+
     const res = await fetch(`${this.base}/orders`, {
       method: "POST",
       headers: {
@@ -36,13 +47,25 @@ export class RazorpayService {
       body: JSON.stringify({
         amount,
         currency: "INR",
+        receipt: receipt ?? `rcpt_${userId.slice(-8)}_${Date.now()}`,
         notes: { userId },
       }),
     });
 
     if (!res.ok) {
       const err = await res.text();
-      throw new Error(`Razorpay createOrder failed: ${res.status} ${err}`);
+      if (res.status === 401) {
+        throw new AppError(
+          "Razorpay authentication failed",
+          ErrorCode.UNAUTHORIZED,
+          401,
+        );
+      }
+      throw new AppError(
+        `Razorpay createOrder failed: ${res.status} ${err}`,
+        ErrorCode.SERVICE_UNAVAILABLE,
+        500,
+      );
     }
 
     const data = (await res.json()) as { id: string };

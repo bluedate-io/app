@@ -6,6 +6,8 @@ import type { ISubscriptionRepository } from "@/repositories/SubscriptionReposit
 import type { RazorpayService } from "@/services/RazorpayService";
 import { config } from "@/config";
 import { logger } from "@/utils/logger";
+import { AppError } from "@/types";
+import { ErrorCode } from "@/constants/errors";
 
 const log = logger.child("PaymentService");
 
@@ -55,13 +57,13 @@ export class PaymentService {
   ): Promise<void> {
     const valid = this.razorpayService.verifyOrderSignature(orderId, paymentId, signature);
     if (!valid) {
-      throw new Error("Invalid payment signature");
+      throw new AppError("Invalid payment signature", ErrorCode.BAD_REQUEST, 400);
     }
 
     const row = await this.subscriptionRepository.findByRazorpayId(orderId);
     if (!row) {
       log.warn("Unknown order on verify", { orderId });
-      throw new Error("Order not found");
+      throw new AppError("Order not found", ErrorCode.NOT_FOUND, 400);
     }
 
     await this.db.$transaction([

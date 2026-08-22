@@ -10,12 +10,6 @@ const ACCENT = "#E8622A";
 const MUTED = "#7A6A54";
 const SERIF = "'Playfair Display', Georgia, serif";
 
-declare global {
-  interface Window {
-    Razorpay: new (options: Record<string, unknown>) => { open(): void };
-  }
-}
-
 export function WelcomeView({ name }: { name?: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -46,7 +40,19 @@ export function WelcomeView({ name }: { name?: string }) {
         currency: "INR",
         name: "Ren",
         description: "VIP — ₹99",
-        theme: { color: ACCENT },
+        theme: { color: "#000000" },
+        config: {
+          display: {
+            blocks: {
+              upi: {
+                name: "Pay via UPI",
+                instruments: [{ method: "upi" }],
+              },
+            },
+            sequence: ["block.upi"],
+            preferences: { show_default_blocks: true },
+          },
+        },
         handler: async (response: {
           razorpay_payment_id: string;
           razorpay_order_id: string;
@@ -71,6 +77,10 @@ export function WelcomeView({ name }: { name?: string }) {
           }
         },
         modal: { ondismiss: () => setLoading(false) },
+      });
+      rzp.on("payment.failed", (resp) => {
+        setError(resp.error?.description ?? "Payment failed. Please try again.");
+        setLoading(false);
       });
       rzp.open();
     } catch {

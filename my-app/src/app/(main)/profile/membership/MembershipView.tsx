@@ -15,7 +15,13 @@ const SANS = "var(--font-geist-sans, sans-serif)";
 
 declare global {
   interface Window {
-    Razorpay: new (options: Record<string, unknown>) => { open(): void };
+    Razorpay: new (options: Record<string, unknown>) => {
+      open(): void;
+      on(
+        event: string,
+        handler: (response: { error: { code: string; description: string } }) => void
+      ): void;
+    };
   }
 }
 
@@ -113,7 +119,19 @@ export function MembershipView({
         currency: "INR",
         name: "Tryren",
         description: "VIP — ₹99/month",
-        theme: { color: ACCENT },
+        theme: { color: "#000000" },
+        config: {
+          display: {
+            blocks: {
+              upi: {
+                name: "Pay via UPI",
+                instruments: [{ method: "upi" }],
+              },
+            },
+            sequence: ["block.upi"],
+            preferences: { show_default_blocks: true },
+          },
+        },
         handler: async (response: {
           razorpay_payment_id: string;
           razorpay_order_id: string;
@@ -138,6 +156,10 @@ export function MembershipView({
           }
         },
         modal: { ondismiss: () => setLoading(false) },
+      });
+      rzp.on("payment.failed", (resp) => {
+        setError(resp.error?.description ?? "Payment failed. Please try again.");
+        setLoading(false);
       });
       rzp.open();
     } catch {
