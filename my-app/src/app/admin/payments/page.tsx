@@ -1,13 +1,28 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import jwt from "jsonwebtoken";
+import type { Prisma } from "@/generated/prisma/client";
 import { config } from "@/config";
 import db from "@/lib/db";
 import AdminShell from "../AdminShell";
-import { ADMIN_ELEVATED_PANEL, ADMIN_TABLE_FRAME } from "@/lib/adminChrome";
+import {
+  ADMIN_ELEVATED_PANEL,
+  ADMIN_TABLE_FRAME,
+  ADMIN_TOOLBAR,
+  ADMIN_SEARCH_SHELL,
+  ADMIN_SELECT,
+  ADMIN_BTN_PRIMARY_SM,
+  ADMIN_BTN_SECONDARY,
+} from "@/lib/adminChrome";
+import { Search, RotateCcw } from "lucide-react";
 import { adminTheme } from "@/lib/adminTheme";
 
 export const dynamic = "force-dynamic";
+
+const HEADER_TEXT = adminTheme.ink;
+
+type StatusFilter = "all" | "paid" | "created" | "failed";
 
 function fmt(date: Date | null): string {
   if (!date) return "—";
@@ -25,7 +40,11 @@ function fmtDateTime(date: Date | null): string {
   });
 }
 
-export default async function AdminPaymentsPage() {
+export default async function AdminPaymentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; q?: string }>;
+}) {
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_token")?.value;
   if (!token) redirect("/admin/login");
@@ -36,8 +55,27 @@ export default async function AdminPaymentsPage() {
     redirect("/admin/login");
   }
 
-  const [orders, totals] = await Promise.all([
+  const sp = await searchParams;
+  const status: StatusFilter =
+    sp.status === "paid" || sp.status === "created" || sp.status === "failed"
+      ? sp.status
+      : "all";
+  const q = sp.q?.trim() ?? "";
+
+  const where: Prisma.PaymentOrderWhereInput = {};
+  if (status !== "all") where.status = status;
+  if (q) {
+    where.OR = [
+      { user: { email: { contains: q, mode: "insensitive" } } },
+      { user: { phone: { contains: q } } },
+      { user: { profile: { is: { fullName: { contains: q, mode: "insensitive" } } } } },
+    ];
+  }
+  const paidWhere: Prisma.PaymentOrderWhereInput = { ...where, status: "paid" };
+
+  const [orders, paidTotals] = await Promise.all([
     db.paymentOrder.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       take: 200,
       select: {
@@ -53,13 +91,14 @@ export default async function AdminPaymentsPage() {
       },
     }),
     db.paymentOrder.aggregate({
-      where: { status: "paid" },
+      where: paidWhere,
       _count: { _all: true },
       _sum: { amount: true },
     }),
   ]);
 
-  const totalCollectedPaise = totals._sum.amount ?? 0;
+  const collectedPaise = paidTotals._sum.amount ?? 0;
+  const hasFilters = status !== "all" || q.length > 0;
 
   return (
     <AdminShell>
@@ -76,10 +115,41 @@ export default async function AdminPaymentsPage() {
               Payments
             </h1>
             <p className="mt-1 text-sm" style={{ color: adminTheme.mutedLabel }}>
-              {totals._count._all} completed · ₹{(totalCollectedPaise / 100).toLocaleString("en-IN")}{" "}
-              collected
+              {hasFilters ? `${orders.length} matching` : `${orders.length} orders`} ·{" "}
+              {paidTotals._count._all} paid · ₹
+              {(collectedPaise / 100).toLocaleString("en-IN")} collected
             </p>
           </div>
+
+          {/* Filters */}
+          <form method="GET" action="/admin/payments" className={`${ADMIN_TOOLBAR} mb-5 flex flex-wrap items-center gap-2`}>
+            <label className={ADMIN_SEARCH_SHELL}>
+              <Search size={15} strokeWidth={2} className="ml-3 shrink-0 opacity-60" aria-hidden />
+              <input
+                type="search"
+                name="q"
+                defaultValue={q}
+                placeholder="Search name, email or phone…"
+                aria-label="Search by name, email or phone"
+                className="w-full bg-transparent px-3 py-2 text-sm font-medium outline-none placeholder:text-bd-muted-label"
+              />
+            </label>
+            <select name="status" defaultValue={status} aria-label="Filter by status" className={ADMIN_SELECT}>
+              <option value="all">All statuses</option>
+              <option value="paid">Paid</option>
+              <option value="created">Created</option>
+              <option value="failed">Failed</option>
+            </select>
+            <button type="submit" className={ADMIN_BTN_PRIMARY_SM}>
+              Apply
+            </button>
+            {hasFilters && (
+              <Link href="/admin/payments" className={ADMIN_BTN_SECONDARY} title="Clear all filters">
+                <RotateCcw size={12} strokeWidth={2.25} aria-hidden />
+                Reset
+              </Link>
+            )}
+          </form>
 
           <div className={ADMIN_TABLE_FRAME}>
             <table className="w-full text-left text-sm">
@@ -99,8 +169,8 @@ export default async function AdminPaymentsPage() {
               <tbody>
                 {orders.length === 0 ? (
                   <tr style={{ backgroundColor: adminTheme.tableSurface }}>
-                    <td colSpan={6} className="px-4 py-16 text-center" style={{ color: adminTheme.mutedLabel }}>
-                      No payment orders yet.
+                    <td colSpan={6} className="px-4 py-16 text-center text-sm" style={{ color: adminTheme.mutedLabel }}>
+                      {hasFilters ? "No orders match these filters." : "No payment orders yet."}
                     </td>
                   </tr>
                 ) : (
@@ -149,13 +219,17 @@ export default async function AdminPaymentsPage() {
                           </span>
                         )}
                       </td>
-                      <td className="max-w-[16rem] truncate px-4 py-3 font-mono text-xs" title={o.razorpayOrderId} style={{ color: adminTheme.mutedLabel }}>
+                      <td
+                        className="max-w-[16rem] truncate px-4 py-3 font-mono text-xs"
+                        title={o.razorpayOrderId}
+                        style={{ color: adminTheme.mutedLabel }}
+                      >
                         {o.razorpayOrderId}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap" style={{ color: adminTheme.textSecondary }}>
+                      <td className="whitespace-nowrap px-4 py-3" style={{ color: adminTheme.textSecondary }}>
                         {fmtDateTime(o.paidAt)}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap" style={{ color: adminTheme.textSecondary }}>
+                      <td className="whitespace-nowrap px-4 py-3" style={{ color: adminTheme.textSecondary }}>
                         {fmt(o.accessEndsAt)}
                       </td>
                     </tr>
@@ -164,10 +238,14 @@ export default async function AdminPaymentsPage() {
               </tbody>
             </table>
           </div>
+
+          {orders.length >= 200 && (
+            <p className="mt-3 text-xs" style={{ color: adminTheme.mutedLabel }}>
+              Showing first 200 orders — narrow with filters to see more.
+            </p>
+          )}
         </div>
       </div>
     </AdminShell>
   );
 }
-
-const HEADER_TEXT = adminTheme.ink;
