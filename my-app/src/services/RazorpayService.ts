@@ -42,6 +42,7 @@ export class RazorpayService {
       },
       body: JSON.stringify({
         plan_id: config.razorpay.planId,
+        total_count: 1,
         customer_notify: 1,
         notes: { userId },
       }),

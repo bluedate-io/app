@@ -33,11 +33,13 @@ export function WelcomeView({ name }: { name?: string }) {
         return;
       }
       const { subscriptionId, keyId } = data.data;
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
       const rzp = new window.Razorpay({
         key: keyId,
         subscription_id: subscriptionId,
-        name: "Ren",
+        name: "Tryren",
         description: "VIP — ₹99/month",
+        image: `https://yuuvbfspleshwuhgopar.supabase.co/storage/v1/object/public/photos/logo-3.png`,
         theme: { color: "#000000" },
         config: {
           display: {
@@ -46,8 +48,12 @@ export function WelcomeView({ name }: { name?: string }) {
                 name: "Pay via UPI",
                 instruments: [{ method: "upi" }],
               },
+              cards: {
+                name: "Debit & Credit Cards",
+                instruments: [{ method: "card" }],
+              },
             },
-            sequence: ["block.upi"],
+            sequence: ["block.upi", "block.cards"],
             preferences: { show_default_blocks: true },
           },
         },
