@@ -34,9 +34,11 @@ function getTimeParts(ms: number) {
 }
 
 function formatMatchDay(deadlineIso: string): string {
-  // Match day = the Saturday after Friday deadline
-  const d = new Date(new Date(deadlineIso).getTime() + 24 * 60 * 60 * 1000);
-  return d.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Kolkata" });
+  // Match day = the Saturday after Friday deadline; roll forward to next
+  // week's Saturday once this cycle's match day has passed.
+  let ms = new Date(deadlineIso).getTime() + 24 * 60 * 60 * 1000;
+  if (ms <= Date.now()) ms += 7 * 24 * 60 * 60 * 1000;
+  return new Date(ms).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Kolkata" });
 }
 
 // ─── Timer cell ───────────────────────────────────────────────────────────────
@@ -222,7 +224,7 @@ export function HomeView({ initial, planType }: { initial: OptInState; planType:
   const [optingIn, setOptingIn] = useState(false);
 
   const deadlineMs = useMemo(() => new Date(state.deadline).getTime(), [state.deadline]);
-  const matchDay = useMemo(() => formatMatchDay(state.deadline), [state.deadline]);
+  const matchDay = formatMatchDay(state.deadline);
 
   const tick = useCallback(() => {
     setParts(getTimeParts(deadlineMs - Date.now()));
