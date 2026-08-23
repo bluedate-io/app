@@ -95,7 +95,8 @@ export class PaymentService {
 
     if (
       eventType === "subscription.activated" ||
-      eventType === "subscription.authenticated"
+      eventType === "subscription.authenticated" ||
+      eventType === "subscription.resumed"
     ) {
       const row = await this.subscriptionRepository.findByRazorpayId(subscriptionId);
       if (!row) {
@@ -144,8 +145,25 @@ export class PaymentService {
       return;
     }
 
+    if (eventType === "subscription.pending") {
+      const row = await this.subscriptionRepository.findByRazorpayId(subscriptionId);
+      if (!row) {
+        log.warn("Webhook: unknown subscription on pending", { subscriptionId });
+        return;
+      }
+
+      await this.db.subscription.update({
+        where: { razorpaySubscriptionId: subscriptionId },
+        data: { status: SubscriptionStatus.pending },
+      });
+
+      log.info("Subscription moved to pending", { userId: row.userId, eventType });
+      return;
+    }
+
     if (
       eventType === "subscription.cancelled" ||
+      eventType === "subscription.paused" ||
       eventType === "subscription.halted" ||
       eventType === "subscription.completed" ||
       eventType === "subscription.expired"
@@ -158,6 +176,7 @@ export class PaymentService {
 
       const statusMap: Record<string, SubscriptionStatus> = {
         "subscription.cancelled": SubscriptionStatus.cancelled,
+        "subscription.paused": SubscriptionStatus.suspended,
         "subscription.halted": SubscriptionStatus.suspended,
         "subscription.completed": SubscriptionStatus.expired,
         "subscription.expired": SubscriptionStatus.expired,
