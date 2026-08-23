@@ -55,6 +55,7 @@ type UserRow = {
   completed: boolean;
   optInStatus: string;
   planType: "basic" | "vip";
+  vipExpiresAt?: string | null;
   joinedAt: string;
 };
 
@@ -853,8 +854,15 @@ export default function UsersTable({
                   </td>
                   <td className="px-4 py-3">
                     {u.planType === "vip" ? (
-                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium" style={{ color: "#b45309", backgroundColor: "#b4530918" }}>
-                        VIP
+                      <span className="inline-flex flex-col gap-0.5">
+                        <span className="inline-block w-fit px-2 py-0.5 rounded-full text-xs font-medium" style={{ color: "#b45309", backgroundColor: "#b4530918" }}>
+                          VIP
+                        </span>
+                        {u.vipExpiresAt && (
+                          <span className="text-[10px] leading-tight" style={{ color: adminTheme.mutedLabel }}>
+                            till {formatDate(u.vipExpiresAt)}
+                          </span>
+                        )}
                       </span>
                     ) : (
                       <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium" style={{ color: "#6b7280", backgroundColor: "#6b728018" }}>

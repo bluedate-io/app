@@ -103,6 +103,7 @@ async function getUsers(
         phone: true,
         email: true,
         planType: true,
+        vipExpiresAt: true,
         onboardingCompleted: true,
         optInStatus: true,
         createdAt: true,
@@ -129,6 +130,7 @@ async function getUsers(
     completed: u.onboardingCompleted,
     optInStatus: (u.optInStatus as string) ?? "opted_out",
     planType: (u.planType as "basic" | "vip") ?? "basic",
+    vipExpiresAt: u.vipExpiresAt ? u.vipExpiresAt.toISOString() : null,
     joinedAt: u.createdAt.toISOString(),
   }));
 
