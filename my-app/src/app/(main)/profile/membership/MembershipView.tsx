@@ -103,7 +103,7 @@ export function MembershipView({
       const res = await fetch("/api/payment/subscribe", { method: "POST" });
       const data = await res.json() as {
         success: boolean;
-        data?: { orderId: string; keyId: string };
+        data?: { subscriptionId: string; keyId: string };
         error?: { message: string };
       };
       if (!data.success || !data.data) {
@@ -111,12 +111,10 @@ export function MembershipView({
         setLoading(false);
         return;
       }
-      const { orderId, keyId } = data.data;
+      const { subscriptionId, keyId } = data.data;
       const rzp = new window.Razorpay({
         key: keyId,
-        order_id: orderId,
-        amount: 9900,
-        currency: "INR",
+        subscription_id: subscriptionId,
         name: "Tryren",
         description: "VIP — ₹99/month",
         theme: { color: "#000000" },
@@ -134,7 +132,7 @@ export function MembershipView({
         },
         handler: async (response: {
           razorpay_payment_id: string;
-          razorpay_order_id: string;
+          razorpay_subscription_id: string;
           razorpay_signature: string;
         }) => {
           try {

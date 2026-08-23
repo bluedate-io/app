@@ -19,6 +19,7 @@ export interface RazorpayWebhookEvent {
         id: string;
         status: string;
         current_start?: number;
+        current_end?: number;
         charge_at?: number;
       };
     };
@@ -35,40 +36,40 @@ export class PaymentService {
     private readonly razorpayService: RazorpayService,
   ) {}
 
-  async initiateSubscription(userId: string): Promise<{ orderId: string; keyId: string }> {
-    const { orderId } = await this.razorpayService.createOrder(9900, userId);
+  async initiateSubscription(userId: string): Promise<{ subscriptionId: string; keyId: string }> {
+    const subscription = await this.razorpayService.createSubscription(userId);
 
     await this.subscriptionRepository.upsert(userId, {
-      razorpaySubscriptionId: orderId,
+      razorpaySubscriptionId: subscription.id,
       status: SubscriptionStatus.pending,
       startedAt: null,
       nextBillingAt: null,
       cancelledAt: null,
     });
 
-    log.info("Order created", { userId, orderId });
-    return { orderId, keyId: config.razorpay.keyId };
+    log.info("Razorpay subscription created", { userId, subscriptionId: subscription.id });
+    return { subscriptionId: subscription.id, keyId: config.razorpay.keyId };
   }
 
   async verifyFirstPayment(
-    orderId: string,
+    subscriptionId: string,
     paymentId: string,
     signature: string
   ): Promise<void> {
-    const valid = this.razorpayService.verifyOrderSignature(orderId, paymentId, signature);
+    const valid = this.razorpayService.verifySubscriptionSignature(subscriptionId, paymentId, signature);
     if (!valid) {
       throw new AppError("Invalid payment signature", ErrorCode.BAD_REQUEST, 400);
     }
 
-    const row = await this.subscriptionRepository.findByRazorpayId(orderId);
+    const row = await this.subscriptionRepository.findByRazorpayId(subscriptionId);
     if (!row) {
-      log.warn("Unknown order on verify", { orderId });
-      throw new AppError("Order not found", ErrorCode.NOT_FOUND, 400);
+      log.warn("Unknown subscription on verify", { subscriptionId });
+      throw new AppError("Subscription not found", ErrorCode.NOT_FOUND, 400);
     }
 
     await this.db.$transaction([
       this.db.subscription.update({
-        where: { razorpaySubscriptionId: orderId },
+        where: { razorpaySubscriptionId: subscriptionId },
         data: {
           status: SubscriptionStatus.active,
           startedAt: new Date(),
@@ -80,7 +81,7 @@ export class PaymentService {
       }),
     ]);
 
-    log.info("User upgraded to VIP via payment verify", { userId: row.userId, orderId });
+    log.info("User upgraded to VIP via payment verify", { userId: row.userId, subscriptionId });
   }
 
   async handleWebhook(event: RazorpayWebhookEvent): Promise<void> {
@@ -92,7 +93,10 @@ export class PaymentService {
       return;
     }
 
-    if (eventType === "subscription.activated") {
+    if (
+      eventType === "subscription.activated" ||
+      eventType === "subscription.authenticated"
+    ) {
       const row = await this.subscriptionRepository.findByRazorpayId(subscriptionId);
       if (!row) {
         log.warn("Webhook: unknown subscription on activate", { subscriptionId });
@@ -116,6 +120,27 @@ export class PaymentService {
       ]);
 
       log.info("User upgraded to VIP via webhook", { userId: row.userId, eventType });
+      return;
+    }
+
+    if (eventType === "subscription.charged") {
+      const row = await this.subscriptionRepository.findByRazorpayId(subscriptionId);
+      if (!row) {
+        log.warn("Webhook: unknown subscription on charge", { subscriptionId });
+        return;
+      }
+
+      const entity = payload.subscription?.entity;
+      const nextBilling = entity?.current_end ?? entity?.charge_at;
+      await this.db.subscription.update({
+        where: { razorpaySubscriptionId: subscriptionId },
+        data: {
+          status: SubscriptionStatus.active,
+          nextBillingAt: nextBilling ? new Date(nextBilling * 1000) : null,
+        },
+      });
+
+      log.info("Subscription renewed", { userId: row.userId, eventType });
       return;
     }
 

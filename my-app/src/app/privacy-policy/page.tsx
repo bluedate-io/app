@@ -28,7 +28,7 @@ export default function PrivacyPolicyPage() {
           <li>Account and verification data, such as name, email address, phone number, one-time passcode status, user type, college and invite information.</li>
           <li>Profile and preference data, such as date of birth, city, gender identity and preferences, photos, bio, height, interests, relationship goals, religion, politics, family preferences and smoking or drinking choices.</li>
           <li>Match and communication data, such as weekly opt-ins, match selections, support requests, email and WhatsApp delivery records and reports about another user.</li>
-          <li>Payment records, such as order ID, payment status, amount, plan and timestamps. Complete card, bank and UPI credentials are collected by Razorpay and are not stored by Tryren.</li>
+          <li>Payment records, such as subscription ID, payment status, amount, plan and timestamps. Complete card, bank and UPI credentials are collected by Razorpay and are not stored by Tryren.</li>
           <li>Technical and usage data, such as IP address, device and browser details, pages viewed, cookies, error logs, analytics events and approximate location inferred from network information.</li>
         </ul>
         <p>We receive data directly from you, from your use of Tryren and from service providers that process authentication, communications, analytics, hosting and payments for us.</p>

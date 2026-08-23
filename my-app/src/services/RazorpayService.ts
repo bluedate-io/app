@@ -25,29 +25,24 @@ export class RazorpayService {
     );
   }
 
-  async createOrder(
-    amount: number,
-    userId: string,
-    receipt?: string
-  ): Promise<{ orderId: string }> {
-    if (!Number.isInteger(amount) || amount < 100) {
+  async createSubscription(userId: string): Promise<RazorpaySubscription> {
+    if (!config.razorpay.planId) {
       throw new AppError(
-        "Amount must be at least ₹1 (100 paise)",
-        ErrorCode.VALIDATION_ERROR,
-        400,
+        "RAZORPAY_PLAN_ID is not configured",
+        ErrorCode.SERVICE_UNAVAILABLE,
+        500,
       );
     }
 
-    const res = await fetch(`${this.base}/orders`, {
+    const res = await fetch(`${this.base}/subscriptions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: this.auth,
       },
       body: JSON.stringify({
-        amount,
-        currency: "INR",
-        receipt: receipt ?? `rcpt_${userId.slice(-8)}_${Date.now()}`,
+        plan_id: config.razorpay.planId,
+        customer_notify: 1,
         notes: { userId },
       }),
     });
@@ -62,22 +57,22 @@ export class RazorpayService {
         );
       }
       throw new AppError(
-        `Razorpay createOrder failed: ${res.status} ${err}`,
+        `Razorpay createSubscription failed: ${res.status} ${err}`,
         ErrorCode.SERVICE_UNAVAILABLE,
         500,
       );
     }
 
-    const data = (await res.json()) as { id: string };
-    return { orderId: data.id };
+    const data = (await res.json()) as RazorpaySubscription;
+    return data;
   }
 
-  verifyOrderSignature(
-    orderId: string,
+  verifySubscriptionSignature(
+    subscriptionId: string,
     paymentId: string,
     signature: string
   ): boolean {
-    const body = `${orderId}|${paymentId}`;
+    const body = `${paymentId}|${subscriptionId}`;
     const expected = crypto
       .createHmac("sha256", config.razorpay.keySecret)
       .update(body)

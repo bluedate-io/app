@@ -15,7 +15,7 @@ export class PaymentController {
     private readonly razorpayService: RazorpayService,
   ) {}
 
-  // POST /api/payment/subscribe — returns { orderId, keyId }
+  // POST /api/payment/subscribe — returns { subscriptionId, keyId }
   async subscribe(_req: NextRequest, ctx: RequestContext) {
     try {
       const result = await this.paymentService.initiateSubscription(ctx.userId);
@@ -25,27 +25,27 @@ export class PaymentController {
     }
   }
 
-  // POST /api/payment/verify — verify payment from Razorpay checkout
+  // POST /api/payment/verify — verify first payment from Razorpay checkout
   async verifyPayment(req: NextRequest, ctx: RequestContext) {
     try {
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
+      const { razorpay_subscription_id, razorpay_payment_id, razorpay_signature } =
         await req.json() as {
-          razorpay_order_id: string;
+          razorpay_subscription_id: string;
           razorpay_payment_id: string;
           razorpay_signature: string;
         };
 
-      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      if (!razorpay_subscription_id || !razorpay_payment_id || !razorpay_signature) {
         return NextResponse.json({ success: false, error: "Missing payment fields" }, { status: 400 });
       }
 
       await this.paymentService.verifyFirstPayment(
-        razorpay_order_id,
+        razorpay_subscription_id,
         razorpay_payment_id,
         razorpay_signature,
       );
 
-      log.info("Payment verified", { userId: ctx.userId, razorpay_order_id });
+      log.info("Payment verified", { userId: ctx.userId, razorpay_subscription_id });
       return successResponse({ activated: true });
     } catch (error) {
       return handleError(error);
