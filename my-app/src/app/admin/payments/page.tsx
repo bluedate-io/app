@@ -70,9 +70,12 @@ export default async function AdminPaymentsPage({
       ? sp.status
       : "all";
   const q = sp.q?.trim() ?? "";
-  // Date range defaults to today (IST).
-  const fromStr = sp.from && DATE_RE.test(sp.from) ? sp.from : istToday();
-  const toStr = sp.to && DATE_RE.test(sp.to) ? sp.to : istToday();
+  // Date range defaults to today (IST); future dates are clamped away.
+  const todayStr = istToday();
+  let fromStr = sp.from && DATE_RE.test(sp.from) ? sp.from : todayStr;
+  let toStr = sp.to && DATE_RE.test(sp.to) ? sp.to : todayStr;
+  if (fromStr > todayStr) fromStr = todayStr;
+  if (toStr > todayStr) toStr = todayStr;
   const [startStr, endStr] = fromStr <= toStr ? [fromStr, toStr] : [toStr, fromStr];
   const rangeStart = new Date(`${startStr}T00:00:00+05:30`);
   const rangeEnd = new Date(`${endStr}T23:59:59+05:30`);
@@ -125,9 +128,8 @@ export default async function AdminPaymentsPage({
   ]);
 
   const collectedPaise = paidTotals._sum.amount ?? 0;
-  const today = istToday();
   const hasFilters =
-    status !== "all" || q.length > 0 || startStr !== today || endStr !== today;
+    status !== "all" || q.length > 0 || startStr !== todayStr || endStr !== todayStr;
   const rangeLabel = `${new Date(`${startStr}T00:00:00+05:30`).toLocaleDateString("en-IN", {
     day: "numeric", month: "short",
   })} – ${new Date(`${endStr}T00:00:00+05:30`).toLocaleDateString("en-IN", {
@@ -180,6 +182,7 @@ export default async function AdminPaymentsPage({
               max={endStr}
               aria-label="From date"
               className={ADMIN_INPUT}
+              style={{ color: adminTheme.ink, colorScheme: "light" }}
             />
             <span className="text-xs font-semibold" style={{ color: adminTheme.mutedLabel }} aria-hidden>
               →
@@ -189,8 +192,10 @@ export default async function AdminPaymentsPage({
               name="to"
               defaultValue={endStr}
               min={startStr}
+              max={todayStr}
               aria-label="To date"
               className={ADMIN_INPUT}
+              style={{ color: adminTheme.ink, colorScheme: "light" }}
             />
             <button type="submit" className={ADMIN_BTN_PRIMARY_SM}>
               Apply

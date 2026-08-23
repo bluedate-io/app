@@ -406,7 +406,7 @@ const modeLine = state.mode === "bff" ? "BFF" : "Date";
                   Upgrade to get matched
                 </p>
                 <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.65)" }}>
-                  VIP members get access to weekly matchmaking for $1.20/month.
+                  VIP members get access to weekly matchmaking for ₹99/month or 4 successful matches.
                 </p>
               </div>
               <a
