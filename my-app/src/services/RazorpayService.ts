@@ -13,6 +13,14 @@ export interface RazorpaySubscription {
   charge_at?: number;
 }
 
+export interface RazorpayOrder {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string; // "created" | "paid" | ...
+  receipt?: string;
+}
+
 export class RazorpayService {
   private readonly base = "https://api.razorpay.com/v1";
 
@@ -77,6 +85,64 @@ export class RazorpayService {
     const expected = crypto
       .createHmac("sha256", config.razorpay.keySecret)
       .update(body)
+      .digest("hex");
+    return expected === signature;
+  }
+
+  // One-time order creation — UPI works on orders (unlike subscriptions for this business category).
+  async createOrder(
+    amountPaise: number,
+    receipt: string,
+    notes: Record<string, string> = {},
+  ): Promise<RazorpayOrder> {
+    const res = await fetch(`${this.base}/orders`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: this.auth,
+      },
+      body: JSON.stringify({
+        amount: amountPaise,
+        currency: "INR",
+        receipt,
+        notes,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      if (res.status === 401) {
+        throw new AppError(
+          "Razorpay authentication failed",
+          ErrorCode.UNAUTHORIZED,
+          401,
+        );
+      }
+      throw new AppError(
+        `Razorpay createOrder failed: ${res.status} ${err}`,
+        ErrorCode.SERVICE_UNAVAILABLE,
+        500,
+      );
+    }
+
+    return (await res.json()) as RazorpayOrder;
+  }
+
+  verifyOrderSignature(orderId: string, paymentId: string, signature: string): boolean {
+    const body = `${orderId}|${paymentId}`;
+    const expected = crypto
+      .createHmac("sha256", config.razorpay.keySecret)
+      .update(body)
+      .digest("hex");
+    return expected === signature;
+  }
+
+  verifyOrderWebhookSignature(rawBody: string, signature: string): boolean {
+    const secret = config.razorpay.orderWebhookSecret || config.razorpay.webhookSecret;
+    if (!secret) return false;
+    const expected = crypto
+      .createHmac("sha256", secret)
+      .update(rawBody)
       .digest("hex");
     return expected === signature;
   }

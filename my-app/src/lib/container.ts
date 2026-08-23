@@ -44,6 +44,7 @@ import { MatchEmailService } from "@/services/MatchEmailService";
 import { OnboardingService } from "@/services/OnboardingService";
 import { RazorpayService } from "@/services/RazorpayService";
 import { PaymentService } from "@/services/PaymentService";
+import { PlanAccessService } from "@/services/PlanAccessService";
 import { TwilioService } from "@/services/TwilioService";
 import { UserSelfService } from "@/services/UserSelfService";
 import { WaInteractiveService } from "@/services/WaInteractiveService";
@@ -102,7 +103,8 @@ const adminOnboardingReminderService = new AdminOnboardingReminderService(
   adminOnboardingReminderRepository,
 );
 const adminMatchesService = new AdminMatchesService(adminMatchesRepository);
-const userSelfService = new UserSelfService(userSelfRepository, matchEmailService);
+const planAccessService = new PlanAccessService(db);
+const userSelfService = new UserSelfService(userSelfRepository, matchEmailService, planAccessService);
 const adminAuthService = new AdminAuthService(emailService, userRepository, userSelfRepository);
 const paymentService = new PaymentService(db, subscriptionRepository, razorpayService);
 
@@ -143,6 +145,7 @@ export const container = {
   // Services
   razorpayService,
   paymentService,
+  planAccessService,
   twilioService,
   emailService,
   matchEmailService,

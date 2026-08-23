@@ -21,10 +21,10 @@ export function WelcomeView({ name }: { name?: string }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/payment/subscribe", { method: "POST" });
+      const res = await fetch("/api/payment/order", { method: "POST" });
       const data = await res.json() as {
         success: boolean;
-        data?: { subscriptionId: string; keyId: string };
+        data?: { orderId: string; keyId: string; amount: number; currency: string };
         error?: { message: string };
       };
       if (!data.success || !data.data) {
@@ -32,13 +32,14 @@ export function WelcomeView({ name }: { name?: string }) {
         setLoading(false);
         return;
       }
-      const { subscriptionId, keyId } = data.data;
-      const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+      const { orderId, keyId, amount, currency } = data.data;
       const rzp = new window.Razorpay({
         key: keyId,
-        subscription_id: subscriptionId,
+        order_id: orderId,
+        amount,
+        currency,
         name: "Tryren",
-        description: "VIP — ₹99/month",
+        description: "VIP — 30 days access",
         image: `https://yuuvbfspleshwuhgopar.supabase.co/storage/v1/object/public/photos/logo-3.png`,
         theme: { color: "#000000" },
         config: {
@@ -58,12 +59,12 @@ export function WelcomeView({ name }: { name?: string }) {
           },
         },
         handler: async (response: {
+          razorpay_order_id: string;
           razorpay_payment_id: string;
-          razorpay_subscription_id: string;
           razorpay_signature: string;
         }) => {
           try {
-            const verifyRes = await fetch("/api/payment/verify", {
+            const verifyRes = await fetch("/api/payment/order/verify", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(response),
@@ -143,7 +144,7 @@ export function WelcomeView({ name }: { name?: string }) {
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <span style={{ fontSize: 26, fontWeight: 800, color: "#fff" }}>₹99</span>
-                  <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginLeft: 4 }}>/mo</span>
+                  <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginLeft: 4 }}>/30 days</span>
                 </div>
               </div>
               <ul style={{ margin: "12px 0 0", padding: "0 0 0 18px", color: "rgba(255,255,255,0.7)", fontSize: 13, lineHeight: 1.85 }}>
@@ -172,7 +173,7 @@ export function WelcomeView({ name }: { name?: string }) {
                   transition: "background 0.15s",
                 }}
               >
-                {!scriptLoaded ? "Loading…" : loading ? "Opening payment…" : "Get VIP — ₹99/month"}
+                {!scriptLoaded ? "Loading…" : loading ? "Opening payment…" : "Get VIP — ₹99"}
               </button>
             </div>
 
@@ -218,7 +219,7 @@ export function WelcomeView({ name }: { name?: string }) {
 
           {/* Footer note */}
           <p style={{ fontSize: 11, color: MUTED, textAlign: "center", padding: "20px 0 32px" }}>
-            Cancel anytime · Powered by Razorpay · UPI, cards &amp; netbanking accepted
+            One-time payment · Powered by Razorpay · UPI, cards &amp; netbanking accepted
           </p>
         </div>
       </div>

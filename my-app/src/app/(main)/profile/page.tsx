@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
 import { config } from "@/config";
+import { container } from "@/lib/container";
 import { db } from "@/lib/db";
 import { ProfileView } from "./ProfileView";
 
@@ -61,8 +62,8 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const [userRow, subscription, profile, preferences, interests, personality, photos] = await db.$transaction([
-    db.user.findUnique({ where: { id: userId }, select: { planType: true } }),
+  const plan = await container.planAccessService.getEffectivePlan(userId);
+  const [subscription, profile, preferences, interests, personality, photos] = await db.$transaction([
     db.subscription.findUnique({
       where: { userId },
       select: { status: true, startedAt: true, nextBillingAt: true, createdAt: true },
@@ -116,7 +117,7 @@ export default async function ProfilePage() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data = {
-    planType: (userRow?.planType ?? "basic") as "basic" | "vip",
+    planType: plan.planType,
     subscription: subscription ?? null,
     profile,
     preferences,

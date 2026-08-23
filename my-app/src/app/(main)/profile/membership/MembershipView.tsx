@@ -32,6 +32,12 @@ interface SubscriptionData {
   createdAt: Date;
 }
 
+interface LastOrderData {
+  paidAt: Date;
+  accessEndsAt: Date | null;
+  amountPaise: number;
+}
+
 function fmt(date: Date | null) {
   if (!date) return "—";
   return new Date(date).toLocaleDateString("en-IN", {
@@ -85,10 +91,14 @@ function PlanCard({
 
 export function MembershipView({
   planType,
+  vipExpiresAt,
   subscription,
+  lastOrder,
 }: {
   planType: "basic" | "vip";
+  vipExpiresAt: Date | null;
   subscription: SubscriptionData | null;
+  lastOrder: LastOrderData | null;
 }) {
   const router = useRouter();
   const [scriptLoaded, setScriptLoaded] = useState(false);
@@ -100,10 +110,10 @@ export function MembershipView({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/payment/subscribe", { method: "POST" });
+      const res = await fetch("/api/payment/order", { method: "POST" });
       const data = await res.json() as {
         success: boolean;
-        data?: { subscriptionId: string; keyId: string };
+        data?: { orderId: string; keyId: string; amount: number; currency: string };
         error?: { message: string };
       };
       if (!data.success || !data.data) {
@@ -111,13 +121,14 @@ export function MembershipView({
         setLoading(false);
         return;
       }
-      const { subscriptionId, keyId } = data.data;
-      const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+      const { orderId, keyId, amount, currency } = data.data;
       const rzp = new window.Razorpay({
         key: keyId,
-        subscription_id: subscriptionId,
+        order_id: orderId,
+        amount,
+        currency,
         name: "Tryren",
-        description: "VIP — ₹99/month",
+        description: "VIP — 30 days access",
         image: `https://yuuvbfspleshwuhgopar.supabase.co/storage/v1/object/public/photos/logo-3.png`,
         theme: { color: "#000000" },
         config: {
@@ -137,12 +148,12 @@ export function MembershipView({
           },
         },
         handler: async (response: {
+          razorpay_order_id: string;
           razorpay_payment_id: string;
-          razorpay_subscription_id: string;
           razorpay_signature: string;
         }) => {
           try {
-            const verifyRes = await fetch("/api/payment/verify", {
+            const verifyRes = await fetch("/api/payment/order/verify", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(response),
@@ -231,7 +242,11 @@ export function MembershipView({
                       {planType === "vip" ? "VIP" : "Basic"}
                     </p>
                     <p style={{ fontSize: 12, color: MUTED, margin: "2px 0 0" }}>
-                      {planType === "vip" ? "Weekly matchmaking active" : "Free plan"}
+                      {planType === "vip"
+                        ? vipExpiresAt
+                          ? `Valid till ${fmt(vipExpiresAt)}`
+                          : "Weekly matchmaking active"
+                        : "Free plan"}
                     </p>
                   </div>
                   <span style={{
@@ -248,7 +263,27 @@ export function MembershipView({
             </section>
 
             {/* Payment details — VIP only */}
-            {planType === "vip" && subscription?.startedAt && (
+            {planType === "vip" && lastOrder && (
+              <section>
+                <p style={{ fontSize: 10, fontWeight: 700, color: MUTED, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 8px 2px" }}>
+                  Payment Details
+                </p>
+                <div style={{
+                  background: CARD, border: `2.5px solid ${DARK}`,
+                  boxShadow: `4px 4px 0 ${DARK}`, borderRadius: 18, overflow: "hidden",
+                }}>
+                  <DetailRow label="Plan" value={`VIP · ₹${lastOrder.amountPaise / 100} / 30 days`} />
+                  <DetailRow label="Last payment" value={`₹${lastOrder.amountPaise / 100} · ${fmt(lastOrder.paidAt)}`} />
+                  <DetailRow
+                    label="Valid till"
+                    value={lastOrder.accessEndsAt ? fmt(lastOrder.accessEndsAt) : "—"}
+                    last
+                  />
+                </div>
+              </section>
+            )}
+
+            {planType === "vip" && !lastOrder && subscription?.startedAt && (
               <section>
                 <p style={{ fontSize: 10, fontWeight: 700, color: MUTED, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 8px 2px" }}>
                   Payment Details
@@ -283,7 +318,7 @@ export function MembershipView({
                   accent={false} isCurrent={planType === "basic"}
                 />
                 <PlanCard
-                  title="VIP" price="₹99 / mo"
+                  title="VIP" price="₹99 / 30 days"
                   features={["Everything in Basic", "Weekly matchmaking opt-in", "Priority matching"]}
                   accent isCurrent={planType === "vip"}
                 />
@@ -313,7 +348,7 @@ export function MembershipView({
                       }}
                     >
                       <Crown size={16} />
-                      {!scriptLoaded ? "Loading…" : loading ? "Opening payment…" : "Upgrade to VIP — ₹99/month"}
+                      {!scriptLoaded ? "Loading…" : loading ? "Opening payment…" : "Upgrade to VIP — ₹99"}
                     </button>
                   </>
                 )}

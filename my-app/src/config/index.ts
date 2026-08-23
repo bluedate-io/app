@@ -99,6 +99,15 @@ export const config = {
     keySecret: optionalEnv("RAZORPAY_KEY_SECRET", ""),
     planId: optionalEnv("RAZORPAY_PLAN_ID", ""),
     webhookSecret: optionalEnv("RAZORPAY_WEBHOOK_SECRET", ""),
+    // Dedicated secret for the orders webhook endpoint; falls back to webhookSecret.
+    orderWebhookSecret: optionalEnv("RAZORPAY_ORDER_WEBHOOK_SECRET", ""),
+  },
+
+  billing: {
+    /** One-time order amount for VIP access, in paise (₹99 = 9900). */
+    vipAmountPaise: parseInt(optionalEnv("VIP_AMOUNT_PAISE", "9900"), 10),
+    /** Days of VIP access granted per paid order. */
+    vipDurationDays: parseInt(optionalEnv("VIP_DURATION_DAYS", "30"), 10),
   },
 } as const;
 

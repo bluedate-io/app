@@ -59,6 +59,12 @@ enum SubscriptionStatus {
   expired
 }
 
+enum PaymentOrderStatus {
+  created
+  paid
+  failed
+}
+
 // ─── Core auth table — email-first auth ──────────────────────────────────────
 
 model User {
@@ -72,6 +78,8 @@ model User {
   optedInAt           DateTime?
   userType            UserType    @default(student)
   planType            PlanType    @default(basic)
+  // Expiry for order-based VIP grants. Null = no expiry (Razorpay-managed subscription).
+  vipExpiresAt        DateTime?
   lastMatchedAt       DateTime?
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
@@ -96,6 +104,7 @@ model User {
   weeklyOptIns       WeeklyOptIn[]
   adminOnboardingReminderSends AdminOnboardingReminderSend[]
   subscription         Subscription?
+  paymentOrders        PaymentOrder[]
 
   @@index([email])
   @@map("users")
@@ -388,6 +397,28 @@ model Subscription {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("subscriptions")
+}
+
+// ─── PaymentOrder — one-time Razorpay order (30-day VIP, UPI-enabled) ─────────
+
+model PaymentOrder {
+  id                String             @id @default(cuid())
+  userId            String
+  razorpayOrderId   String             @unique
+  razorpayPaymentId String?            @unique
+  amount            Int                // paise
+  currency          String             @default("INR")
+  status            PaymentOrderStatus @default(created)
+  paidAt            DateTime?
+  accessEndsAt      DateTime?          // VIP validity granted by this order
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status, paidAt])
+  @@map("payment_orders")
 }
 
 // ─── Weekly opt-in — users signal they want a match this week ─────────────────

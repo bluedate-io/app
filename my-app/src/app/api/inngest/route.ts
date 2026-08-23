@@ -9,8 +9,9 @@ import {
   mondayOptInReminder,
   thursdayOptInReminder,
 } from "@/inngest/functions/reminderEmails";
+import { expireVipAccess } from "@/inngest/functions/vipExpiry";
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [mondayOptInReminder, thursdayOptInReminder],
+  functions: [mondayOptInReminder, thursdayOptInReminder, expireVipAccess],
 });

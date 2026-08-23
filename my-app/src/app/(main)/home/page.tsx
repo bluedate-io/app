@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
 import { config } from "@/config";
+import { container } from "@/lib/container";
 import { db } from "@/lib/db";
 import { HomeView } from "./HomeView";
 
@@ -40,18 +41,15 @@ export default async function HomePage() {
   const weekStart = getWeekStart(now);
   const deadline = getFridayMidnight(now);
 
-  const [record, userRow] = await Promise.all([
+  const [record, plan] = await Promise.all([
     db.weeklyOptIn.findUnique({
       where: { userId_weekStart: { userId, weekStart } },
       select: { mode: true, description: true },
     }),
-    db.user.findUnique({
-      where: { id: userId },
-      select: { planType: true },
-    }),
+    container.planAccessService.getEffectivePlan(userId),
   ]);
 
-  const planType = (userRow?.planType ?? "basic") as "basic" | "vip";
+  const planType = plan.planType;
 
   const initial = {
     optedIn: !!record,

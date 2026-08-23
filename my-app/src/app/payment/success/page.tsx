@@ -57,7 +57,7 @@ export default function PaymentSuccessPage() {
         You&apos;re now VIP!
       </h1>
       <p style={{ color: DARK, fontSize: 15, margin: "0 0 8px" }}>
-        Your subscription is active. Welcome to weekly matchmaking.
+        Your VIP access is active. Welcome to weekly matchmaking.
       </p>
       <p style={{ color: "#9ca3af", fontSize: 13, margin: 0 }}>
         Redirecting you home in a moment…

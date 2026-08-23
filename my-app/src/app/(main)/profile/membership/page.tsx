@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
 import { config } from "@/config";
+import { container } from "@/lib/container";
 import { db } from "@/lib/db";
 import { MembershipView } from "./MembershipView";
 
@@ -19,18 +20,33 @@ export default async function MembershipPage() {
     redirect("/login");
   }
 
-  const [userRow, subscription] = await db.$transaction([
-    db.user.findUnique({ where: { id: userId }, select: { planType: true } }),
+  const [plan, subscription, lastOrder] = await Promise.all([
+    container.planAccessService.getEffectivePlan(userId),
     db.subscription.findUnique({
       where: { userId },
       select: { status: true, startedAt: true, nextBillingAt: true, createdAt: true },
+    }),
+    db.paymentOrder.findFirst({
+      where: { userId, status: "paid" },
+      orderBy: { paidAt: "desc" },
+      select: { paidAt: true, accessEndsAt: true, amount: true },
     }),
   ]);
 
   return (
     <MembershipView
-      planType={(userRow?.planType ?? "basic") as "basic" | "vip"}
+      planType={plan.planType}
+      vipExpiresAt={plan.vipExpiresAt}
       subscription={subscription ?? null}
+      lastOrder={
+        lastOrder?.paidAt
+          ? {
+              paidAt: lastOrder.paidAt,
+              accessEndsAt: lastOrder.accessEndsAt,
+              amountPaise: lastOrder.amount,
+            }
+          : null
+      }
     />
   );
 }
