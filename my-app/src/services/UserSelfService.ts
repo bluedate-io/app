@@ -3,8 +3,7 @@ import { getFridayCutoffIST, getWeekStartIST, isAfterFridayCutoff } from "@/util
 import { verifyOptInToken } from "@/utils/optInToken";
 import { MatchEmailService } from "@/services/MatchEmailService";
 import { UserSelfRepository } from "@/repositories/UserSelfRepository";
-import { PlanAccessService } from "@/services/PlanAccessService";
-import { BadRequestError, ForbiddenError, UnauthorizedError } from "@/utils/errors";
+import { BadRequestError, UnauthorizedError } from "@/utils/errors";
 import { logger } from "@/utils/logger";
 
 const log = logger.child("UserSelfService");
@@ -13,7 +12,6 @@ export class UserSelfService {
   constructor(
     private readonly repo: UserSelfRepository,
     private readonly matchEmailService: MatchEmailService,
-    private readonly planAccessService: PlanAccessService,
   ) {}
 
   async getProfile(userId: string) {
@@ -49,12 +47,6 @@ export class UserSelfService {
   }
 
   async postHomeOptIn(userId: string, description?: string) {
-    // Expiry-aware VIP check — order-based access is downgraded once elapsed.
-    const plan = await this.planAccessService.getEffectivePlan(userId);
-    if (plan.planType !== "vip") {
-      throw new ForbiddenError("VIP plan required to opt in to matchmaking.");
-    }
-
     const now = new Date();
     const weekStart = getWeekStartIST(now);
     const deadline = getFridayCutoffIST(now);

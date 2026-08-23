@@ -333,64 +333,64 @@ const modeLine = state.mode === "bff" ? "BFF" : "Date";
       {/* ── Not opted in ─────────────────────────────────────────────────── */}
       {!state.optedIn && (
         <div style={{ padding: "0 16px" }}>
-          {planType === "vip" ? (
-            <div
+          <div
+            style={{
+              background: "#fff",
+              border: `2.5px solid ${DARK}`,
+              boxShadow: `4px 4px 0 ${DARK}`,
+              borderRadius: 18,
+              padding: "20px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+            }}
+          >
+            <div>
+              <p style={{ margin: "0 0 4px", fontFamily: SERIF, fontSize: 20, fontWeight: 700, color: DARK }}>
+                Want a match this week?
+              </p>
+              <p style={{ margin: 0, fontSize: 13, color: MUTED }}>
+                Opt in and we&apos;ll find you someone by the weekend.
+              </p>
+            </div>
+
+            {!initial.description && (
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                  Describe your type <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+                </label>
+                <TypeTextarea
+                  value={description}
+                  onChange={setDescription}
+                  disabled={!windowOpen}
+                  placeholder="e.g. someone outdoorsy who loves films…"
+                />
+              </div>
+            )}
+
+            <button
+              onClick={handleOptIn}
+              disabled={!windowOpen || optingIn}
               style={{
-                background: "#fff",
+                background: windowOpen ? DARK : MUTED,
+                color: "#fff",
                 border: `2.5px solid ${DARK}`,
-                boxShadow: `4px 4px 0 ${DARK}`,
-                borderRadius: 18,
-                padding: "20px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 16,
+                boxShadow: windowOpen ? `4px 4px 0 ${DARK}` : "none",
+                borderRadius: 999,
+                padding: "14px 24px",
+                fontSize: 15,
+                fontWeight: 700,
+                cursor: windowOpen ? "pointer" : "not-allowed",
+                width: "100%",
+                transition: "opacity 0.15s",
+                opacity: optingIn ? 0.7 : 1,
               }}
             >
-              <div>
-                <p style={{ margin: "0 0 4px", fontFamily: SERIF, fontSize: 20, fontWeight: 700, color: DARK }}>
-                  Want a match this week?
-                </p>
-                <p style={{ margin: 0, fontSize: 13, color: MUTED }}>
-                  Opt in and we&apos;ll find you someone by the weekend.
-                </p>
-              </div>
+              {optingIn ? "Opting in…" : windowOpen ? "Opt In for This Week" : "Window Closed"}
+            </button>
+          </div>
 
-              {!initial.description && (
-                <div>
-                  <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
-                    Describe your type <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span>
-                  </label>
-                  <TypeTextarea
-                    value={description}
-                    onChange={setDescription}
-                    disabled={!windowOpen}
-                    placeholder="e.g. someone outdoorsy who loves films…"
-                  />
-                </div>
-              )}
-
-              <button
-                onClick={handleOptIn}
-                disabled={!windowOpen || optingIn}
-                style={{
-                  background: windowOpen ? DARK : MUTED,
-                  color: "#fff",
-                  border: `2.5px solid ${DARK}`,
-                  boxShadow: windowOpen ? `4px 4px 0 ${DARK}` : "none",
-                  borderRadius: 999,
-                  padding: "14px 24px",
-                  fontSize: 15,
-                  fontWeight: 700,
-                  cursor: windowOpen ? "pointer" : "not-allowed",
-                  width: "100%",
-                  transition: "opacity 0.15s",
-                  opacity: optingIn ? 0.7 : 1,
-                }}
-              >
-                {optingIn ? "Opting in…" : windowOpen ? "Opt In for This Week" : "Window Closed"}
-              </button>
-            </div>
-          ) : (
+          {planType === "basic" && (
             <div
               style={{
                 background: DARK,
@@ -398,6 +398,7 @@ const modeLine = state.mode === "bff" ? "BFF" : "Date";
                 boxShadow: `4px 4px 0 #E8622A`,
                 borderRadius: 18,
                 padding: "20px",
+                marginTop: 12,
                 display: "flex",
                 flexDirection: "column",
                 gap: 14,
@@ -465,7 +466,7 @@ const modeLine = state.mode === "bff" ? "BFF" : "Date";
       )}
 
       {/* ── Not opted in: timeline context ────────────────────────────────── */}
-      {!state.optedIn && planType === "vip" && (
+      {!state.optedIn && (
         <div style={{ padding: "12px 16px 0" }}>
           <WhatHappensNext optedIn={false} />
         </div>

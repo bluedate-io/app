@@ -49,8 +49,6 @@ export default async function HomePage() {
     container.planAccessService.getEffectivePlan(userId),
   ]);
 
-  const planType = plan.planType;
-
   const initial = {
     optedIn: !!record,
     mode: (record?.mode ?? null) as "date" | "bff" | null,
@@ -60,5 +58,5 @@ export default async function HomePage() {
     windowOpen: now < deadline,
   };
 
-  return <HomeView initial={initial} planType={planType} />;
+  return <HomeView initial={initial} planType={plan.planType} />;
 }

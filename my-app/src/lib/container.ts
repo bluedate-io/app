@@ -104,7 +104,7 @@ const adminOnboardingReminderService = new AdminOnboardingReminderService(
 );
 const adminMatchesService = new AdminMatchesService(adminMatchesRepository);
 const planAccessService = new PlanAccessService(db);
-const userSelfService = new UserSelfService(userSelfRepository, matchEmailService, planAccessService);
+const userSelfService = new UserSelfService(userSelfRepository, matchEmailService);
 const adminAuthService = new AdminAuthService(emailService, userRepository, userSelfRepository);
 const paymentService = new PaymentService(db, subscriptionRepository, razorpayService);
 
