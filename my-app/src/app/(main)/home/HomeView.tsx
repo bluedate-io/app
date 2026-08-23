@@ -216,6 +216,51 @@ function TypeTextarea({
   );
 }
 
+// ─── VIP upsell ───────────────────────────────────────────────────────────────
+function VipUpgradeCard() {
+  return (
+    <div
+      style={{
+        background: DARK,
+        border: `2.5px solid ${DARK}`,
+        boxShadow: `4px 4px 0 ${ACCENT}`,
+        borderRadius: 18,
+        padding: "20px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 14,
+      }}
+    >
+      <div>
+        <p style={{ margin: "0 0 4px", fontFamily: SERIF, fontSize: 20, fontWeight: 700, color: "#fff" }}>
+          Upgrade to get matched
+        </p>
+        <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.65)" }}>
+          VIP members get access to weekly matchmaking for ₹99/month or 4 successful matches.
+        </p>
+      </div>
+      <a
+        href="/profile/membership"
+        style={{
+          display: "block",
+          textAlign: "center",
+          background: ACCENT,
+          color: "#fff",
+          border: `2.5px solid ${ACCENT}`,
+          boxShadow: `4px 4px 0 rgba(255,255,255,0.25)`,
+          borderRadius: 999,
+          padding: "14px 24px",
+          fontSize: 15,
+          fontWeight: 700,
+          textDecoration: "none",
+        }}
+      >
+        View VIP plans
+      </a>
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function HomeView({ initial, planType }: { initial: OptInState; planType: "basic" | "vip" }) {
   const [state, setState] = useState<OptInState>(initial);
@@ -332,7 +377,7 @@ const modeLine = state.mode === "bff" ? "BFF" : "Date";
 
       {/* ── Not opted in ─────────────────────────────────────────────────── */}
       {!state.optedIn && (
-        <div style={{ padding: "0 16px" }}>
+        <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 12 }}>
           <div
             style={{
               background: "#fff",
@@ -390,48 +435,7 @@ const modeLine = state.mode === "bff" ? "BFF" : "Date";
             </button>
           </div>
 
-          {planType === "basic" && (
-            <div
-              style={{
-                background: DARK,
-                border: `2.5px solid ${DARK}`,
-                boxShadow: `4px 4px 0 #E8622A`,
-                borderRadius: 18,
-                padding: "20px",
-                marginTop: 12,
-                display: "flex",
-                flexDirection: "column",
-                gap: 14,
-              }}
-            >
-              <div>
-                <p style={{ margin: "0 0 4px", fontFamily: SERIF, fontSize: 20, fontWeight: 700, color: "#fff" }}>
-                  Upgrade to get matched
-                </p>
-                <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.65)" }}>
-                  VIP members get access to weekly matchmaking for ₹99/month or 4 successful matches.
-                </p>
-              </div>
-              <a
-                href="/profile/membership"
-                style={{
-                  display: "block",
-                  textAlign: "center",
-                  background: ACCENT,
-                  color: "#fff",
-                  border: `2.5px solid ${ACCENT}`,
-                  boxShadow: `4px 4px 0 rgba(255,255,255,0.25)`,
-                  borderRadius: 999,
-                  padding: "14px 24px",
-                  fontSize: 15,
-                  fontWeight: 700,
-                  textDecoration: "none",
-                }}
-              >
-                View VIP plans
-              </a>
-            </div>
-          )}
+          {planType === "basic" && <VipUpgradeCard />}
         </div>
       )}
 
@@ -460,6 +464,8 @@ const modeLine = state.mode === "bff" ? "BFF" : "Date";
               </p>
             </div>
           </div>
+
+          {planType === "basic" && <VipUpgradeCard />}
 
           <WhatHappensNext optedIn={state.optedIn} />
         </div>
