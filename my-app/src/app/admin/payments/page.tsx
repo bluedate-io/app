@@ -12,6 +12,7 @@ import {
   ADMIN_TOOLBAR,
   ADMIN_SEARCH_SHELL,
   ADMIN_SELECT,
+  ADMIN_INPUT,
   ADMIN_BTN_PRIMARY_SM,
   ADMIN_BTN_SECONDARY,
 } from "@/lib/adminChrome";
@@ -40,10 +41,18 @@ function fmtDateTime(date: Date | null): string {
   });
 }
 
+const IST_MS = 5.5 * 60 * 60 * 1000;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Today's date (yyyy-mm-dd) in IST. */
+function istToday(): string {
+  return new Date(Date.now() + IST_MS).toISOString().slice(0, 10);
+}
+
 export default async function AdminPaymentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; from?: string; to?: string }>;
 }) {
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_token")?.value;
@@ -61,16 +70,34 @@ export default async function AdminPaymentsPage({
       ? sp.status
       : "all";
   const q = sp.q?.trim() ?? "";
+  // Date range defaults to today (IST).
+  const fromStr = sp.from && DATE_RE.test(sp.from) ? sp.from : istToday();
+  const toStr = sp.to && DATE_RE.test(sp.to) ? sp.to : istToday();
+  const [startStr, endStr] = fromStr <= toStr ? [fromStr, toStr] : [toStr, fromStr];
+  const rangeStart = new Date(`${startStr}T00:00:00+05:30`);
+  const rangeEnd = new Date(`${endStr}T23:59:59+05:30`);
 
   const where: Prisma.PaymentOrderWhereInput = {};
   if (status !== "all") where.status = status;
+
+  const and: Prisma.PaymentOrderWhereInput[] = [];
   if (q) {
-    where.OR = [
-      { user: { email: { contains: q, mode: "insensitive" } } },
-      { user: { phone: { contains: q } } },
-      { user: { profile: { is: { fullName: { contains: q, mode: "insensitive" } } } } },
-    ];
+    and.push({
+      OR: [
+        { user: { email: { contains: q, mode: "insensitive" } } },
+        { user: { phone: { contains: q } } },
+        { user: { profile: { is: { fullName: { contains: q, mode: "insensitive" } } } } },
+      ],
+    });
   }
+  // Range matches paidAt when present, else createdAt (created/failed orders).
+  and.push({
+    OR: [
+      { paidAt: { gte: rangeStart, lte: rangeEnd } },
+      { AND: [{ paidAt: null }, { createdAt: { gte: rangeStart, lte: rangeEnd } }] },
+    ],
+  });
+  where.AND = and;
   const paidWhere: Prisma.PaymentOrderWhereInput = { ...where, status: "paid" };
 
   const [orders, paidTotals] = await Promise.all([
@@ -98,7 +125,14 @@ export default async function AdminPaymentsPage({
   ]);
 
   const collectedPaise = paidTotals._sum.amount ?? 0;
-  const hasFilters = status !== "all" || q.length > 0;
+  const today = istToday();
+  const hasFilters =
+    status !== "all" || q.length > 0 || startStr !== today || endStr !== today;
+  const rangeLabel = `${new Date(`${startStr}T00:00:00+05:30`).toLocaleDateString("en-IN", {
+    day: "numeric", month: "short",
+  })} – ${new Date(`${endStr}T00:00:00+05:30`).toLocaleDateString("en-IN", {
+    day: "numeric", month: "short", year: "numeric",
+  })}`;
 
   return (
     <AdminShell>
@@ -115,8 +149,7 @@ export default async function AdminPaymentsPage({
               Payments
             </h1>
             <p className="mt-1 text-sm" style={{ color: adminTheme.mutedLabel }}>
-              {hasFilters ? `${orders.length} matching` : `${orders.length} orders`} ·{" "}
-              {paidTotals._count._all} paid · ₹
+              {rangeLabel} · {orders.length} orders · {paidTotals._count._all} paid · ₹
               {(collectedPaise / 100).toLocaleString("en-IN")} collected
             </p>
           </div>
@@ -140,6 +173,25 @@ export default async function AdminPaymentsPage({
               <option value="created">Created</option>
               <option value="failed">Failed</option>
             </select>
+            <input
+              type="date"
+              name="from"
+              defaultValue={startStr}
+              max={endStr}
+              aria-label="From date"
+              className={ADMIN_INPUT}
+            />
+            <span className="text-xs font-semibold" style={{ color: adminTheme.mutedLabel }} aria-hidden>
+              →
+            </span>
+            <input
+              type="date"
+              name="to"
+              defaultValue={endStr}
+              min={startStr}
+              aria-label="To date"
+              className={ADMIN_INPUT}
+            />
             <button type="submit" className={ADMIN_BTN_PRIMARY_SM}>
               Apply
             </button>
