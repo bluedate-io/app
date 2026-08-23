@@ -210,9 +210,9 @@ function OptionRow({
 // ─── Field editors ────────────────────────────────────────────────────────────
 
 function BasicsEditor({
-  initialName, initialCity, initialBio, initialDob, onSave, loading, errorMessage,
+  initialEmail, initialName, initialCity, initialBio, initialDob, onSave, loading, errorMessage,
 }: {
-  initialName?: string; initialCity?: string; initialBio?: string;
+  initialEmail?: string | null; initialName?: string; initialCity?: string; initialBio?: string;
   initialDob?: string | Date | null; onSave: (v: { fullName: string; city: string; bio: string; dateOfBirth: string }) => void;
   loading: boolean;
   errorMessage?: string | null;
@@ -256,6 +256,16 @@ function BasicsEditor({
   return (
     <>
       <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "16px 20px 8px" }}>
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 8px", fontFamily: SANS }}>Email</p>
+          <input
+            type="email"
+            value={initialEmail ?? ""}
+            readOnly
+            placeholder="Not added"
+            style={{ ...inputStyle, background: BG, color: MUTED, cursor: "default" }}
+          />
+        </div>
         <div>
           <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: 2, textTransform: "uppercase", margin: "0 0 8px", fontFamily: SANS }}>Full Name</p>
           <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" maxLength={80} style={inputStyle} />
@@ -998,6 +1008,7 @@ export function EditFieldView({ field, data }: { field: EditField; data: Profile
 
         {field === "basics" && (
           <BasicsEditor
+            initialEmail={data.email}
             initialName={data.profile?.fullName}
             initialCity={data.profile?.city}
             initialBio={data.profile?.bio}

@@ -17,6 +17,7 @@ export interface SubscriptionData {
 export interface ProfileData {
   planType: "basic" | "vip";
   subscription: SubscriptionData | null;
+  email?: string | null;
   profile: {
     fullName?: string;
     dateOfBirth?: string;

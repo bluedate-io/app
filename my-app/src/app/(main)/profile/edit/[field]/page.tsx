@@ -44,7 +44,11 @@ export default async function EditFieldPage({
     redirect("/login");
   }
 
-  const [profile, preferences, interests, personality, photos] = await db.$transaction([
+  const [user, profile, preferences, interests, personality, photos] = await db.$transaction([
+    db.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    }),
     db.profile.findUnique({
       where: { userId },
       select: { fullName: true, dateOfBirth: true, city: true, bio: true },
@@ -85,6 +89,6 @@ export default async function EditFieldPage({
   ]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = { profile, preferences, interests, personality, photos } as any as ProfileData;
+  const data = { email: user?.email ?? null, profile, preferences, interests, personality, photos } as any as ProfileData;
   return <EditFieldView field={field as EditField} data={data} />;
 }
