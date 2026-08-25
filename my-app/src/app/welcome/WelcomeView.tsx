@@ -149,7 +149,8 @@ export function WelcomeView({ name }: { name?: string }) {
               </div>
               <ul style={{ margin: "12px 0 0", padding: "0 0 0 18px", color: "rgba(255,255,255,0.7)", fontSize: 13, lineHeight: 1.85 }}>
                 <li>Everything in Basic</li>
-                <li style={{ color: "#fff", fontWeight: 600 }}>Weekly matchmaking opt-in</li>
+                <li style={{ color: "#fff", fontWeight: 600 }}>Weekly matchmaking</li>
+                <li style={{ color: "#fff", fontWeight: 600 }}>opt-in</li>
                 <li style={{ color: "#fff", fontWeight: 600 }}>Priority matching</li>
               </ul>
 
@@ -192,7 +193,8 @@ export function WelcomeView({ name }: { name?: string }) {
               <ul style={{ margin: "12px 0 0", padding: "0 0 0 18px", color: MUTED, fontSize: 13, lineHeight: 1.85 }}>
                 <li>Full profile &amp; onboarding</li>
                 <li>Browse the app</li>
-                <li style={{ color: "#C0B0A0", textDecoration: "line-through" }}>Weekly matchmaking opt-in</li>
+                <li>opt-in</li>
+                <li style={{ color: "#C0B0A0", textDecoration: "line-through" }}>Weekly matchmaking</li>
                 <li style={{ color: "#C0B0A0", textDecoration: "line-through" }}>Priority matching</li>
               </ul>
               <button
