@@ -61,7 +61,7 @@ function DetailRow({ label, value, last }: { label: string; value: string; last?
 function PlanCard({
   title, price, features, accent, isCurrent,
 }: {
-  title: string; price: string; features: string[];
+  title: string; price: string; features: { label: string; strike?: boolean }[];
   accent: boolean; isCurrent: boolean;
 }) {
   return (
@@ -79,9 +79,13 @@ function PlanCard({
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {features.map(f => (
-          <div key={f} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Check size={12} color={accent ? ACCENT : MUTED} strokeWidth={2.5} />
-            <span style={{ fontSize: 12, color: MUTED, fontFamily: SANS }}>{f}</span>
+          <div key={f.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {!f.strike && <Check size={12} color={accent ? ACCENT : MUTED} strokeWidth={2.5} />}
+            <span style={{
+              fontSize: 12, fontFamily: SANS,
+              color: f.strike ? "#C0B0A0" : MUTED,
+              textDecoration: f.strike ? "line-through" : "none",
+            }}>{f.label}</span>
           </div>
         ))}
       </div>
@@ -314,12 +318,23 @@ export function MembershipView({
               }}>
                 <PlanCard
                   title="Basic" price="Free"
-                  features={["Full profile & onboarding", "Browse the app"]}
+                  features={[
+                    { label: "Full profile & onboarding" },
+                    { label: "Browse the app" },
+                    { label: "opt-in" },
+                    { label: "Weekly matchmaking", strike: true },
+                    { label: "Priority matching", strike: true },
+                  ]}
                   accent={false} isCurrent={planType === "basic"}
                 />
                 <PlanCard
                   title="VIP" price="₹99 / 30 days"
-                  features={["Everything in Basic", "Weekly matchmaking opt-in", "Priority matching"]}
+                  features={[
+                    { label: "Everything in Basic" },
+                    { label: "Weekly matchmaking" },
+                    { label: "opt-in" },
+                    { label: "Priority matching" },
+                  ]}
                   accent isCurrent={planType === "vip"}
                 />
 
