@@ -144,7 +144,6 @@ export class AdminMatchmakingService {
       { role: { not: "admin" } },
       { onboardingCompleted: true },
       { userType },
-      { planType: "vip" },
       { weeklyOptIns: { some: { weekStart: currentWeekStart } } },
     ];
 
@@ -217,7 +216,9 @@ export class AdminMatchmakingService {
       ? allUsers.filter((u) => normLower(u.preferences?.genderIdentity) !== gNorm)
       : allUsers;
 
-    return poolUsers.map((u) => {
+    const sorted = [...poolUsers].sort((a, b) => (a.planType === "vip" ? -1 : 1) - (b.planType === "vip" ? -1 : 1));
+
+    return sorted.map((u) => {
       const alreadyMatched = matchedWith.get(u.id) ?? new Set();
       const candidateCount = oppositeUsers.filter(
         (c) => c.id !== u.id && !alreadyMatched.has(c.id),
@@ -252,7 +253,6 @@ export class AdminMatchmakingService {
       { role: { not: "admin" } },
       { onboardingCompleted: true },
       { userType: query.userType },
-      { planType: "vip" },
       { weeklyOptIns: { some: { weekStart: currentWeekStart } } },
     ];
 
