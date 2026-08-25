@@ -1,0 +1,59 @@
+// ─── AdminOptInReminderController — `/api/admin/opt-in-reminder/*`
+
+import { NextRequest, NextResponse } from "next/server";
+import type { AdminOptInReminderService } from "@/services/AdminOptInReminderService";
+import { adminRouteErrorResponse } from "@/utils/adminApiRoute";
+import {
+  parseOptInReminderListQuery,
+  parseOptInReminderSendBody,
+} from "@/validations/adminOptInReminder.validation";
+
+export class AdminOptInReminderController {
+  constructor(private readonly service: AdminOptInReminderService) {}
+
+  async list(req: NextRequest) {
+    try {
+      const q = parseOptInReminderListQuery(req.nextUrl.searchParams);
+      const [list, lastSend, recentSends] = await Promise.all([
+        this.service.listNotOptedInUsers(q.page, q.pageSize, {
+          q: q.q,
+          sort: q.sort,
+          gender: q.gender,
+        }),
+        this.service.getLastSend(),
+        this.service.getRecentSendsWithRecipients(),
+      ]);
+      return NextResponse.json({ data: { ...list, lastSend, recentSends } });
+    } catch (e) {
+      return adminRouteErrorResponse(e);
+    }
+  }
+
+  async send(req: NextRequest, adminUserId: string) {
+    try {
+      const body = await req.json();
+      const parsed = parseOptInReminderSendBody(body);
+      const result =
+        parsed.kind === "selectAllMatching"
+          ? await this.service.sendRemindersForMatchingFilter(
+              adminUserId,
+              parsed.q,
+              parsed.gender,
+            )
+          : await this.service.sendReminders(adminUserId, parsed.userIds);
+      return NextResponse.json({ data: result });
+    } catch (e) {
+      return adminRouteErrorResponse(e);
+    }
+  }
+
+  async reminderHistory(_req: NextRequest, params: Promise<{ userId: string }>) {
+    try {
+      const { userId } = await params;
+      const data = await this.service.getReminderHistoryForUser(userId);
+      return NextResponse.json({ data });
+    } catch (e) {
+      return adminRouteErrorResponse(e);
+    }
+  }
+}

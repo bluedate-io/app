@@ -103,6 +103,7 @@ model User {
   sentMessages       Message[]    @relation("MessageSender")
   weeklyOptIns       WeeklyOptIn[]
   adminOnboardingReminderSends AdminOnboardingReminderSend[]
+  adminOptInReminderSends      AdminOptInReminderSend[]
   subscription         Subscription?
   paymentOrders        PaymentOrder[]
 
@@ -123,6 +124,21 @@ model AdminOnboardingReminderSend {
 
   @@index([sentAt])
   @@map("admin_onboarding_reminder_sends")
+}
+
+// ─── Admin bulk opt-in reminder (BCC) audit log ──────────────────────────────
+
+model AdminOptInReminderSend {
+  id               String   @id @default(cuid())
+  sentAt           DateTime @default(now())
+  sentByUserId     String
+  recipientCount   Int
+  recipientUserIds String[]
+
+  sentBy User @relation(fields: [sentByUserId], references: [id], onDelete: Cascade)
+
+  @@index([sentAt])
+  @@map("admin_opt_in_reminder_sends")
 }
 
 // ─── College domain mapping ───────────────────────────────────────────────────
