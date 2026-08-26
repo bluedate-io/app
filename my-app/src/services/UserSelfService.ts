@@ -92,6 +92,12 @@ export class UserSelfService {
     const late = isAfterFridayCutoff();
     const optInStatus = late ? "opted_in_late" : "opted_in";
     await this.repo.updateOptInStatus(userId, optInStatus);
+
+    const now = new Date();
+    const weekStart = getWeekStartIST(now);
+    const prefs = await this.repo.findPreferenceIntent(userId);
+    const mode = prefs?.relationshipIntent === "friendship" ? "bff" : "date";
+    await this.repo.upsertWeeklyOptIn(userId, weekStart, mode);
     log.info("User opted in", { userId, optInStatus });
 
     if (late && user.email) {
