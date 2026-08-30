@@ -191,6 +191,41 @@ const LOCATIONS: { city: string; subAreas: string[] }[] = [
       "Woraiyur",
     ],
   },
+  {
+    city: "Pune",
+    subAreas: [
+      "Koregaon Park",      // Symbiosis, student/foodie hub
+      "Viman Nagar",
+      "Kharadi",
+      "Hinjewadi",          // IT corridor (Phase 1-3)
+      "Wakad",
+      "Baner",
+      "Aundh",
+      "Deccan Gymkhana",    // SP College, Fergusson
+      "FC Road",            // Fergusson College student hub
+      "JM Road",
+      "Kothrud",
+      "Kalyani Nagar",
+      "Magarpatta",
+      "Hadapsar",
+      "Kondhwa",
+      "Camp",
+      "Warje",
+      "Pimpri",
+      "Chinchwad",
+      "Bibwewadi",
+      "Katraj",
+      "NIBM Road",
+      "Mohammadwadi",
+      "Thergaon",
+      "Bavdhan",
+      "Sinhagad Road",      // Sinhgad institutes
+      "Narhe",
+      "Akurdi",
+      "Nigdi",
+      "Wanowrie",
+    ],
+  },
 ];
 
 async function main() {
